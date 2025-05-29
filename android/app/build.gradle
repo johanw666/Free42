@@ -13,8 +13,8 @@ android {
     defaultConfig {
         minSdkVersion 19
         targetSdkVersion 34
-        versionCode 193
-        versionName "3.3.5"
+        versionCode 194
+        versionName "3.3.5a"
     }
     buildTypes {
         debug {

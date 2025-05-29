@@ -1,3 +1,7 @@
+2025-05-29: release 3.3.5a (Android only)
+
+* Fixed a couple of crashes.
+
 2025-05-21: release 3.3.5
 
 * Better handling of ACC=0 in INTEG.
