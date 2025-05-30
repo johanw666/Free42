@@ -535,10 +535,7 @@ public class Free42Activity extends Activity {
     
     @Override
     protected void onDestroy() {
-        // Commented out because apparently we're getting events after this has been called,
-        // causing crashes when trying to handle those events while various native data
-        // structures no longer exist.
-        // core_cleanup();
+        core_cleanup();
         if (lowBatteryReceiver != null) {
             unregisterReceiver(lowBatteryReceiver);
             lowBatteryReceiver = null;

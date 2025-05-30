@@ -60,6 +60,8 @@ static void set_shift(bool state) {
     }
 }
 
+static bool initialized = false;
+
 static void continue_running();
 static void stop_interruptible();
 static bool handle_error(int error);
@@ -128,6 +130,8 @@ void core_init(int read_saved_state, int4 version, const char *state_file_name, 
         free(state_file_name_crash);
     }
 
+    initialized = true;
+
     repaint_display();
     #if defined(ANDROID) || defined(IPHONE)
     mode_popup_unknown = true;
@@ -165,6 +169,10 @@ void core_save_state(const char *state_file_name) {
 }
 
 void core_cleanup() {
+    if (!initialized)
+        return;
+
+    initialized = false;
     for (int i = 0; i <= sp; i++)
         free_vartype(stack[i]);
     sp = -1;
@@ -184,6 +192,9 @@ void core_cleanup() {
 }
 
 void core_repaint_display() {
+    if (!initialized)
+        return;
+
     repaint_display();
 }
 
@@ -274,6 +285,9 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
 
     *enqueued = 0;
     *repeat = 0;
+
+    if (!initialized)
+        return false;
 
     if (key != 0)
         no_keystrokes_yet = false;
@@ -471,6 +485,9 @@ int dequeue_key() {
 }
 
 int core_repeat() {
+    if (!initialized)
+        return 0;
+
     keydown(repeating_shift, repeating_key);
     int rpt = repeating;
     repeating = 0;
@@ -478,6 +495,9 @@ int core_repeat() {
 }
 
 void core_keytimeout1() {
+    if (!initialized)
+        return;
+
     if (pending_command == CMD_LINGER1 || pending_command == CMD_LINGER2)
         return;
     if (pending_command == CMD_RUN || pending_command == CMD_SST
@@ -508,6 +528,9 @@ void core_keytimeout1() {
 }
 
 void core_keytimeout2() {
+    if (!initialized)
+        return;
+
     if (pending_command == CMD_LINGER1 || pending_command == CMD_LINGER2)
         return;
     remove_program_catalog = 0;
@@ -525,6 +548,9 @@ void core_keytimeout2() {
 }
 
 bool core_timeout3(bool repaint) {
+    if (!initialized)
+        return false;
+
     if (mode_pause) {
         if (repaint) {
             /* The PSE ended normally */
@@ -548,6 +574,9 @@ bool core_timeout3(bool repaint) {
 }
 
 bool core_keyup() {
+    if (!initialized)
+        return false;
+
     if (mode_pause) {
         /* The only way this can happen is if they key in question was Shift */
         return false;
