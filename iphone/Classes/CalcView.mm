@@ -471,6 +471,7 @@ static struct timeval runner_end_time;
     long w, h;
     skin_load(&w, &h);
     
+    core_cleanup();
     core_init(init_mode, version, core_state_file_name, core_state_file_offset);
     keep_running = core_powercycle();
     if (keep_running)
@@ -1018,10 +1019,8 @@ static void quit2(bool really_quit) {
     char corefilename[FILENAMELEN];
     snprintf(corefilename, FILENAMELEN, "config/%s.f42", state.coreName);
     core_save_state(corefilename);
-    if (really_quit) {
-        //core_cleanup();
+    if (really_quit)
         exit(0);
-    }
 }
 
 static void shell_keydown(bool cshift) {

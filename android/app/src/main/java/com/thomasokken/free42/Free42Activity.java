@@ -415,6 +415,7 @@ public class Free42Activity extends Activity {
         calcView.updateScale();
 
         nativeInit();
+        core_cleanup();
         core_init(init_mode, version.value, coreFileName, coreFileOffset);
         if (popupAlpha == 2 && core_alpha_menu())
             calcContainer.showAlphaKeyboard(true);
@@ -535,7 +536,6 @@ public class Free42Activity extends Activity {
     
     @Override
     protected void onDestroy() {
-        core_cleanup();
         if (lowBatteryReceiver != null) {
             unregisterReceiver(lowBatteryReceiver);
             lowBatteryReceiver = null;
