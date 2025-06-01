@@ -358,6 +358,8 @@ extern int repeating_key;
 /* Other functions */
 /*******************/
 
+extern bool quitting;
+
 void set_alpha_entry(bool state);
 void set_running(bool state);
 bool program_running();

@@ -61,6 +61,7 @@ static void set_shift(bool state) {
 }
 
 static bool initialized = false;
+bool quitting = false;
 
 static void continue_running();
 static void stop_interruptible();
@@ -131,6 +132,7 @@ void core_init(int read_saved_state, int4 version, const char *state_file_name, 
     }
 
     initialized = true;
+    quitting = false;
 
     repaint_display();
     #if defined(ANDROID) || defined(IPHONE)
@@ -192,7 +194,7 @@ void core_cleanup() {
 }
 
 void core_repaint_display() {
-    if (!initialized)
+    if (!initialized || quitting)
         return;
 
     repaint_display();
@@ -286,7 +288,7 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
     *enqueued = 0;
     *repeat = 0;
 
-    if (!initialized)
+    if (!initialized || quitting)
         return false;
 
     if (key != 0)
@@ -485,7 +487,7 @@ int dequeue_key() {
 }
 
 int core_repeat() {
-    if (!initialized)
+    if (!initialized || quitting)
         return 0;
 
     keydown(repeating_shift, repeating_key);
@@ -495,7 +497,7 @@ int core_repeat() {
 }
 
 void core_keytimeout1() {
-    if (!initialized)
+    if (!initialized || quitting)
         return;
 
     if (pending_command == CMD_LINGER1 || pending_command == CMD_LINGER2)
@@ -528,7 +530,7 @@ void core_keytimeout1() {
 }
 
 void core_keytimeout2() {
-    if (!initialized)
+    if (!initialized || quitting)
         return;
 
     if (pending_command == CMD_LINGER1 || pending_command == CMD_LINGER2)
@@ -548,7 +550,7 @@ void core_keytimeout2() {
 }
 
 bool core_timeout3(bool repaint) {
-    if (!initialized)
+    if (!initialized || quitting)
         return false;
 
     if (mode_pause) {
@@ -574,7 +576,7 @@ bool core_timeout3(bool repaint) {
 }
 
 bool core_keyup() {
-    if (!initialized)
+    if (!initialized || quitting)
         return false;
 
     if (mode_pause) {
@@ -593,6 +595,7 @@ bool core_keyup() {
 #ifdef IPHONE
         if (off_enabled()) {
             shell_always_on(0);
+            quitting = true;
             shell_powerdown();
         } else {
             set_running(false);
@@ -600,6 +603,7 @@ bool core_keyup() {
         }
 #else
         shell_always_on(0);
+        quitting = true;
         shell_powerdown();
 #endif
         pending_command = CMD_NONE;
@@ -711,6 +715,9 @@ bool core_keyup() {
         error = handle(pending_command, &pending_command_arg);
         mode_pause = false;
     }
+
+    if (quitting)
+        return false;
 
     if (error == ERR_INTERRUPTIBLE) {
         shell_annunciators(-1, -1, -1, 1, -1, -1);
@@ -4948,6 +4955,8 @@ static void continue_running() {
             shell_request_timeout3(1000);
             return;
         }
+        if (quitting)
+            return;
         if (error == ERR_INTERRUPTIBLE)
             return;
         if (!handle_error(error))
