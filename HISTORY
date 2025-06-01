@@ -1,3 +1,7 @@
+2025-06-01: release 3.3.5c (Android only)
+
+* Fixed hang on Shift EXIT.
+
 2025-05-30: release 3.3.5b (Android and iOS)
 
 * Fix for certain rare crashes.
