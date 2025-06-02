@@ -2950,7 +2950,7 @@ public class Free42Activity extends Activity {
      */
     public void shell_powerdown() {
         quit_flag = true;
-        Free42Activity.this.runOnUiThread(new Runnable() {
+        runOnUiThread(new Runnable() {
             public void run() {
                 if (android.os.Build.VERSION.SDK_INT < 21)
                     finish();
