@@ -498,7 +498,7 @@ public class Free42Activity extends Activity {
     }
 
     @Override
-    protected void onStop() {
+    protected void onPause() {
         // Write shell state
         stateFileOutputStream = null;
         try {
@@ -531,7 +531,7 @@ public class Free42Activity extends Activity {
             } catch (IOException e) {}
             printGifFile = null;
         }
-        super.onStop();
+        super.onPause();
     }
     
     @Override
