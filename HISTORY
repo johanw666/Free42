@@ -1,3 +1,7 @@
+2025-06-03: release 3.3.5d (Android and iOS)
+
+* Fix for unreliable state file saving.
+
 2025-06-01: release 3.3.5c (Android only)
 
 * Fixed hang on Shift EXIT.
