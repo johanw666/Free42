@@ -674,6 +674,8 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             RECT windowRect, clientRect;
             GetWindowRect(hWnd, &windowRect);
             GetClientRect(hWnd, &clientRect);
+            if (IsRectEmpty(&clientRect))
+                return DefWindowProc(hWnd, message, wParam, lParam);
             int vBorder = (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top);
             int hBorder = (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left);
 
