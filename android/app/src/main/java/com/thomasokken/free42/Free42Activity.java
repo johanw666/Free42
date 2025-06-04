@@ -2890,6 +2890,8 @@ public class Free42Activity extends Activity {
                 prt_off = true;
             }
         }
+        if (skin == null)
+            return;
         Rect inval = skin.update_annunciators(updn, shf, prt, run, -1, g, rad);
         if (inval != null)
             calcView.postInvalidateScaled(inval.left, inval.top, inval.right, inval.bottom);
