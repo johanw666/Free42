@@ -1,3 +1,8 @@
+2025-06-05: release 3.3.6
+
+* Fixed potential crash on app restart.
+* Android version: fixed memory leak on app restart.
+
 2025-06-04: release 3.3.5f (Android only)
 
 * Fixed potential crash on app restart.
