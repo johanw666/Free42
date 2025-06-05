@@ -209,7 +209,7 @@ void keydown(int shift, int key) {
             key = find_cmd_getkey_mapping(cmd);
             if (key == 0) {
                 squeak();
-                shell_annunciators(-1, -1, -1, 0, -1, -1);
+                set_annunciators(-1, -1, -1, 0, -1, -1);
                 return;
             }
         } else {

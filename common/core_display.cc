@@ -1514,7 +1514,7 @@ void draw_varmenu() {
     varmenu_rows = (num_mvars + 5) / 6;
     if (varmenu_row >= varmenu_rows)
         varmenu_row = varmenu_rows - 1;
-    shell_annunciators(varmenu_rows > 1, -1, -1, -1, -1, -1);
+    set_annunciators(varmenu_rows > 1, -1, -1, -1, -1, -1);
 
     row = 0;
     key = 0;
@@ -1688,7 +1688,7 @@ static void draw_catalog() {
         draw_key(4, 0, 0, "MAT", 3);
         draw_key(5, 0, 0, "MEM", 3);
         mode_updown = true;
-        shell_annunciators(1, -1, -1, -1, -1, -1);
+        set_annunciators(1, -1, -1, -1, -1, -1);
     } else if (catsect == CATSECT_EXT_1) {
         draw_key(0, 0, 0, "TIME", 4);
         draw_key(1, 0, 0, "XFCN", 4);
@@ -1697,7 +1697,7 @@ static void draw_catalog() {
         draw_key(4, 0, 0, "STR", 3);
         draw_key(5, 0, 0, "STK", 3);
         mode_updown = true;
-        shell_annunciators(1, -1, -1, -1, -1, -1);
+        set_annunciators(1, -1, -1, -1, -1, -1);
     } else if (catsect == CATSECT_EXT_2) {
         draw_key(0, 0, 0, "MISC", 4);
         draw_key(1, 0, 0, "", 0);
@@ -1706,7 +1706,7 @@ static void draw_catalog() {
         draw_key(4, 0, 0, "", 0);
         draw_key(5, 0, 0, "", 0);
         mode_updown = true;
-        shell_annunciators(1, -1, -1, -1, -1, -1);
+        set_annunciators(1, -1, -1, -1, -1, -1);
     } else if (catsect == CATSECT_PGM
             || catsect == CATSECT_PGM_ONLY
             || catsect == CATSECT_PGM_SOLVE
@@ -1762,7 +1762,7 @@ static void draw_catalog() {
             catalogmenu_item[catindex][k] = -1;
         }
         mode_updown = catalogmenu_rows[catindex] > 1;
-        shell_annunciators(mode_updown, -1, -1, -1, -1, -1);
+        set_annunciators(mode_updown, -1, -1, -1, -1, -1);
     } else if (catsect == CATSECT_FCN
             || catsect >= CATSECT_EXT_TIME && catsect <= CATSECT_EXT_X_CMP) {
         int *subcat;
@@ -1796,7 +1796,7 @@ static void draw_catalog() {
         }
         catalogmenu_rows[catindex] = subcat_rows;
         mode_updown = subcat_rows > 1;
-        shell_annunciators(mode_updown ? 1 : 0, -1, -1, -1, -1, -1);
+        set_annunciators(mode_updown ? 1 : 0, -1, -1, -1, -1, -1);
     } else {
         int vcount = 0;
         int i, j, k = -1;
@@ -1902,7 +1902,7 @@ static void draw_catalog() {
             catalogmenu_item[catindex][k] = -1;
         }
         mode_updown = catalogmenu_rows[catindex] > 1;
-        shell_annunciators(mode_updown, -1, -1, -1, -1, -1);
+        set_annunciators(mode_updown, -1, -1, -1, -1, -1);
     }
 }
 
@@ -2504,7 +2504,7 @@ int print_program(int prgm_index, int4 pc, int4 lines, bool normal) {
     if (dat == NULL)
         return ERR_INSUFFICIENT_MEMORY;
 
-    shell_annunciators(-1, -1, 1, -1, -1, -1);
+    set_annunciators(-1, -1, 1, -1, -1, -1);
     dat->len = 0;
     dat->saved_prgm = current_prgm;
     dat->cmd = CMD_NONE;
@@ -2653,7 +2653,7 @@ static int print_program_worker(bool interrupted) {
     done:
     current_prgm = dat->saved_prgm;
     free(dat);
-    shell_annunciators(-1, -1, 0, -1, -1, -1);
+    set_annunciators(-1, -1, 0, -1, -1, -1);
     return ERR_STOP;
 }
 
@@ -2851,7 +2851,7 @@ int set_menu_return_err(int level, int menuid, bool exitall) {
         }
     } else
         mode_updown = false;
-    shell_annunciators(mode_updown, -1, -1, -1, -1, -1);
+    set_annunciators(mode_updown, -1, -1, -1, -1, -1);
     return ERR_NONE;
 }
 
@@ -2877,7 +2877,7 @@ void set_plainmenu(int menuid, const char *name, int length) {
         mode_plainmenu_sticky = 1;
         redisplay();
         mode_updown = 1;
-        shell_annunciators(1, -1, -1, -1, -1, -1);
+        set_annunciators(1, -1, -1, -1, -1, -1);
     } else {
         /* Even if it's a different menu than the current one, it should
          * still stick if it belongs to the same group.
@@ -2916,7 +2916,7 @@ void set_plainmenu(int menuid, const char *name, int length) {
         mode_updown = mode_plainmenu == MENU_CATALOG
                 || mode_plainmenu != MENU_NONE
                         && menus[mode_plainmenu].next != MENU_NONE;
-        shell_annunciators(mode_updown, -1, -1, -1, -1, -1);
+        set_annunciators(mode_updown, -1, -1, -1, -1, -1);
     }
 }
 

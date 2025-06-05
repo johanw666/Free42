@@ -1544,7 +1544,7 @@ int docmd_pgmvar(arg_struct *arg) {
         if (command != CMD_MVAR)
             break;
         if (!found) {
-            shell_annunciators(-1, -1, 1, -1, -1, -1);
+            set_annunciators(-1, -1, 1, -1, -1, -1);
             print_text(NULL, 0, true);
             found = true;
         }
@@ -1576,7 +1576,7 @@ int docmd_pgmvar(arg_struct *arg) {
     }
     current_prgm = saved_prgm;
     if (found)
-        shell_annunciators(-1, -1, 0, -1, -1, -1);
+        set_annunciators(-1, -1, 0, -1, -1, -1);
     else
         return ERR_NO_MENU_VARIABLES;
     return ERR_NONE;

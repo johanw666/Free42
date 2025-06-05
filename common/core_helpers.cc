@@ -1148,7 +1148,7 @@ void print_wide(const char *left, int leftlen, const char *right, int rightlen) 
 }
 
 static void print_command_2(const char *text, int len) {
-    shell_annunciators(-1, -1, 1, -1, -1, -1);
+    set_annunciators(-1, -1, 1, -1, -1, -1);
 
     if (deferred_print) {
         /* If the display mode is FIX n, and the user has not entered
@@ -1195,7 +1195,7 @@ static void print_command_2(const char *text, int len) {
     }
 
     deferred_print = 0;
-    shell_annunciators(-1, -1, 0, -1, -1, -1);
+    set_annunciators(-1, -1, 0, -1, -1, -1);
 }
 
 void print_command(int cmd, const arg_struct *arg) {
