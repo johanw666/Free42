@@ -1,3 +1,7 @@
+2025-06-10: release 3.3.6a (Android only)
+
+* Fix for hang during audio playback.
+
 2025-06-05: release 3.3.6
 
 * Fixed potential crash on app restart.
