@@ -145,7 +145,7 @@ public class Free42Activity extends Activity {
     private Handler mainHandler;
     private boolean alwaysOn;
     
-    private SoundPool soundPool;
+    private SoundPipe soundPipe;
     private int[] soundIds;
     
     // Streams for reading and writing the state file
@@ -436,7 +436,7 @@ public class Free42Activity extends Activity {
         if (preferredOrientation != this.getRequestedOrientation())
             setRequestedOrientation(preferredOrientation);
 
-        soundPool = new SoundPool(1, AudioManager.STREAM_SYSTEM, 0);
+        SoundPool soundPool = new SoundPool(1, AudioManager.STREAM_SYSTEM, 0);
         int[] soundResourceIds = {
                 R.raw.tone0, R.raw.tone1, R.raw.tone2, R.raw.tone3, R.raw.tone4,
                 R.raw.tone5, R.raw.tone6, R.raw.tone7, R.raw.tone8, R.raw.tone9,
@@ -447,6 +447,7 @@ public class Free42Activity extends Activity {
         soundIds = new int[soundResourceIds.length];
         for (int i = 0; i < soundResourceIds.length; i++)
             soundIds[i] = soundPool.load(this, soundResourceIds[i], 1);
+        soundPipe = new SoundPipe(soundPool);
     }
 
     @Override
@@ -539,6 +540,10 @@ public class Free42Activity extends Activity {
         if (lowBatteryReceiver != null) {
             unregisterReceiver(lowBatteryReceiver);
             lowBatteryReceiver = null;
+        }
+        if (soundPipe != null) {
+            soundPipe.interrupt();
+            soundPipe = null;
         }
         super.onDestroy();
     }
@@ -2744,7 +2749,7 @@ public class Free42Activity extends Activity {
     
     
     public void playSound(int index) {
-        soundPool.play(soundIds[index], 1f, 1f, 0, 0, 1f);
+        soundPipe.play(soundIds[index]);
     }
     
 
