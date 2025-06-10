@@ -35,6 +35,7 @@
 # /android/app/
 /android/app/*.iml
 /android/app/build
+/android/app/build.prod
 /android/app/.externalNativeBuild
 /android/app/.cxx
 
