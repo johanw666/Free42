@@ -436,8 +436,20 @@ int main(int argc, char *argv[]) {
     GtkApplication *app;
     int status;
     app = gtk_application_new("com.thomasokken.free42", G_APPLICATION_FLAGS_NONE);
+
+    GValue gv = G_VALUE_INIT;
+    g_value_init(&gv, G_TYPE_BOOLEAN);
+    g_value_set_boolean(&gv, true);
+    g_object_set_property(G_OBJECT(app), "register-session", &gv);
+
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     status = g_application_run(G_APPLICATION(app), 0, NULL);
+
+    // We'll only get here if the app is being shut down
+    // by the session manager. Note that the quit() call
+    // does not return.
+    quit();
+
     g_object_unref(app);
     return status;
 }
