@@ -392,7 +392,7 @@ bool shell_loadimage() {
                                             if (r == 0 && g == 0 && b == 0) {
                                                 p = 0;
                                                 black_used = true;
-                                            } else if (r == 255 && g == 255 || b == 255) {
+                                            } else if (r == 255 && g == 255 && b == 255) {
                                                 p = 1;
                                                 white_used = true;
                                             } else {
