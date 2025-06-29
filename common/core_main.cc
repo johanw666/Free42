@@ -3670,7 +3670,8 @@ static void paste_programs(const char *buf) {
                     arg.type = ARGTYPE_NONE;
                     goto store;
                 } else if ((len == 4 || len > 4 && hpbuf[prev_hppos + 4] == ' ')
-                        && strncmp(hpbuf + prev_hppos, "10^X", 4) == 0) {
+                        && (strncmp(hpbuf + prev_hppos, "10^X", 4) == 0
+                         || strncmp(hpbuf + prev_hppos, "10\36X", 4) == 0)) {
                     cmd = CMD_10_POW_X;
                     arg.type = ARGTYPE_NONE;
                     goto store;
