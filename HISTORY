@@ -1,3 +1,10 @@
+2025-06-29: release 3.3.7
+
+* Fixed pasting of 10^X without line number.
+* Android version: Fixed crash with skins with missing annunciators.
+* Linux version: Fixed state saving when the app is exited because of a logout,
+  reboot, or shutdown.
+
 2025-06-10: release 3.3.6a (Android only)
 
 * Fix for hang during audio playback.
