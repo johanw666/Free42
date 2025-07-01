@@ -887,6 +887,8 @@ static void tbnonewliner() {
 }
 
 - (IBAction) loadSkinsLoad:(id)sender {
+    if (skinName != nil)
+        return;
     NSString *url = [loadSkinsURL stringValue];
     NSArray *urls = [Free42AppDelegate skinUrlPair:url];
     if (urls == nil) {
@@ -918,6 +920,8 @@ static void tbnonewliner() {
 - (void) finishTask {
     if (task[0] != nil || task[1] != nil)
         return;
+    if (skinName == nil)
+        return;
     if (taskSuccess[0] && taskSuccess[1]) {
         char buf1[FILENAMELEN], buf2[FILENAMELEN];
         const char *sname = [[skinName stringByRemovingPercentEncoding] UTF8String];
@@ -939,6 +943,7 @@ static void tbnonewliner() {
             show_message("Error", "Loading Skin Failed");
     }
     [skinName release];
+    skinName = nil;
     [loadSkinButton setEnabled:YES];
 }
 
