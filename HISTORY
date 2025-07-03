@@ -1,3 +1,7 @@
+2025-07-03: release 3.3.8
+
+* Fixed a couple of rare crashes.
+
 2025-06-29: release 3.3.7
 
 * Fixed pasting of 10^X without line number.
