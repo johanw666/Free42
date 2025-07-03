@@ -110,17 +110,19 @@ static int dirTypeCapacity = 0;
         [nameField setText:@""];
         dirName = @".";
     } else {
-        [dirName release];
         NSRange r = [dirName rangeOfString:@"/" options:NSBackwardsSearch];
         if (r.location == NSNotFound) {
             [nameField setText:dirName];
+            [dirName release];
             dirName = @".";
         } else {
             [nameField setText:[dirName substringFromIndex:r.location + 1]];
-            dirName = [dirName substringToIndex:r.location];
-            r = [dirName rangeOfString:@"./" options:NSAnchoredSearch];
+            NSString *newDirName = [dirName substringToIndex:r.location];
+            r = [newDirName rangeOfString:@"./" options:NSAnchoredSearch];
             if (r.location == NSNotFound)
-                dirName = [NSString stringWithFormat:@"./%@", dirName];
+                newDirName = [NSString stringWithFormat:@"./%@", newDirName];
+            [dirName release];
+            dirName = [newDirName retain];
         }
     }
     
@@ -177,12 +179,12 @@ static int dirTypeCapacity = 0;
             NSRange r = [dirName rangeOfString:@"/" options:NSBackwardsSearch];
             if (r.location == NSNotFound)
                 return nil;
-            newDirName = [[dirName substringToIndex:r.location] retain];
+            newDirName = [dirName substringToIndex:r.location];
         } else {
-            newDirName = [[NSString stringWithFormat:@"%@/%@", dirName, item] retain];
+            newDirName = [NSString stringWithFormat:@"%@/%@", dirName, item];
         }
         [dirName release];
-        dirName = newDirName;
+        dirName = [newDirName retain];
         [self performSelectorOnMainThread:@selector(typeChanged) withObject:nil waitUntilDone:NO];
     } else {
         // Selected item is a file
