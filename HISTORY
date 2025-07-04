@@ -1,3 +1,7 @@
+2025-07-04: release 3.3.8a (Android only)
+
+* Fixed layout for Android 15 and later.
+
 2025-07-03: release 3.3.8
 
 * Fixed a couple of rare crashes.
