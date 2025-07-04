@@ -132,6 +132,7 @@ public class Free42Activity extends Activity {
     
     private CalcView calcView;
     private CalcContainer calcContainer;
+    private View calcContainerContainer;
     private SkinLayout skin;
     private KeymapEntry[] keymap;
     private View printView;
@@ -347,9 +348,21 @@ public class Free42Activity extends Activity {
         calcView = new CalcView(this);
         AlphaKeyboardView kb = new AlphaKeyboardView(this);
         calcContainer = new CalcContainer(this, calcView, kb);
-        setContentView(calcContainer);
 
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        RelativeLayout calcViewXml = (RelativeLayout) inflater.inflate(R.layout.calc_view, null);
+
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
+        params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+        params.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+        params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
+        calcViewXml.addView(calcContainer, params);
+        calcContainerContainer = calcViewXml;
+
+        setContentView(calcContainerContainer);
+
         printView = inflater.inflate(R.layout.print_view, null);
         Button button = (Button) printView.findViewById(R.id.advB);
         button.setOnClickListener(new View.OnClickListener() {
@@ -903,7 +916,7 @@ public class Free42Activity extends Activity {
     
     private void doFlipCalcPrintout() {
         printViewShowing = !printViewShowing;
-        setContentView(printViewShowing ? printView : calcContainer);
+        setContentView(printViewShowing ? printView : calcContainerContainer);
     }
     
     private void doImport() {
