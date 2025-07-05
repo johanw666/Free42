@@ -748,7 +748,8 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         case WM_SIZE: {
             int w = LOWORD(lParam);
             int h = HIWORD(lParam);
-            skin_set_window_size(w, h);
+            if (w != 0 && h != 0)
+                skin_set_window_size(w, h);
             goto do_default;
         }
         case WM_PAINT: {
