@@ -1,3 +1,8 @@
+2025-07-05: release 3.3.8b (Windows only)
+
+* The size of the main window would not be saved if the app was exited while
+  minimized. Fixed.
+
 2025-07-04: release 3.3.8a (Android only)
 
 * Fixed layout for Android 15 and later.
