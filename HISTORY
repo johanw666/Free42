@@ -1,3 +1,7 @@
+2025-07-19: release 3.3.8c (Android only)
+
+* Fixed "No Status" and "Full Screen" modes. These got broken in 3.3.8.
+
 2025-07-05: release 3.3.8b (Windows only)
 
 * The size of the main window would not be saved if the app was exited while
