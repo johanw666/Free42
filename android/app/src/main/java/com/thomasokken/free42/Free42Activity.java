@@ -56,6 +56,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.hardware.GeomagneticField;
@@ -90,6 +91,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -132,7 +134,6 @@ public class Free42Activity extends Activity {
     
     private CalcView calcView;
     private CalcContainer calcContainer;
-    private View calcContainerContainer;
     private SkinLayout skin;
     private KeymapEntry[] keymap;
     private View printView;
@@ -348,21 +349,9 @@ public class Free42Activity extends Activity {
         calcView = new CalcView(this);
         AlphaKeyboardView kb = new AlphaKeyboardView(this);
         calcContainer = new CalcContainer(this, calcView, kb);
+        setContentView(calcContainer);
 
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        RelativeLayout calcViewXml = (RelativeLayout) inflater.inflate(R.layout.calc_view, null);
-
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
-        params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
-        params.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
-        params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
-        calcViewXml.addView(calcContainer, params);
-        calcContainerContainer = calcViewXml;
-
-        setContentView(calcContainerContainer);
-
         printView = inflater.inflate(R.layout.print_view, null);
         Button button = (Button) printView.findViewById(R.id.advB);
         button.setOnClickListener(new View.OnClickListener() {
@@ -432,6 +421,25 @@ public class Free42Activity extends Activity {
         core_init(init_mode, version.value, coreFileName, coreFileOffset);
         if (popupAlpha == 2 && core_alpha_menu())
             calcContainer.showAlphaKeyboard(true);
+
+        if (android.os.Build.VERSION.SDK_INT >= 35) {
+            View.OnApplyWindowInsetsListener wil = new View.OnApplyWindowInsetsListener() {
+                @NonNull
+                @Override
+                public WindowInsets onApplyWindowInsets(@NonNull View view, @NonNull WindowInsets windowInsets) {
+                    Insets insets = windowInsets.getInsets(WindowInsets.Type.systemBars());
+                    ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+                    mlp.topMargin = insets.top;
+                    mlp.leftMargin = insets.left;
+                    mlp.bottomMargin = insets.bottom;
+                    mlp.rightMargin = insets.right;
+                    view.setLayoutParams(mlp);
+                    return WindowInsets.CONSUMED;
+                }
+            };
+            calcContainer.setOnApplyWindowInsetsListener(wil);
+            printView.setOnApplyWindowInsetsListener(wil);
+        }
 
         lowBatteryReceiver = new BroadcastReceiver() {
             public void onReceive(Context ctx, Intent intent) {
@@ -916,7 +924,7 @@ public class Free42Activity extends Activity {
     
     private void doFlipCalcPrintout() {
         printViewShowing = !printViewShowing;
-        setContentView(printViewShowing ? printView : calcContainerContainer);
+        setContentView(printViewShowing ? printView : calcContainer);
     }
     
     private void doImport() {
