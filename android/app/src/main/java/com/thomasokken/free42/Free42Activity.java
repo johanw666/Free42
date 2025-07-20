@@ -335,13 +335,15 @@ public class Free42Activity extends Activity {
 
         if (style == 1)
             setTheme(android.R.style.Theme_NoTitleBar_Fullscreen);
-        else if (style == 2) {
-            try {
-                Method m = View.class.getMethod("setSystemUiVisibility", int.class);
-                m.invoke(getWindow().getDecorView(), PreferencesDialog.immersiveModeFlags);
-            } catch (Exception e) {}
-        }
-        
+        else if (style == 2)
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+
         Configuration conf = getResources().getConfiguration();
         orientation = conf.orientation == Configuration.ORIENTATION_LANDSCAPE ? 1 : 0;
         
@@ -511,12 +513,14 @@ public class Free42Activity extends Activity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if (style == 2) {
-            try {
-                Method m = View.class.getMethod("setSystemUiVisibility", int.class);
-                m.invoke(getWindow().getDecorView(), PreferencesDialog.immersiveModeFlags);
-            } catch (Exception e) {}
-        }
+        if (style == 2)
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
 
     @Override
@@ -2468,12 +2472,9 @@ public class Free42Activity extends Activity {
                         // The older 0, 50, 100, 150 scale
                         keyVibration = (int) (Math.log(keyVibration) / Math.log(2) * 2 + 0.5);
                 }
-            if (shell_version >= 9) {
+            if (shell_version >= 9)
                 style = state_read_int();
-                int maxStyle = PreferencesDialog.immersiveModeSupported ? 2 : 1;
-                if (style > maxStyle)
-                    style = maxStyle;
-            } else
+            else
                 style = 0;
             if (shell_version >= 23)
                 popupAlpha = state_read_int();
@@ -2980,15 +2981,12 @@ public class Free42Activity extends Activity {
         quit_flag = true;
         runOnUiThread(new Runnable() {
             public void run() {
-                if (android.os.Build.VERSION.SDK_INT < 21)
-                    finish();
+                if (android.os.Build.VERSION.SDK_INT >= 21)
+                    finishAndRemoveTask();
                 else
-                    try {
-                        Method m = Free42Activity.class.getMethod("finishAndRemoveTask");
-                        m.invoke(Free42Activity.this);
-                    } catch (Exception e) {}
-                }
-            });
+                    finish();
+            }
+        });
     }
     
     private class AlwaysOnSetter implements Runnable {

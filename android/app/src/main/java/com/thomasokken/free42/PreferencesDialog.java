@@ -31,38 +31,7 @@ import android.widget.SeekBar;
 import android.widget.Spinner;
 
 public class PreferencesDialog extends Dialog {
-    private static boolean reversePortraitSupported;
-    private static final int reversePortraitConstant;
-    public static boolean immersiveModeSupported;
-    public static final int immersiveModeFlags;
-    
-    static {
-        reversePortraitSupported = true;
-        int tmp = 0;
-        try {
-            tmp = ActivityInfo.class.getField("SCREEN_ORIENTATION_REVERSE_PORTRAIT").getInt(null);
-        } catch (Exception e) {
-            reversePortraitSupported = false;
-        }
-        reversePortraitConstant = tmp;
-        
-        immersiveModeSupported = true;
-        tmp = 0;
-        try {
-            String[] fields = { "SYSTEM_UI_FLAG_LAYOUT_STABLE",
-                                "SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION",
-                                "SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN",
-                                "SYSTEM_UI_FLAG_HIDE_NAVIGATION",
-                                "SYSTEM_UI_FLAG_FULLSCREEN",
-                                "SYSTEM_UI_FLAG_IMMERSIVE_STICKY" };
-            for (String field : fields)
-                tmp |= View.class.getField(field).getInt(null);
-        } catch (Exception e) {
-            immersiveModeSupported = false;
-        }
-        immersiveModeFlags = tmp;
-    }
-    
+
     private CheckBox singularMatrixCB;
     private CheckBox matrixOutOfRangeCB;
     private CheckBox autoRepeatCB;
@@ -145,18 +114,11 @@ public class PreferencesDialog extends Dialog {
             }
         });
         orientationSP = (Spinner) findViewById(R.id.orientationSpinner);
-        String[] values;
-        if (reversePortraitSupported)
-            values = new String[] { "Automatic", "Portrait", "Reverse Portrait", "Landscape" };
-        else
-            values = new String[] { "Automatic", "Portrait", "Landscape" };
+        String[] values = new String[] { "Automatic", "Portrait", "Reverse Portrait", "Landscape" };
         ArrayAdapter<String> aa = new ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, values);
         orientationSP.setAdapter(aa);
         styleSP = (Spinner) findViewById(R.id.styleSpinner);
-        if (immersiveModeSupported)
-            values = new String[] { "Normal", "No Status", "Full Screen" };
-        else
-            values = new String[] { "Normal", "No Status" };
+        values = new String[] { "Normal", "No Status", "Full Screen" };
         aa = new ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, values);
         styleSP.setAdapter(aa);
         popupAlphaSP = (Spinner) findViewById(R.id.popupAlphaSpinner);
@@ -296,46 +258,28 @@ public class PreferencesDialog extends Dialog {
     }
     
     public void setOrientation(int orientation) {
-        if (reversePortraitSupported) {
-            if (orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
-                orientation = 1;
-            else if (orientation == reversePortraitConstant)
-                orientation = 2;
-            else if (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
-                orientation = 3;
-            else
-                orientation = 0;
-        } else {
-            if (orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
-                orientation = 1;
-            else if (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
-                orientation = 2;
-            else
-                orientation = 0;
-        }
+        if (orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+            orientation = 1;
+        else if (orientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT)
+            orientation = 2;
+        else if (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+            orientation = 3;
+        else
+            orientation = 0;
         orientationSP.setSelection(orientation);
     }
     
     public int getOrientation() {
         int orientation = orientationSP.getSelectedItemPosition();
-        if (reversePortraitSupported)
-            switch (orientation) {
-                case 1: return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-                case 2: return reversePortraitConstant;
-                case 3: return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
-                case 0: default: return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
-            }
-        else
-            switch (orientation) {
-                case 1: return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-                case 2: return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
-                case 0: default: return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
-            }
+        switch (orientation) {
+            case 1: return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+            case 2: return ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+            case 3: return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+            case 0: default: return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+        }
     }
     
     public void setStyle(int style) {
-        if (style == 2 && !immersiveModeSupported)
-            style = 1;
         styleSP.setSelection(style);
     }
     
