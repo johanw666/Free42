@@ -1558,6 +1558,7 @@ public class Free42Activity extends Activity {
             setFocusableInTouchMode(true);
             if (android.os.Build.VERSION.SDK_INT >= 26)
                 setDefaultFocusHighlightEnabled(false);
+            setBackgroundColor(Color.BLACK);
         }
         
         public void updateScale() {
