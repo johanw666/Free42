@@ -108,6 +108,7 @@
 /gtk/keymap.cc
 /gtk/skin2cc
 /gtk/skins.cc
+/gtk/icons.c
 /gtk/free42bin
 /gtk/free42dec
 /gtk/plus42bin

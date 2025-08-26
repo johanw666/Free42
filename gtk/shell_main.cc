@@ -38,12 +38,6 @@
 #include "core_main.h"
 #include "core_display.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wwrite-strings"
-#include "icon-128x128.xpm"
-#include "icon-48x48.xpm"
-#pragma GCC diagnostic pop
-
 #ifndef _POSIX_HOST_NAME_MAX
 #define _POSIX_HOST_NAME_MAX 255
 #endif
@@ -669,8 +663,8 @@ static void activate(GtkApplication *theApp, gpointer userData) {
     mainwindow = GTK_WIDGET(obj);
     gtk_window_set_application(GTK_WINDOW(mainwindow), app);
 
-    icon_128 = gdk_pixbuf_new_from_xpm_data((const char **) icon_128_xpm);
-    icon_48 = gdk_pixbuf_new_from_xpm_data((const char **) icon_48_xpm);
+    icon_128 = gdk_pixbuf_new_from_resource("/icons/icon-128x128.png", NULL);
+    icon_48 = gdk_pixbuf_new_from_resource("/icons/icon-48x48.png", NULL);
 
     gtk_window_set_icon(GTK_WINDOW(mainwindow), icon_128);
     gtk_window_set_title(GTK_WINDOW(mainwindow), TITLE);

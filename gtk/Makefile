@@ -100,8 +100,8 @@ SRCS += audio_alsa.cc
 OBJS += audio_alsa.o
 endif
 
-$(EXE): $(OBJS) gcc111libbid.a
-	$(CXX) -o $(EXE) $(LDFLAGS) $(OBJS) $(LIBS)
+$(EXE): $(OBJS) icons.o gcc111libbid.a
+	$(CXX) -o $(EXE) $(LDFLAGS) $(OBJS) icons.o $(LIBS)
 
 txt2raw: symlinks txt2raw.o $(CORE_OBJS) gcc111libbid.a
 	$(CXX) -o txt2raw $(LDFLAGS) txt2raw.o $(CORE_OBJS) $(LIBS)
@@ -113,6 +113,10 @@ $(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf: symlinks
 
 .cc.o:
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+icons.o: icons.gresource.xml
+	glib-compile-resources --generate-source $<
+	$(CC) $(CFLAGS) -c -o $@ icons.c
 
 readtest.o: readtest.c
 	$(CC) $(CFLAGS) -I IntelRDFPMathLib20U1/TESTS -D__intptr_t_defined -DLINUX -c -o $@ $<
@@ -139,7 +143,7 @@ symlinks:
 
 clean: FORCE
 	rm -f `find . -type l ! -name readtest.c` \
-		skin2cc skin2cc.exe skins.cc \
+		skin2cc skin2cc.exe skins.cc icons.c \
 		keymap2cc keymap2cc.exe keymap.cc \
 		*.o *.d *.i *.ii *.s symlinks core.* \
 		raw2txt txt2raw
@@ -147,7 +151,7 @@ clean: FORCE
 cleaner: FORCE
 	rm -f `find . -type l` \
 		free42bin free42bin.exe free42dec free42dec.exe \
-		skin2cc skin2cc.exe skins.cc \
+		skin2cc skin2cc.exe skins.cc icons.c \
 		keymap2cc keymap2cc.exe keymap.cc \
 		readtest_lines.cc \
 		gcc111libbid.a \
