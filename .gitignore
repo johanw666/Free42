@@ -15,13 +15,17 @@
 /android/.idea/*.iml
 /android/.idea/caches
 /android/.idea/libraries
-/android/.idea/modules.xml
-/android/.idea/workspace.xml
-/android/.idea/navEditor.xml
+/android/.idea/AndroidProjectSystem.xml
 /android/.idea/assetWizardSettings.xml
 /android/.idea/compiler.xml
-/android/.idea/jarRepositories.xml
 /android/.idea/deploymentTargetDropDown.xml
+/android/.idea/deploymentTargetSelector.xml
+/android/.idea/jarRepositories.xml
+/android/.idea/migrations.xml
+/android/.idea/modules.xml
+/android/.idea/navEditor.xml
+/android/.idea/runConfigurations.xml
+/android/.idea/workspace.xml
 
 # /android/.idea/modules/
 /android/.idea/modules/android.iml
