@@ -10,31 +10,7 @@
 /android/build
 /android/captures
 /android/.externalNativeBuild
-
-# /android/.idea/
-/android/.idea/*.iml
-/android/.idea/caches
-/android/.idea/libraries
-/android/.idea/AndroidProjectSystem.xml
-/android/.idea/assetWizardSettings.xml
-/android/.idea/compiler.xml
-/android/.idea/deploymentTargetDropDown.xml
-/android/.idea/deploymentTargetSelector.xml
-/android/.idea/jarRepositories.xml
-/android/.idea/migrations.xml
-/android/.idea/modules.xml
-/android/.idea/navEditor.xml
-/android/.idea/runConfigurations.xml
-/android/.idea/workspace.xml
-
-# /android/.idea/modules/
-/android/.idea/modules/android.iml
-
-# /android/.idea/modules/app/
-/android/.idea/modules/app/android.app.androidTest.iml
-/android/.idea/modules/app/android.app.iml
-/android/.idea/modules/app/android.app.main.iml
-/android/.idea/modules/app/android.app.unitTest.iml
+/android/.idea
 
 # /android/app/
 /android/app/*.iml
