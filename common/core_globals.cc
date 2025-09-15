@@ -2380,6 +2380,7 @@ bool store_command(int4 pc, int command, arg_struct *arg, const char *num_str) {
         new_prgm = prgm + 1;
         new_prgm->size = prgm->size - pc;
         new_prgm->capacity = (new_prgm->size + 511) & ~511;
+        new_prgm->locked = false;
         new_prgm->text = (unsigned char *) malloc(new_prgm->capacity);
         // TODO - handle memory allocation failure
         for (i = pc; i < prgm->size; i++)
