@@ -157,7 +157,7 @@
 /iphone/.DS_Store
 /iphone/build
 /iphone/IntelRDFPMathLib20U1
-/iphone/gcc111libbid*.a
+/iphone/libbid*.a
 /iphone/readtest_lines.cc
 
 # /iphone/Classes/
