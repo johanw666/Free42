@@ -1,3 +1,7 @@
+2025-09-27: release 3.3.8d (Android only)
+
+* Updated build configuration to support 16 kB page size.
+
 2025-07-19: release 3.3.8c (Android only)
 
 * Fixed "No Status" and "Full Screen" modes. These got broken in 3.3.8.
