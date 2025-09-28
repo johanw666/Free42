@@ -15,7 +15,7 @@
   _CFLAGS_OS     := $(call HostOsTypeSelect, -DLINUX, -DWINDOWS)
   _CFLAGS_ARCH   := $(call HostArchTypeSelect,-Dia32,-DITANIUM -Dia64, -Defi2)
 ! _CFLAGS_CC     := -fsigned-char -DBID_SIZE_LONG=4
-! _CFLAGS_OPT    := -fPIC -mfpu=vfp
+! _CFLAGS_OPT    := -fPIC -mfpu=vfpv3-d16
       
   ifeq ($(BID_BIG_ENDIAN),true)
       _CFLAGS_CONFIG += -DBID_BIG_ENDIAN=1

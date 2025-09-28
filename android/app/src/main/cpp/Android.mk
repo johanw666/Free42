@@ -22,7 +22,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := gcc111libbid
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 LOCAL_SRC_FILES := libgcc111libbid-armv7.a
-INTEL_CFLAGS := -fsigned-char -DBID_SIZE_LONG=4
+INTEL_CFLAGS := -fsigned-char -DBID_SIZE_LONG=4 -mfpu=vfpv3-d16
 endif
 ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
 LOCAL_SRC_FILES := libgcc111libbid-arm64.a
