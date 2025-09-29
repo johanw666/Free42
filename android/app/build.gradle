@@ -16,7 +16,7 @@ android {
         versionCode 206
         versionName "3.3.8e"
         ndk {
-            debugSymbolLevel 'FULL'
+            debugSymbolLevel = 'FULL'
         }
     }
     buildTypes {
@@ -24,17 +24,17 @@ android {
             ndk {
                 abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
             }
-            signingConfig signingConfigs.release
+            signingConfig = signingConfigs.release
         }
         release {
             ndk {
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
             }
             minifyEnabled false
-            signingConfig signingConfigs.release
+            signingConfig = signingConfigs.release
         }
     }
-    ndkVersion "19.2.5345600"
+    ndkVersion = "19.2.5345600"
     externalNativeBuild {
         ndkBuild {
             path "src/main/cpp/Android.mk"
@@ -64,7 +64,7 @@ android {
             }
         }
     }
-    namespace 'com.thomasokken.free42'
+    namespace = 'com.thomasokken.free42'
 }
 
 dependencies {
