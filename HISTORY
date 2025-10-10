@@ -1,3 +1,7 @@
+2025-10-10: release 3.3.8f (Android only)
+
+* Workaround for buggy vibrator in Android 16.
+
 2025-09-27: release 3.3.8e (Android only)
 
 * More Android 16 kB compatibility tweaks.
