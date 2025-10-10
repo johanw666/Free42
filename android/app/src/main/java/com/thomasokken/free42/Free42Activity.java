@@ -73,7 +73,9 @@ import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -2744,9 +2746,23 @@ public class Free42Activity extends Activity {
     private void click() {
         if (keyClicksLevel > 0)
             playSound(keyClicksLevel + 10);
-        if (keyVibration > 0) {
-            int ms = (int) (Math.pow(2, (keyVibration - 1) / 2.0) + 0.5);
-            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (keyVibration > 0)
+            vibrate(keyVibration);
+    }
+
+    public void vibrate(int level) {
+        Vibrator v;
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            VibratorManager vm = (VibratorManager) getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+            v = vm.getDefaultVibrator();
+        } else
+            v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        int ms = (int) (Math.pow(2, (level - 1) / 2.0) + 0.5);
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            long[] pattern = { 0, ms, 1000 };
+            VibrationEffect ve = VibrationEffect.createWaveform(pattern, -1);
+            v.vibrate(ve);
+        } else {
             v.vibrate(ms);
         }
     }

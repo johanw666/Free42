@@ -20,7 +20,6 @@ package com.thomasokken.free42;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
-import android.os.Vibrator;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
@@ -94,13 +93,9 @@ public class PreferencesDialog extends Dialog {
             public void onProgressChanged(SeekBar seekBar, int val, boolean fromUser) {
                 if (fromUser) {
                     if (val != prevVal) {
-                        if (val > 0) {
-                            int ms = (int) (Math.pow(2, (val - 1) / 2.0) + 0.5);
-                            Vibrator v = (Vibrator) PreferencesDialog.this.getContext().getSystemService(Context.VIBRATOR_SERVICE);
-                            v.vibrate(ms);
-                        }
+                        if (val > 0)
+                            Free42Activity.instance.vibrate(val);
                         prevVal = val;
-
                     }
                 }
             }
