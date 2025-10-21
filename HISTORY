@@ -1,3 +1,10 @@
+2025-10-21: release 3.3.9a (Android only)
+
+* Another workaround for the buggy vibrator in Android 16. This one is a new
+  option, "use older haptic feedback logic," for phones like the Pixel 10 Pro,
+  where the pre-3.3.8f haptic feedback logic worked, but the new logic
+  introduced in 3.3.8f does not.
+
 2025-10-15: release 3.3.9
 
 * When a new program was created by inserting END, the new program could end up
