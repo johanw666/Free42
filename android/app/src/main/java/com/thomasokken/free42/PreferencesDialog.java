@@ -39,6 +39,7 @@ public class PreferencesDialog extends Dialog {
     private CheckBox alwaysOnCB;
     private SeekBar keyClicksSB;
     private SeekBar hapticSB;
+    private CheckBox hapticClassicCB;
     private Spinner orientationSP;
     private Spinner styleSP;
     private Spinner popupAlphaSP;
@@ -94,7 +95,7 @@ public class PreferencesDialog extends Dialog {
                 if (fromUser) {
                     if (val != prevVal) {
                         if (val > 0)
-                            Free42Activity.instance.vibrate(val);
+                            Free42Activity.instance.vibrate(val, hapticClassicCB.isChecked());
                         prevVal = val;
                     }
                 }
@@ -108,6 +109,7 @@ public class PreferencesDialog extends Dialog {
                 // ignore
             }
         });
+        hapticClassicCB = (CheckBox) findViewById(R.id.hapticClassicCB);
         orientationSP = (Spinner) findViewById(R.id.orientationSpinner);
         String[] values = new String[] { "Automatic", "Portrait", "Reverse Portrait", "Landscape" };
         ArrayAdapter<String> aa = new ArrayAdapter<String>(context, android.R.layout.simple_spinner_item, values);
@@ -252,6 +254,14 @@ public class PreferencesDialog extends Dialog {
         return hapticSB.getProgress();
     }
     
+    public void setKeyVibrationOldLogic(boolean old) {
+        hapticClassicCB.setChecked(old);
+    }
+
+    public boolean getKeyVibrationOldLogic() {
+        return hapticClassicCB.isChecked();
+    }
+
     public void setOrientation(int orientation) {
         if (orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
             orientation = 1;
