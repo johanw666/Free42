@@ -1,3 +1,7 @@
+2025-10-28: release 3.3.10
+
+* Fixed crash in menu logic.
+
 2025-10-21: release 3.3.9a (Android only)
 
 * Another workaround for the buggy vibrator in Android 16. This one is a new
