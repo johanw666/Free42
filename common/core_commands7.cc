@@ -1688,6 +1688,85 @@ int docmd_0_ge_nn(arg_struct *arg) {
     return ((vartype_real *) tv.v)->x <= 0 ? ERR_YES : ERR_NO;
 }
 
+///////////////////////////
+///// Statistics Sums /////
+///////////////////////////
+
+static int get_sum(int n) {
+    vartype *v = recall_var("REGS", 4);
+    if (v == NULL)
+        return ERR_SIZE_ERROR;
+    else if (v->type != TYPE_REALMATRIX)
+        return ERR_INVALID_TYPE;
+    vartype_realmatrix *rm = (vartype_realmatrix *) v;
+    n += mode_sigma_reg;
+    if (n >= rm->rows * rm->columns)
+        return ERR_SIZE_ERROR;
+    if (rm->array->is_string[n]) {
+        char *text;
+        int length;
+        get_matrix_string(rm, n, &text, &length);
+        v = new_string(text, length);
+    } else {
+        v = new_real(rm->array->data[n]);
+    }
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    return recall_result(v);
+}
+
+int docmd_sn(arg_struct *arg) {
+    return get_sum(5);
+}
+
+int docmd_sx(arg_struct *arg) {
+    return get_sum(0);
+}
+
+int docmd_sx2(arg_struct *arg) {
+    return get_sum(1);
+}
+
+int docmd_sy(arg_struct *arg) {
+    return get_sum(2);
+}
+
+int docmd_sy2(arg_struct *arg) {
+    return get_sum(3);
+}
+
+int docmd_sxy(arg_struct *arg) {
+    return get_sum(4);
+}
+
+int docmd_slnx(arg_struct *arg) {
+    return get_sum(6);
+}
+
+int docmd_slnx2(arg_struct *arg) {
+    return get_sum(7);
+}
+
+int docmd_slny(arg_struct *arg) {
+    return get_sum(8);
+}
+
+int docmd_slny2(arg_struct *arg) {
+    return get_sum(9);
+}
+
+int docmd_slnxlny(arg_struct *arg) {
+    return get_sum(10);
+}
+
+int docmd_sxlny(arg_struct *arg) {
+    return get_sum(11);
+}
+
+int docmd_sylnx(arg_struct *arg) {
+    return get_sum(12);
+}
+
 ///////////////////////////////////
 ///// String & List Functions /////
 ///////////////////////////////////

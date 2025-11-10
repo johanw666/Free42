@@ -519,11 +519,25 @@
 #define CMD_0_GT_NN     470
 #define CMD_0_LE_NN     471
 #define CMD_0_GE_NN     472
+/* Statistics Sums */
+#define CMD_SN          473
+#define CMD_SX          474
+#define CMD_SX2         475
+#define CMD_SY          476
+#define CMD_SY2         477
+#define CMD_SXY         478
+#define CMD_SLNX        479
+#define CMD_SLNX2       480
+#define CMD_SLNY        481
+#define CMD_SLNY2       482
+#define CMD_SLNXLNY     483
+#define CMD_SXLNY       484
+#define CMD_SYLNX       485
 /* For Plus42 compatibility */
-#define CMD_WIDTH       473
-#define CMD_HEIGHT      474
+#define CMD_WIDTH       486
+#define CMD_HEIGHT      487
 
-#define CMD_SENTINEL    475
+#define CMD_SENTINEL    488
 
 
 /* command_spec.argtype */

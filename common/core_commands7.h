@@ -109,6 +109,20 @@ int docmd_0_gt_nn(arg_struct *arg);
 int docmd_0_le_nn(arg_struct *arg);
 int docmd_0_ge_nn(arg_struct *arg);
 
+int docmd_sn(arg_struct *arg);
+int docmd_sx(arg_struct *arg);
+int docmd_sx2(arg_struct *arg);
+int docmd_sy(arg_struct *arg);
+int docmd_sy2(arg_struct *arg);
+int docmd_sxy(arg_struct *arg);
+int docmd_slnx(arg_struct *arg);
+int docmd_slnx2(arg_struct *arg);
+int docmd_slny(arg_struct *arg);
+int docmd_slny2(arg_struct *arg);
+int docmd_slnxlny(arg_struct *arg);
+int docmd_sxlny(arg_struct *arg);
+int docmd_sylnx(arg_struct *arg);
+
 int docmd_xstr(arg_struct *arg);
 int docmd_append(arg_struct *arg);
 int docmd_extend(arg_struct *arg);

@@ -553,6 +553,21 @@ const command_spec cmd_array[] =
     { /* 0_LE_NN */     docmd_0_le_nn,     "0\11?",               0x00, 0x26, 0xf2, 0x1e,  3, ARG_VAR,    0, NA_T },
     { /* 0_GE_NN */     docmd_0_ge_nn,     "0\13?",               0x00, 0x27, 0xf2, 0x1f,  3, ARG_VAR,    0, NA_T },
 
+    /* Statistics Sums */
+    { /* SN */          docmd_sn,          "\5N",                 0x00, 0x00, 0xa7, 0xba,  2, ARG_NONE,   0, NA_T },
+    { /* SX */          docmd_sx,          "\5X",                 0x00, 0x00, 0xa7, 0xbb,  2, ARG_NONE,   0, NA_T },
+    { /* SX2 */         docmd_sx2,         "\5X2",                0x00, 0x00, 0xa7, 0xbc,  3, ARG_NONE,   0, NA_T },
+    { /* SY */          docmd_sy,          "\5Y",                 0x00, 0x00, 0xa7, 0xbd,  2, ARG_NONE,   0, NA_T },
+    { /* SY2 */         docmd_sy2,         "\5Y2",                0x00, 0x00, 0xa7, 0xbe,  3, ARG_NONE,   0, NA_T },
+    { /* SXY */         docmd_sxy,         "\5XY",                0x00, 0x00, 0xa7, 0xbf,  3, ARG_NONE,   0, NA_T },
+    { /* SLNX */        docmd_slnx,        "\5L\316X",            0x00, 0x00, 0xa7, 0xc1,  4, ARG_NONE,   0, NA_T },
+    { /* SLNX2 */       docmd_slnx2,       "\5L\316X2",           0x00, 0x00, 0xa7, 0xc2,  5, ARG_NONE,   0, NA_T },
+    { /* SLNY */        docmd_slny,        "\5L\316Y",            0x00, 0x00, 0xa7, 0xc3,  4, ARG_NONE,   0, NA_T },
+    { /* SLNY2 */       docmd_slny2,       "\5L\316Y2",           0x00, 0x00, 0xa7, 0xc4,  5, ARG_NONE,   0, NA_T },
+    { /* SLNXLNY */     docmd_slnxlny,     "\5L\316XL\316Y",      0x00, 0x00, 0xa7, 0xc5,  7, ARG_NONE,   0, NA_T },
+    { /* SXLNY */       docmd_sxlny,       "\5XL\316Y",           0x00, 0x00, 0xa7, 0xc6,  5, ARG_NONE,   0, NA_T },
+    { /* SYLNX */       docmd_sylnx,       "\5YL\316X",           0x00, 0x00, 0xa7, 0xc7,  5, ARG_NONE,   0, NA_T },
+
     /* For Plus42 Compatibility */
     { /* WIDTH */       docmd_width,       "WIDTH",               0x00, 0x00, 0xa2, 0x72,  5, ARG_NONE,   0, NA_T },
     { /* HEIGHT */      docmd_height,      "HEIGHT",              0x00, 0x00, 0xa2, 0x73,  6, ARG_NONE,   0, NA_T },

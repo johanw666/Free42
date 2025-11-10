@@ -457,7 +457,7 @@ const menu_spec menus[] = {
                       { { 0x2000 + CMD_ALLSIGMA,   0, "" },
                         { 0x2000 + CMD_LINSIGMA,   0, "" },
                         { 0x1000 + CMD_NULL,       0, "" },
-                        { 0x1000 + CMD_NULL,       0, "" },
+                        { MENU_STAT_SUMS1,         1, "\5" },
                         { 0x1000 + CMD_SIGMAREG,   0, "" },
                         { 0x1000 + CMD_SIGMAREG_T, 0, "" } } },
     { /* MENU_STAT_CFIT */ MENU_STAT1, MENU_NONE, MENU_NONE,
@@ -474,6 +474,27 @@ const menu_spec menus[] = {
                         { 0x2000 + CMD_PWRF, 0, "" },
                         { 0x1000 + CMD_NULL, 0, "" },
                         { 0x1000 + CMD_BEST, 0, "" } } },
+    { /* MENU_STAT_SUMS1 */ MENU_STAT2, MENU_STAT_SUMS2, MENU_STAT_SUMS3,
+                      { { 0x1000 + CMD_SX,  0, "" },
+                        { 0x1000 + CMD_SX2, 0, "" },
+                        { 0x1000 + CMD_SY,  0, "" },
+                        { 0x1000 + CMD_SY2, 0, "" },
+                        { 0x1000 + CMD_SXY, 0, "" },
+                        { 0x1000 + CMD_SN,  0, "" } } },
+    { /* MENU_STAT_SUMS2 */ MENU_STAT2, MENU_STAT_SUMS3, MENU_STAT_SUMS1,
+                      { { 0x1000 + CMD_SLNX,    0, "" },
+                        { 0x1000 + CMD_SLNX2,   0, "" },
+                        { 0x1000 + CMD_SLNY,    0, "" },
+                        { 0x1000 + CMD_SLNY2,   0, "" },
+                        { 0x1000 + CMD_SLNXLNY, 0, "" },
+                        { 0x1000 + CMD_SXLNY,   0, "" } } },
+    { /* MENU_STAT_SUMS3 */ MENU_STAT2, MENU_STAT_SUMS1, MENU_STAT_SUMS2,
+                      { { 0x1000 + CMD_SYLNX, 0, "" },
+                        { 0x1000 + CMD_NULL,  0, "" },
+                        { 0x1000 + CMD_NULL,  0, "" },
+                        { 0x1000 + CMD_NULL,  0, "" },
+                        { 0x1000 + CMD_NULL,  0, "" },
+                        { 0x1000 + CMD_NULL,  0, "" } } },
     { /* MENU_MATRIX1 */ MENU_NONE, MENU_MATRIX2, MENU_MATRIX3,
                       { { 0x1000 + CMD_NEWMAT, 0, "" },
                         { 0x1000 + CMD_INVRT,  0, "" },
@@ -814,8 +835,9 @@ bool no_keystrokes_yet;
  * Version 51: 3.3    BASE enhancements (menu additions)
  * Version 52: 3.3    BASE enhancements (carry; display modes)
  * Version 53: 3.3.3  STATIC/DYNAMIC for menus
+ * Version 54: 3.3.11 Statistics sums menu
  */
-#define FREE42_VERSION 53
+#define FREE42_VERSION 54
 
 
 /*******************/
@@ -3893,6 +3915,8 @@ static bool load_state2(bool *clear, bool *too_new) {
         menu_adjust(61, 61, 7, 62, 63, 3, 64, INT_MAX, 7);
     if (ver < 53)
         menu_adjust(26, INT_MAX, 1);
+    if (ver < 54)
+        menu_adjust(55, INT_MAX, 3);
     if (!read_bool(&mode_running)) return false;
     if (ver < 46)
         mode_caller_stack_lift_disabled = false;

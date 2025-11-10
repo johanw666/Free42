@@ -951,13 +951,15 @@ void keydown_command_entry(int shift, int key) {
                 redisplay();
                 return;
             } else if (catsect == CATSECT_EXT_2) {
-                if (menukey == 0) {
-                    set_cat_section(CATSECT_EXT_MISC);
-                    move_cat_row(0);
-                    redisplay();
-                } else {
-                    squeak();
+                switch (menukey) {
+                    case 0: set_cat_section(CATSECT_EXT_STAT); break;
+                    case 1: set_cat_section(CATSECT_EXT_MISC); break;
+                    default:
+                        squeak();
+                        return;
                 }
+                move_cat_row(0);
+                redisplay();
                 return;
             } else {
                 int i, itemindex;
@@ -1075,7 +1077,8 @@ void keydown_command_entry(int shift, int key) {
                     || catsect == CATSECT_EXT_STK) {
                 set_cat_section(CATSECT_EXT_1);
                 redisplay();
-            } else if (catsect == CATSECT_EXT_MISC) {
+            } else if (catsect == CATSECT_EXT_STAT
+                    || catsect == CATSECT_EXT_MISC) {
                 set_cat_section(CATSECT_EXT_2);
                 redisplay();
             } else if (catsect == CATSECT_EXT_0_CMP
@@ -1694,7 +1697,8 @@ void keydown_command_entry(int shift, int key) {
                     set_catalog_menu(CATSECT_EXT_1);
                     redisplay();
                 } else if (mode_commandmenu == MENU_CATALOG
-                        && ((catsect = get_cat_section()) == CATSECT_EXT_MISC)) {
+                        && ((catsect = get_cat_section()) == CATSECT_EXT_STAT
+                                || catsect == CATSECT_EXT_MISC)) {
                     set_catalog_menu(CATSECT_EXT_2);
                     redisplay();
                 } else if (mode_commandmenu == MENU_CATALOG
@@ -2570,14 +2574,21 @@ void keydown_normal_mode(int shift, int key) {
                     redisplay();
                     return;
                 } else if (catsect == CATSECT_EXT_2) {
-                    if (menukey == 0) {
-                        print_menu_trace("MISC", 4);
-                        set_cat_section(CATSECT_EXT_MISC);
-                        move_cat_row(0);
-                        redisplay();
-                    } else {
-                        squeak();
+                    switch (menukey) {
+                        case 0:
+                            print_menu_trace("STAT", 4);
+                            set_cat_section(CATSECT_EXT_STAT);
+                            break;
+                        case 1:
+                            print_menu_trace("MISC", 4);
+                            set_cat_section(CATSECT_EXT_MISC);
+                            break;
+                        default:
+                            squeak();
+                            return;
                     }
+                    move_cat_row(0);
+                    redisplay();
                     return;
                 } else if (catsect == CATSECT_PGM
                             || catsect == CATSECT_PGM_ONLY) {
@@ -2808,7 +2819,8 @@ void keydown_normal_mode(int shift, int key) {
                 else if (catsect >= CATSECT_EXT_TIME
                         && catsect <= CATSECT_EXT_STK)
                     set_cat_section(CATSECT_EXT_1);
-                else if (catsect == CATSECT_EXT_MISC)
+                else if (catsect == CATSECT_EXT_STAT
+                        || catsect == CATSECT_EXT_MISC)
                     set_cat_section(CATSECT_EXT_2);
                 else if (catsect == CATSECT_EXT_0_CMP
                         || catsect == CATSECT_EXT_X_CMP) {
