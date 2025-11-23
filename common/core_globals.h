@@ -547,7 +547,7 @@ void clear_all_prgms();
 int clear_prgm(const arg_struct *arg);
 int clear_prgm_by_index(int prgm_index);
 void clear_prgm_lines(int4 count);
-void goto_dot_dot(bool force_new);
+bool goto_dot_dot(bool force_new);
 bool mvar_prgms_exist();
 bool label_has_mvar(int lblindex);
 int get_command_length(int prgm, int4 pc);
@@ -555,7 +555,7 @@ void get_next_command(int4 *pc, int *command, arg_struct *arg, int find_target, 
 void rebuild_label_table();
 void delete_command(int4 pc);
 bool store_command(int4 pc, int command, arg_struct *arg, const char *num_str);
-void store_command_after(int4 *pc, int command, arg_struct *arg, const char *num_str);
+bool store_command_after(int4 *pc, int command, arg_struct *arg, const char *num_str);
 int x2line();
 int a2line(bool append);
 int prgm_lock(bool lock);

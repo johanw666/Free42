@@ -1921,7 +1921,7 @@ void clear_prgm_lines(int4 count) {
     clear_all_rtns();
 }
 
-void goto_dot_dot(bool force_new) {
+bool goto_dot_dot(bool force_new) {
     int command;
     arg_struct arg;
     if (prgms_count != 0 && !force_new) {
@@ -1931,31 +1931,40 @@ void goto_dot_dot(bool force_new) {
         get_next_command(&pc, &command, &arg, 0, NULL);
         if (command == CMD_END) {
             pc = -1;
-            return;
+            return true;
         }
     }
+    int new_prgm_capacity = 2;
+    unsigned char *new_prgm_text = (unsigned char *) malloc(new_prgm_capacity);
+    if (new_prgm_text == NULL)
+        return false;
     if (prgms_count == prgms_capacity) {
         prgm_struct *newprgms;
         int i;
-        prgms_capacity += 10;
-        newprgms = (prgm_struct *) malloc(prgms_capacity * sizeof(prgm_struct));
-        // TODO - handle memory allocation failure
+        int new_prgms_capacity = prgms_capacity + 10;
+        newprgms = (prgm_struct *) malloc(new_prgms_capacity * sizeof(prgm_struct));
+        if (newprgms == NULL) {
+            free(new_prgm_text);
+            return false;
+        }
         for (i = 0; i < prgms_count; i++)
             newprgms[i] = prgms[i];
         if (prgms != NULL)
             free(prgms);
         prgms = newprgms;
+        prgms_capacity = new_prgms_capacity;
     }
     current_prgm = prgms_count++;
-    prgms[current_prgm].capacity = 0;
+    prgms[current_prgm].capacity = new_prgm_capacity;
     prgms[current_prgm].size = 0;
     prgms[current_prgm].lclbl_invalid = true;
     prgms[current_prgm].locked = false;
-    prgms[current_prgm].text = NULL;
+    prgms[current_prgm].text = new_prgm_text;
     command = CMD_END;
     arg.type = ARGTYPE_NONE;
     store_command(0, command, &arg, NULL);
     pc = -1;
+    return true;
 }
 
 bool mvar_prgms_exist() {
@@ -2379,32 +2388,41 @@ bool store_command(int4 pc, int command, arg_struct *arg, const char *num_str) {
      * program. In this case, we need to split the program.
      */
     if (command == CMD_END && prgm->size > 0) {
-        prgm_struct *new_prgm;
+        int new_prgm_size = prgm->size - pc;
+        int new_prgm_capacity = (new_prgm_size + 511) & ~511;
+        unsigned char *new_prgm_text = (unsigned char *) malloc(new_prgm_capacity);
+        if (new_prgm_text == NULL) {
+            display_error(ERR_INSUFFICIENT_MEMORY);
+            return false;
+        }
         if (prgms_count == prgms_capacity) {
-            prgm_struct *new_prgms;
             int i;
-            prgms_capacity += 10;
-            new_prgms = (prgm_struct *)
-                            malloc(prgms_capacity * sizeof(prgm_struct));
-            // TODO - handle memory allocation failure
+            int new_prgms_capacity = prgms_capacity + 10;
+            prgm_struct *new_prgms = (prgm_struct *)
+                            malloc(new_prgms_capacity * sizeof(prgm_struct));
+            if (new_prgms == NULL) {
+                free(new_prgm_text);
+                display_error(ERR_INSUFFICIENT_MEMORY);
+                return false;
+            }
             for (i = 0; i <= current_prgm; i++)
                 new_prgms[i] = prgms[i];
             for (i = current_prgm + 1; i < prgms_count; i++)
                 new_prgms[i + 1] = prgms[i];
             free(prgms);
             prgms = new_prgms;
+            prgms_capacity = new_prgms_capacity;
             prgm = prgms + current_prgm;
         } else {
             for (i = prgms_count - 1; i > current_prgm; i--)
                 prgms[i + 1] = prgms[i];
         }
         prgms_count++;
-        new_prgm = prgm + 1;
-        new_prgm->size = prgm->size - pc;
-        new_prgm->capacity = (new_prgm->size + 511) & ~511;
+        prgm_struct *new_prgm = prgm + 1;
+        new_prgm->size = new_prgm_size;
+        new_prgm->capacity = new_prgm_capacity;
         new_prgm->locked = false;
-        new_prgm->text = (unsigned char *) malloc(new_prgm->capacity);
-        // TODO - handle memory allocation failure
+        new_prgm->text = new_prgm_text;
         for (i = pc; i < prgm->size; i++)
             new_prgm->text[i - pc] = prgm->text[i];
         current_prgm++;
@@ -2500,16 +2518,20 @@ bool store_command(int4 pc, int command, arg_struct *arg, const char *num_str) {
     }
 
     if (bufptr + prgm->size > prgm->capacity) {
+        int new_capacity = prgm->capacity + bufptr + 512;
         unsigned char *newtext;
-        prgm->capacity += bufptr + 512;
-        newtext = (unsigned char *) malloc(prgm->capacity);
-        // TODO - handle memory allocation failure
+        newtext = (unsigned char *) malloc(new_capacity);
+        if (newtext == NULL) {
+            display_error(ERR_INSUFFICIENT_MEMORY);
+            return false;
+        }
         for (pos = 0; pos < pc; pos++)
             newtext[pos] = prgm->text[pos];
         for (pos = pc; pos < prgm->size; pos++)
             newtext[pos + bufptr] = prgm->text[pos];
         if (prgm->text != NULL)
             free(prgm->text);
+        prgm->capacity = new_capacity;
         prgm->text = newtext;
     } else {
         for (pos = prgm->size - 1; pos >= pc; pos--)
@@ -2538,14 +2560,16 @@ bool store_command(int4 pc, int command, arg_struct *arg, const char *num_str) {
     return true;
 }
 
-void store_command_after(int4 *pc, int command, arg_struct *arg, const char *num_str) {
+bool store_command_after(int4 *pc, int command, arg_struct *arg, const char *num_str) {
     int4 oldpc = *pc;
     if (*pc == -1)
         *pc = 0;
     else if (!prgms[current_prgm].is_end(*pc))
         *pc += get_command_length(current_prgm, *pc);
-    if (!store_command(*pc, command, arg, num_str))
+    bool success = store_command(*pc, command, arg, num_str);
+    if (!success)
         *pc = oldpc;
+    return success;
 }
 
 static bool ensure_prgm_space(int n) {
