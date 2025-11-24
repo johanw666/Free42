@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/** @noinspection ALL */
 public class StatesDialog extends Dialog {
     private TextView currentLabel;
     private ListView statesList;

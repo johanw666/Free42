@@ -42,6 +42,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 
+/** @noinspection ALL */
 public class SkinSelectDialog extends Dialog {
     private Button loadButton;
     private Button deleteButton;

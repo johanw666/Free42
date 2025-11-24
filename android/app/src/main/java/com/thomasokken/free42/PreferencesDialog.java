@@ -29,6 +29,7 @@ import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 
+/** @noinspection ALL */
 public class PreferencesDialog extends Dialog {
 
     private CheckBox singularMatrixCB;

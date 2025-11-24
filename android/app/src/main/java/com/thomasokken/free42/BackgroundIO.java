@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+/** @noinspection ALL */
 public class BackgroundIO {
     public static void save(String inputFile, Uri outputUri, boolean deleteOrig, String errMsg, Runnable continuation) {
         new BackgroundSaver(inputFile, outputUri, deleteOrig, errMsg, continuation).start();

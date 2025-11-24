@@ -20,6 +20,7 @@ package com.thomasokken.free42;
 import java.io.ByteArrayOutputStream;
 import java.util.StringTokenizer;
 
+/** @noinspection ALL */
 public class KeymapEntry {
     private static final int KEYMAP_MAX_MACRO_LENGTH = 31;
     public boolean ctrl;

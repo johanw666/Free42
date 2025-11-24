@@ -36,6 +36,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+/** @noinspection ALL */
 public class SkinLoadDialog extends Dialog {
     private Button goButton;
     private Button backButton;

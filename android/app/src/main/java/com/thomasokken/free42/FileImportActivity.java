@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 
+/** @noinspection ALL */
 public class FileImportActivity extends Activity {
     private String importedState;
     private String dstFile;

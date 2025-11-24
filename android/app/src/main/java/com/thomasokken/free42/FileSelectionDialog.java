@@ -45,6 +45,7 @@ import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemSelectedListener;
 
+/** @noinspection ALL */
 public class FileSelectionDialog extends Dialog {
     private Button homeButton;
     private Spinner dirListSpinner;

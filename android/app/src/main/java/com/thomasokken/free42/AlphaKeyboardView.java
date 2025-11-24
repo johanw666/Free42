@@ -33,6 +33,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
+/** @noinspection ALL */
 public class AlphaKeyboardView extends View {
     private static final int SPEC_NONE = 0;
     private static final int SPEC_SHIFT = 1;

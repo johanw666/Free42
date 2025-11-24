@@ -19,6 +19,7 @@ package com.thomasokken.free42;
 
 import android.media.SoundPool;
 
+/** @noinspection ALL */
 public class SoundPipe extends Thread {
     private SoundPool soundPool;
     private int soundId = -1;

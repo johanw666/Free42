@@ -39,6 +39,7 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 
+/** @noinspection ALL */
 public class SkinLayout {
 
     /**************************/

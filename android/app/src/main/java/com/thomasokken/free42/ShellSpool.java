@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 
+/** @noinspection ALL */
 public class ShellSpool {
 
     public static boolean printToTxt;

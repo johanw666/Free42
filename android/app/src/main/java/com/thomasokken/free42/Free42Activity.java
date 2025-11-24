@@ -105,6 +105,7 @@ import android.widget.Toast;
  * This class works in conjunction with free42glue.cc, which is the JNI-
  * based interface to the Free42 'core' functionality (the core is
  * C++ and porting it to Java is not practical, hence the use of JNI).
+ * @noinspection ALL
  */
 @SuppressWarnings("deprecation")
 public class Free42Activity extends Activity {

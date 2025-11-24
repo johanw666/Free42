@@ -17,6 +17,7 @@
 
 package com.thomasokken.free42;
 
+/** @noinspection ALL */
 public class IntHolder {
     public int value;
     public IntHolder() {}
