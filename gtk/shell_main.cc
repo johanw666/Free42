@@ -1206,7 +1206,7 @@ static int write_shell_state() {
     state.auto_repeat = core_settings.auto_repeat;
     state.allow_big_stack = core_settings.allow_big_stack;
     state.localized_copy_paste = core_settings.localized_copy_paste;
-    if (fwrite(&state, 1, sizeof(state_type), statefile) != sizeof(int4))
+    if (fwrite(&state, 1, sizeof(state_type), statefile) != sizeof(state_type))
         return 0;
 
     return 1;
