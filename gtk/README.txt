@@ -49,9 +49,9 @@ Remove free42dec, free42bin, and the $XDG_DATA_HOME/free42 or
 $HOME/.local/share/free42 directory and its contents.
 
 
-NOTE: The binary in this package was built on a PC running Ubuntu 16.04, and it
-is dynamically linked against libc version 2.23, libstdc++ version 5.4.0, and
-GTK+ version 3.18.9. If your system has different versions of these libraries,
+NOTE: The binary in this package was built on a PC running Ubuntu 18.04, and it
+is dynamically linked against libc version 2.27, libstdc++ version 8.4.0, and
+GTK+ version 3.22.30. If your system has different versions of these libraries,
 the binary in this package may not work. In this case, please download the
 Free42 source package and compile Free42 using your installation's own compiler
 and libraries.
