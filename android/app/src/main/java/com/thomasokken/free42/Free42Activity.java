@@ -472,6 +472,8 @@ public class Free42Activity extends Activity {
         for (int i = 0; i < soundResourceIds.length; i++)
             soundIds[i] = soundPool.load(this, soundResourceIds[i], 1);
         soundPipe = new SoundPipe(soundPool);
+
+        calcView.requestFocus();
     }
 
     @Override
