@@ -1,3 +1,8 @@
+2026-01-13: release 3.3.11
+
+* Added statistics sums to STAT->Σ and CATALOG->STAT menus.
+* Android version: Fixed initial keyboard focus.
+
 2025-10-28: release 3.3.10
 
 * Fixed crash in menu logic.
