@@ -257,8 +257,31 @@ int docmd_fact(arg_struct *arg) {
 }
 
 static int mappable_gamma(phloat x, phloat *y) {
+    #ifdef BCD_MATH
+    // The Intel tgamma() doesn't have a special case for positive integers,
+    // so we do our own.
+    if (x == floor(x)) {
+        if (x <= 0)
+            return ERR_INVALID_DATA;
+        phloat g = 1;
+        x--;
+        while (x > 1) {
+            g *= x--;
+            if (p_isinf(g)) {
+                if (flags.f.range_error_ignore) {
+                    *y = POS_HUGE_PHLOAT;
+                    return ERR_NONE;
+                } else
+                    return ERR_OUT_OF_RANGE;
+            }
+        }
+        *y = g;
+        return ERR_NONE;
+    }
+    #else
     if (x == 0 || x < 0 && x == floor(x))
         return ERR_INVALID_DATA;
+    #endif
     *y = tgamma(x);
     int inf = p_isinf(*y);
     if (inf != 0)
