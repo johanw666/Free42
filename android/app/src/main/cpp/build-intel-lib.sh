@@ -1,8 +1,13 @@
 #!/bin/sh
 
 NDK_VERSION=`grep ndkVersion ../../../build.gradle | sed 's/^[^"]*"\([^"]*\)".*$/\1/'`
-NDK="$HOME/Library/Android/sdk/ndk/$NDK_VERSION"
-export PATH="`/bin/pwd`/bin:$NDK/prebuilt/darwin-x86_64/bin:$NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin:$PATH"
+if [ `uname -s` = "Darwin" ]; then
+    NDK="$HOME/Library/Android/sdk/ndk/$NDK_VERSION"
+    export PATH="`/bin/pwd`/bin:$NDK/prebuilt/darwin-x86_64/bin:$NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin:$PATH"
+else
+    NDK="$HOME/Android/Sdk/ndk/$NDK_VERSION"
+    export PATH="`/bin/pwd`/bin:$NDK/prebuilt/linux-x86_64/bin:$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
+fi
 BUILT=0
 
 build_arch () {
