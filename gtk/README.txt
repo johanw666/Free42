@@ -200,6 +200,6 @@ Free42 Decimal (free42dec).
 
 
 Free42 is (C) 2004-2026, by Thomas Okken
-Contact the author at thomasokken@gmail.com
+Contact the author at thomas@thomasokken.com
 Look for updates, and versions for other operating systems, at
 https://thomasokken.com/free42/
