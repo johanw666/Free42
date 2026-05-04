@@ -1308,6 +1308,8 @@ static int rn(bool left, bool c) {
     if (err != ERR_NONE)
         return err;
     uint8 x = xx;
+    if (wsize < 64)
+        x &= (1ULL << wsize) - 1;
     if (n != 0) {
         if (c) {
             if (left) {
