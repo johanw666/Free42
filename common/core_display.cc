@@ -3219,18 +3219,21 @@ void do_prgm_menu_key(int keynum) {
     int err, oldprgm;
     int4 oldpc;
     keynum--;
-    if (keynum == 8)
+    if (keynum == 8) {
         set_menu(MENULEVEL_PLAIN, MENU_NONE);
+        redisplay();
+        print_menu_trace("EXIT", 4);
+    }
     if (progmenu_arg[keynum].type == ARGTYPE_NONE) {
-        if (keynum < 6)
+        if (keynum < 6) {
             pending_command = CMD_NULL;
-        else if (keynum == 8)
+            print_menu_trace("NULL", 4);
+        } else if (keynum == 8)
             pending_command = CMD_CANCELLED;
         return;
     }
-    if ((flags.f.trace_print || flags.f.normal_print) && flags.f.printer_exists)
-        print_command(progmenu_is_gto[keynum] ? CMD_GTO : CMD_XEQ,
-                                                &progmenu_arg[keynum]);
+    if (keynum < 6)
+        print_menu_trace(progmenu_label[keynum], progmenu_length[keynum]);
     oldprgm = current_prgm;
     oldpc = pc;
     set_running(true);
