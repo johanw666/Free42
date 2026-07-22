@@ -9,10 +9,10 @@ android {
             keyPassword free42_keyPassword
         }
     }
-    compileSdk 35
+    compileSdk 36
     defaultConfig {
         minSdkVersion 19
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode 212
         versionName "3.3.12"
         ndk {
