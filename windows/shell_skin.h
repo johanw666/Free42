@@ -38,9 +38,12 @@ struct keymap_entry {
     bool extended;
     bool shift; 
     bool cshift; 
+    bool numlock;
     int keycode;
     unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
 };
+
+extern bool cshift_fix;
 
 keymap_entry *parse_keymap_entry(char *line, int lineno);
 
@@ -56,7 +59,8 @@ void skin_invalidate_annunciator(int which);
 void skin_find_key(int x, int y, bool cshift, int *skey, int *ckey);
 int skin_find_skey(int ckey, bool cshift);
 unsigned char *skin_find_macro(int ckey, int *type);
-unsigned char *skin_keymap_lookup(int keycode, bool ctrl, bool alt, bool extended, bool shift, bool cshift, bool *exact);
+unsigned char *skin_keymap_lookup(int keycode, bool ctrl, bool alt, bool extended,
+                                  bool shift, bool cshift, bool numlock, bool *exact);
 void skin_invalidate_key(int key);
 void skin_display_blitter(const char *bits, int bytesperline, int x, int y, int width, int height);
 void skin_get_size(int *width, int *height);

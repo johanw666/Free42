@@ -42,6 +42,8 @@ using std::set;
 /* Skin description stuff */
 /**************************/
 
+bool cshift_fix;
+
 struct SkinPoint {
     int x, y;
 };
@@ -150,6 +152,7 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
         bool extended = false;
         bool shift = false;
         bool cshift = false;
+        bool numlock = false;
         int keycode = 0;
         int done = 0;
         unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
@@ -173,6 +176,8 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
                 shift = true;
             else if (_stricmp(tok, "cshift") == 0)
                 cshift = true;
+            else if (_stricmp(tok, "numlock") == 0)
+                numlock = true;
             else {
                 char *endptr;
                 long k = strtol(tok, &endptr, 10);
@@ -212,6 +217,7 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
         entry.extended = extended;
         entry.shift = shift;
         entry.cshift = cshift;
+        entry.numlock = numlock;
         entry.keycode = keycode;
         strcpy((char *) entry.macro, (const char *) macro);
         return &entry;
@@ -358,6 +364,7 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
     keymap_length = 0;
     int kmcap = 0;
 
+    cshift_fix = false;
     int lineno = 0;
 
     while (skin_gets(line, 1024)) {
@@ -526,6 +533,8 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
                 }
                 memcpy(keymap + (keymap_length++), entry, sizeof(keymap_entry));
             }
+        } else if (_stricmp(line, "windowscshiftfix") == 0) {
+            cshift_fix = true;
         }
     }
 
@@ -890,6 +899,8 @@ static wstring entry_to_text(keymap_entry *e) {
     wstring mods = L"";
     if (e->extended)
         mods += L"{e}";
+    if (e->numlock)
+        mods += L"{n}";
     if (e->ctrl)
         mods += L"^";
     if (e->alt)
@@ -1118,7 +1129,8 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     return NULL;
 }
 
-unsigned char *skin_keymap_lookup(int keycode, bool ctrl, bool alt, bool extended, bool shift, bool cshift, bool *exact) {
+unsigned char *skin_keymap_lookup(int keycode, bool ctrl, bool alt, bool extended,
+                                  bool shift, bool cshift, bool numlock, bool *exact) {
     int i;
     unsigned char *macro = NULL;
     for (i = 0; i < keymap_length; i++) {
@@ -1127,11 +1139,11 @@ unsigned char *skin_keymap_lookup(int keycode, bool ctrl, bool alt, bool extende
                 && ctrl == entry->ctrl
                 && alt == entry->alt
                 && shift == entry->shift) {
-            if (extended == entry->extended && cshift == entry->cshift) {
+            if (extended == entry->extended && cshift == entry->cshift && numlock == entry->numlock) {
                 *exact = true;
                 return entry->macro;
             }
-            if ((extended || !entry->extended) && (cshift || !entry->cshift))
+            if ((extended || !entry->extended) && (cshift || !entry->cshift) && (numlock || !entry->numlock))
                 macro = entry->macro;
         }
     }

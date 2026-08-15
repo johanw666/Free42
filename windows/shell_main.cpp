@@ -107,6 +107,7 @@ static bool ctrl_down = false;
 static bool alt_down = false;
 static bool shift_down = false;
 static bool just_pressed_shift = false;
+static bool cshift_suppressed = false;
 static bool mouse_key;
 
 static int keymap_length = 0;
@@ -797,7 +798,8 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 goto do_default;
             } else if (virtKey == 16) {
                 shift_down = true;
-                just_pressed_shift = true;
+                just_pressed_shift = !cshift_suppressed;
+                cshift_suppressed = false;
                 goto do_default;
             }
 
@@ -823,7 +825,12 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 bool exact;
                 bool extended = (lParam & (1 << 24)) != 0;
                 bool cshift_down = ann_shift != 0;
-                unsigned char *key_macro = skin_keymap_lookup(virtKey, ctrl_down, alt_down, extended, shift_down, cshift_down, &exact);
+                bool numlock = !extended && (virtKey == VK_HOME || virtKey == VK_UP || virtKey == VK_PRIOR
+                        || virtKey == VK_LEFT || virtKey == VK_CLEAR || virtKey == VK_RIGHT || virtKey == VK_END
+                        || virtKey == VK_DOWN || virtKey == VK_NEXT || virtKey == VK_INSERT || virtKey == VK_DELETE)
+                    && (GetKeyState(VK_NUMLOCK) & 1) != 0;
+                unsigned char *key_macro = skin_keymap_lookup(virtKey, ctrl_down, alt_down, extended,
+                                                              shift_down, cshift_down, numlock, &exact);
                 if (key_macro == NULL || !exact) {
                     for (i = 0; i < keymap_length; i++) {
                         keymap_entry *entry = keymap + i;
@@ -831,11 +838,12 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                                 && alt_down == entry->alt
                                 && shift_down == entry->shift
                                 && virtKey == entry->keycode) {
-                            if (extended == entry->extended && cshift_down == entry->cshift) {
+                            if (extended == entry->extended && cshift_down == entry->cshift && numlock == entry->numlock) {
                                 key_macro = entry->macro;
                                 break;
                             } else {
-                                if ((extended || !entry->extended) && (cshift_down || !entry->cshift) && key_macro == NULL)
+                                if ((extended || !entry->extended) && (cshift_down || !entry->cshift)
+                                        && (numlock || !entry->numlock) && key_macro == NULL)
                                     key_macro = entry->macro;
                             }
                         }
@@ -959,12 +967,30 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 goto do_default;
             } else if (virtKey == 16) {
                 shift_down = false;
-                if (ckey == 0 && just_pressed_shift) {
-                    ckey = 28;
-                    skey = -1;
-                    macro = NULL;
-                    shell_keydown(false);
-                    shell_keyup();
+                if (ckey == 0) {
+                    if (cshift_fix && (GetKeyState(VK_NUMLOCK) & 1) != 0) {
+                        MSG cmsg;
+                        if (PeekMessage(&cmsg, hWnd, WM_KEYDOWN, WM_KEYDOWN, PM_NOREMOVE)
+                                && (cmsg.wParam == VK_HOME
+                                    || cmsg.wParam == VK_UP
+                                    || cmsg.wParam == VK_PRIOR
+                                    || cmsg.wParam == VK_LEFT
+                                    || cmsg.wParam == VK_CLEAR
+                                    || cmsg.wParam == VK_RIGHT
+                                    || cmsg.wParam == VK_END
+                                    || cmsg.wParam == VK_DOWN
+                                    || cmsg.wParam == VK_NEXT
+                                    || cmsg.wParam == VK_INSERT
+                                    || cmsg.wParam == VK_DELETE))
+                            cshift_suppressed = true;
+                    }
+                    if (just_pressed_shift && !cshift_suppressed) {
+                        ckey = 28;
+                        skey = -1;
+                        macro = NULL;
+                        shell_keydown(false);
+                        shell_keyup();
+                    }
                 }
                 goto do_default;
             }
