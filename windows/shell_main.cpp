@@ -552,12 +552,12 @@ static void toggle_keyboard_shortcuts() {
 //
 static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 #if 0
-    static FILE *log = fopen("C:/Users/thomas/Desktop/log.txt", "w");
     if (message == WM_CHAR || message == WM_SYSCHAR
             || message == WM_KEYDOWN || message == WM_SYSKEYDOWN
             || message == WM_KEYUP || message == WM_SYSKEYUP) {
-        fprintf(log, "message=%s wParam=0x%x lParam=0x%lx\n", msg2string(message), wParam, lParam);
-        fflush(log);
+        char buf[100];
+        snprintf(buf, 100, "message=%s wParam=0x%x lParam=0x%lx", msg2string(message), wParam, lParam);
+        shell_log(buf);
     }
 #endif
 
