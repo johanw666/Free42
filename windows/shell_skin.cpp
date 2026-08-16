@@ -42,8 +42,6 @@ using std::set;
 /* Skin description stuff */
 /**************************/
 
-bool cshift_fix;
-
 struct SkinPoint {
     int x, y;
 };
@@ -364,7 +362,6 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
     keymap_length = 0;
     int kmcap = 0;
 
-    cshift_fix = false;
     int lineno = 0;
 
     while (skin_gets(line, 1024)) {
@@ -533,8 +530,6 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
                 }
                 memcpy(keymap + (keymap_length++), entry, sizeof(keymap_entry));
             }
-        } else if (_stricmp(line, "windowscshiftfix") == 0) {
-            cshift_fix = true;
         }
     }
 

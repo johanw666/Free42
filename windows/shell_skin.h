@@ -43,8 +43,6 @@ struct keymap_entry {
     unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
 };
 
-extern bool cshift_fix;
-
 keymap_entry *parse_keymap_entry(char *line, int lineno);
 
 int skin_getchar();

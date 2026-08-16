@@ -968,7 +968,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             } else if (virtKey == 16) {
                 shift_down = false;
                 if (ckey == 0) {
-                    if (cshift_fix && (GetKeyState(VK_NUMLOCK) & 1) != 0) {
+                    if ((GetKeyState(VK_NUMLOCK) & 1) != 0) {
                         MSG cmsg;
                         UINT cmsgtype = message == WM_KEYUP ? WM_KEYDOWN : WM_SYSKEYDOWN;
                         if (PeekMessage(&cmsg, hWnd, cmsgtype, cmsgtype, PM_NOREMOVE)
