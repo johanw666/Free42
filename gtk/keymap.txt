@@ -72,7 +72,9 @@ E               : 28 16   # DISP
 BackSpace       : 17      # <-
 Shift BackSpace : 28 17   # CLEAR
 Up              : 18      # up
+KP_Up           : 18      # up
 Shift Up        : 28 18   # BST
+Shift KP_Up     : 28 18   # BST
 7               : 19      # 7
 KP_7            : 19      # 7
 ampersand       : 28 19   # SOLVER
@@ -86,7 +88,9 @@ slash           : 22      # divide
 KP_Divide       : 22      # divide
 question        : 28 22   # STAT
 Down            : 23      # down
+KP_Down         : 23      # down
 Shift Down      : 28 23   # SST
+Shift KP_Down   : 28 23   # SST
 4               : 24      # 4
 KP_4            : 24      # 4
 dollar          : 28 24   # BASE
