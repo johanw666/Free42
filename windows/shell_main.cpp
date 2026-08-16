@@ -971,6 +971,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     if (cshift_fix && (GetKeyState(VK_NUMLOCK) & 1) != 0) {
                         MSG cmsg;
                         if (PeekMessage(&cmsg, hWnd, WM_KEYDOWN, WM_KEYDOWN, PM_NOREMOVE)
+                                && (cmsg.lParam & (1 << 24)) == 0
                                 && (cmsg.wParam == VK_HOME
                                     || cmsg.wParam == VK_UP
                                     || cmsg.wParam == VK_PRIOR
