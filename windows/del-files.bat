@@ -63,3 +63,4 @@ rmdir /s /q Debug
 rmdir /s /q Release
 rmdir /s /q raw2txt
 rmdir /s /q txt2raw
+del free42.log
