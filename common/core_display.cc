@@ -1172,7 +1172,7 @@ void display_prgm_line(int row, int line_offset) {
     char buf[44];
     int bufptr;
     int len = 22;
-    const char *orig_num;
+    const char *orig_num = NULL;
 
     if (row == -1)
         /* This means use both lines; used by SHOW */
