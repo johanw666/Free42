@@ -1336,12 +1336,11 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
                     && alt == entry->alt
                     && (shift_mismatch_allowed || shift == entry->shift)
                     && c == entry->keychar) {
-                if ((!numpad || shift == entry->shift) && numpad == entry->numpad && cshift == entry->cshift) {
+                if (cshift == entry->cshift && numpad == entry->numpad) {
                     key_macro = entry->macro;
                     break;
-                } else {
-                    if ((numpad || !entry->numpad) && (cshift || !entry->cshift) && key_macro == NULL)
-                        key_macro = entry->macro;
+                } else if (key_macro == NULL && (cshift || !entry->cshift) && (numpad || !entry->numpad)) {
+                    key_macro = entry->macro;
                 }
             }
         }

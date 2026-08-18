@@ -1855,14 +1855,13 @@ public class Free42Activity extends Activity {
                             && alt == entry.alt
                             && (shift_mismatch_allowed || shift == entry.shift)
                             && code.equals(entry.keychar)) {
-                        if (numpad == entry.numpad && numlock == entry.numlock
-                                && shift == entry.shift && cshift == entry.cshift) {
+                        if (cshift == entry.cshift && numpad == entry.numpad && numlock == entry.numlock) {
                             key_macro = entry.macro;
                             break;
-                        }
-                        if ((cshift || !entry.cshift) && (numpad || !entry.numpad)
-                                && (numlock || !entry.numlock) && key_macro == null)
+                        } else if (key_macro == null && (cshift || !entry.cshift)
+                                && (numpad || !entry.numpad) && (numlock || !entry.numlock)) {
                             key_macro = entry.macro;
+                        }
                     }
                 }
             }

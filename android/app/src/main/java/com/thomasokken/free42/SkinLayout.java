@@ -474,13 +474,12 @@ public class SkinLayout {
                     && alt == entry.alt
                     && (shift_mismatch_allowed || shift == entry.shift)
                     && keychar.equals(entry.keychar)) {
-                if (numpad == entry.numpad && numlock == entry.numlock
-                        && shift == entry.shift && cshift == entry.cshift) {
+                if (cshift == entry.cshift && numpad == entry.numpad && numlock == entry.numlock) {
                     exact.value = true;
                     return entry.macro;
-                }
-                if ((cshift || !entry.cshift) && (numpad || !entry.numpad) && (numlock || !entry.numlock))
+                } else if (macro == null && (cshift || !entry.cshift) && (numpad || !entry.numpad) && (numlock || !entry.numlock)) {
                     macro = entry.macro;
+                }
             }
         }
         exact.value = false;

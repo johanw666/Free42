@@ -973,12 +973,12 @@ unsigned char *skin_keymap_lookup(guint keyval, bool shift_mismatch_allowed,
                 && alt == entry->alt
                 && (shift_mismatch_allowed || shift == entry->shift)
                 && keyval == entry->keyval) {
-            if (shift == entry->shift && cshift == entry->cshift) {
+            if (cshift == entry->cshift) {
                 *exact = true;
                 return entry->macro;
-            }
-            if ((shift || !entry->shift) && (cshift || !entry->cshift) && macro == NULL)
+            } else if (macro == NULL && (cshift || !entry->cshift)) {
                 macro = entry->macro;
+            }
         }
     }
     *exact = false;

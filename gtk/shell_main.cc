@@ -2918,12 +2918,11 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                             && alt == entry->alt
                             && (shift_mismatch_allowed || shift == entry->shift)
                             && event->keyval == entry->keyval) {
-                        if (shift == entry->shift && cshift == entry->cshift) {
+                        if (cshift == entry->cshift) {
                             key_macro = entry->macro;
                             break;
-                        } else {
-                            if ((shift || !entry->shift) && (cshift || !entry->cshift) && key_macro == NULL)
-                                key_macro = entry->macro;
+                        } else if (key_macro == NULL && (cshift || !entry->cshift)) {
+                            key_macro = entry->macro;
                         }
                     }
                 }

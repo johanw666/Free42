@@ -1051,12 +1051,12 @@ unsigned char *skin_keymap_lookup(unsigned short keychar, bool shift_mismatch_al
                 && alt == entry->alt
                 && (shift_mismatch_allowed || shift == entry->shift)
                 && keychar == entry->keychar) {
-            if ((!numpad || shift == entry->shift) && numpad == entry->numpad && cshift == entry->cshift) {
+            if (cshift == entry->cshift && numpad == entry->numpad) {
                 *exact = true;
                 return entry->macro;
-            }
-            if ((numpad || !entry->numpad) && (cshift || !entry->cshift))
+            } else if (macro == NULL && (cshift || !entry->cshift) && (numpad || !entry->numpad)) {
                 macro = entry->macro;
+            }
         }
     }
     *exact = false;
