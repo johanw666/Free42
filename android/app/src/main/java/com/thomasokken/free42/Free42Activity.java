@@ -3447,6 +3447,27 @@ public class Free42Activity extends Activity {
         System.err.print(s);
     }
 
+    /*
+    private java.io.PrintWriter logger = null;
+    private java.text.SimpleDateFormat tsf = new java.text.SimpleDateFormat("HH:mm:ss.SSS");
+
+    public synchronized void shell_log(String s) {
+        java.util.Date now = new java.util.Date();
+        if (logger == null) {
+            String ts = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(now);
+            String logFileName = getFilesDir() + "/log-" + ts + ".txt";
+            try {
+                logger = new java.io.PrintWriter(logFileName, "UTF-8");
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            }
+        }
+        logger.println(tsf.format(now) + " " + s);
+        logger.flush();
+    }
+    */
+
     public static String getNameFromUri(Uri uri) {
         Cursor cursor = instance.getContentResolver().query(uri, null, null, null, null);
         if (cursor == null)
