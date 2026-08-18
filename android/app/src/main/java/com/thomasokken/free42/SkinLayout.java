@@ -465,20 +465,21 @@ public class SkinLayout {
         return null;
     }
 
-    public byte[] keymap_lookup(String keychar, boolean printable,
-                                boolean ctrl, boolean alt, boolean numpad, boolean shift,
-                                boolean cshift, BooleanHolder exact) {
+    public byte[] keymap_lookup(String keychar, boolean printable, boolean ctrl,
+                                boolean alt, boolean numpad, boolean numlock,
+                                boolean shift, boolean cshift, BooleanHolder exact) {
         byte[] macro = null;
         for (KeymapEntry entry : keymap) {
             if (ctrl == entry.ctrl
                     && alt == entry.alt
                     && (printable || shift == entry.shift)
                     && keychar.equals(entry.keychar)) {
-                if ((!numpad || shift == entry.shift) && numpad == entry.numpad && cshift == entry.cshift) {
+                if (numpad == entry.numpad && numlock == entry.numlock
+                        && shift == entry.shift && cshift == entry.cshift) {
                     exact.value = true;
                     return entry.macro;
                 }
-                if ((numpad || !entry.numpad) && (cshift || !entry.cshift))
+                if ((cshift || !entry.cshift) && (numpad || !entry.numpad) && (numlock || !entry.numlock))
                     macro = entry.macro;
             }
         }

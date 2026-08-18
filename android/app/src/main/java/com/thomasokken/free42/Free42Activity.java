@@ -1746,56 +1746,66 @@ public class Free42Activity extends Activity {
 
             cancelRepeaterAndTimeouts1And2();
 
-            int ch = event.getUnicodeChar();
-            if (ch == 0)
-                ch = event.getUnicodeChar(0);
-            ch &= KeyCharacterMap.COMBINING_ACCENT_MASK;
-            String code;
-            if (ch == 0) {
-                code = KeyEvent.keyCodeToString(keyCode);
-                if (code.startsWith("KEYCODE_"))
-                    code = code.substring(8);
-            } else {
-                code = "" + (char) ch;
-            }
-
             boolean ctrl = event.isCtrlPressed();
             boolean alt = event.isAltPressed();
-            boolean numpad = false;
+            boolean numlock = event.isNumLockOn()
+                && (keyCode >= KeyEvent.KEYCODE_NUMPAD_0 && keyCode <= KeyEvent.KEYCODE_NUMPAD_9
+                    || keyCode == KeyEvent.KEYCODE_NUMPAD_DOT || keyCode == KeyEvent.KEYCODE_NUMPAD_COMMA);
             boolean shift = event.isShiftPressed();
             boolean cshift = skin.getAnnunciators()[1];
 
-            // Allow Ctrl-[ to be used as Esc, for keyboards without an Esc key
-            if (code.equals("ESCAPE")) {
-                ctrl = false;
-            } else if (code.equals("[") && ctrl) {
-                ctrl = false;
-                code = "ESCAPE";
-            }
-
+            boolean numpad = true;
+            int ch = 0;
+            String code;
             switch (keyCode) {
-                case KeyEvent.KEYCODE_NUMPAD_0:
-                case KeyEvent.KEYCODE_NUMPAD_1:
-                case KeyEvent.KEYCODE_NUMPAD_2:
-                case KeyEvent.KEYCODE_NUMPAD_3:
-                case KeyEvent.KEYCODE_NUMPAD_4:
-                case KeyEvent.KEYCODE_NUMPAD_5:
-                case KeyEvent.KEYCODE_NUMPAD_6:
-                case KeyEvent.KEYCODE_NUMPAD_7:
-                case KeyEvent.KEYCODE_NUMPAD_8:
-                case KeyEvent.KEYCODE_NUMPAD_9:
-                case KeyEvent.KEYCODE_NUMPAD_ADD:
-                case KeyEvent.KEYCODE_NUMPAD_SUBTRACT:
-                case KeyEvent.KEYCODE_NUMPAD_MULTIPLY:
-                case KeyEvent.KEYCODE_NUMPAD_DIVIDE:
-                case KeyEvent.KEYCODE_NUMPAD_COMMA:
-                case KeyEvent.KEYCODE_NUMPAD_DOT:
-                case KeyEvent.KEYCODE_NUMPAD_ENTER:
-                case KeyEvent.KEYCODE_NUMPAD_EQUALS:
-                    numpad = true;
+                case KeyEvent.KEYCODE_NUMPAD_0: ch = '0'; break;
+                case KeyEvent.KEYCODE_NUMPAD_1: ch = '1'; break;
+                case KeyEvent.KEYCODE_NUMPAD_2: ch = '2'; break;
+                case KeyEvent.KEYCODE_NUMPAD_3: ch = '3'; break;
+                case KeyEvent.KEYCODE_NUMPAD_4: ch = '4'; break;
+                case KeyEvent.KEYCODE_NUMPAD_5: ch = '5'; break;
+                case KeyEvent.KEYCODE_NUMPAD_6: ch = '6'; break;
+                case KeyEvent.KEYCODE_NUMPAD_7: ch = '7'; break;
+                case KeyEvent.KEYCODE_NUMPAD_8: ch = '8'; break;
+                case KeyEvent.KEYCODE_NUMPAD_9: ch = '9'; break;
+                case KeyEvent.KEYCODE_NUMPAD_ADD: ch = '+'; break;
+                case KeyEvent.KEYCODE_NUMPAD_SUBTRACT: ch = '-'; break;
+                case KeyEvent.KEYCODE_NUMPAD_MULTIPLY: ch = '*'; break;
+                case KeyEvent.KEYCODE_NUMPAD_DIVIDE: ch = '/'; break;
+                case KeyEvent.KEYCODE_NUMPAD_COMMA: ch = ','; break;
+                case KeyEvent.KEYCODE_NUMPAD_DOT: ch = '.'; break;
+                case KeyEvent.KEYCODE_NUMPAD_ENTER: ch = 10; break;
+                case KeyEvent.KEYCODE_NUMPAD_EQUALS: ch = '='; break;
+                case KeyEvent.KEYCODE_NUMPAD_LEFT_PAREN: ch = '('; break;
+                case KeyEvent.KEYCODE_NUMPAD_RIGHT_PAREN: ch = ')'; break;
+                default:
+                    numpad = false;
+            }
+            if (numpad) {
+                code = "" + (char) ch;
+            } else {
+                ch = event.getUnicodeChar();
+                if (ch == 0)
+                    ch = event.getUnicodeChar(0);
+                ch &= KeyCharacterMap.COMBINING_ACCENT_MASK;
+                if (ch == 0) {
+                    code = KeyEvent.keyCodeToString(keyCode);
+                    if (code.startsWith("KEYCODE_"))
+                        code = code.substring(8);
+                } else {
+                    code = "" + (char) ch;
+                }
+
+                // Allow Ctrl-[ to be used as Esc, for keyboards without an Esc key
+                if (code.equals("ESCAPE")) {
+                    ctrl = false;
+                } else if (code.equals("[") && ctrl) {
+                    ctrl = false;
+                    code = "ESCAPE";
+                }
             }
 
-            boolean printable = !ctrl && !alt && ch >= 33 && ch <= 126;
+            boolean printable = !ctrl && !alt && ch >= 32 && ch <= 126;
 
             if (ckey != 0) {
                 shell_keyup(null);
@@ -1803,20 +1813,20 @@ public class Free42Activity extends Activity {
             }
 
             BooleanHolder exact = new BooleanHolder();
-            byte[] key_macro = skin.keymap_lookup(code, printable, ctrl, alt, numpad, shift, cshift, exact);
+            byte[] key_macro = skin.keymap_lookup(code, printable, ctrl, alt, numpad, numlock, shift, cshift, exact);
             if (key_macro == null || !exact.value) {
                 for (KeymapEntry entry : keymap) {
                     if (ctrl == entry.ctrl
                             && alt == entry.alt
                             && (printable || shift == entry.shift)
                             && code.equals(entry.keychar)) {
-                        if ((!numpad || shift == entry.shift) && numpad == entry.numpad && cshift == entry.cshift) {
+                        if (numpad == entry.numpad && numlock == entry.numlock
+                                && shift == entry.shift && cshift == entry.cshift) {
                             key_macro = entry.macro;
                             break;
-                        } else {
-                            if ((numpad || !entry.numpad) && (cshift || !entry.cshift) && key_macro == null)
-                                key_macro = entry.macro;
                         }
+                        if ((cshift || !entry.cshift) && (numpad || !entry.numpad) && (numlock || !entry.numlock))
+                            key_macro = entry.macro;
                     }
                 }
             }
@@ -1827,7 +1837,7 @@ public class Free42Activity extends Activity {
                 // effect for R/S will never be overridden by the special cases
                 // for the ALPHA and A..F menus.
                 if (!ctrl && !alt) {
-                    if ((printable || ch == ' ') && core_alpha_menu()) {
+                    if (printable && core_alpha_menu()) {
                         if (ch >= 'a' && ch <= 'z')
                             ch += 'A' - 'a';
                         else if (ch >= 'A' && ch <= 'Z')
@@ -1944,6 +1954,7 @@ public class Free42Activity extends Activity {
         public boolean onKeyUp(int keyCode, KeyEvent event) {
             if (event.getRepeatCount() > 0)
                 return true;
+
             cancelRepeaterAndTimeouts1And2();
             if (just_pressed_shift) {
                 just_pressed_shift = false;

@@ -26,6 +26,7 @@ public class KeymapEntry {
     public boolean ctrl;
     public boolean alt;
     public boolean numpad;
+    public boolean numlock;
     public boolean shift;
     public boolean cshift;
     public String keychar;
@@ -50,6 +51,7 @@ public class KeymapEntry {
             boolean ctrl = false;
             boolean alt = false;
             boolean numpad = false;
+            boolean numlock = false;
             boolean shift = false;
             boolean cshift = false;
             String keychar = null;
@@ -70,6 +72,8 @@ public class KeymapEntry {
                     alt = true;
                 else if (tok.equalsIgnoreCase("numpad"))
                     numpad = true;
+                else if (tok.equalsIgnoreCase("numlock"))
+                    numlock = true;
                 else if (tok.equalsIgnoreCase("shift"))
                     shift = true;
                 else if (tok.equalsIgnoreCase("cshift"))
@@ -118,6 +122,7 @@ public class KeymapEntry {
             entry.ctrl = ctrl;
             entry.alt = alt;
             entry.numpad = numpad;
+            entry.numlock = numlock;
             entry.shift = shift;
             entry.cshift = cshift;
             entry.keychar = keychar;
