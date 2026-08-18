@@ -1825,7 +1825,8 @@ public class Free42Activity extends Activity {
                             key_macro = entry.macro;
                             break;
                         }
-                        if ((cshift || !entry.cshift) && (numpad || !entry.numpad) && (numlock || !entry.numlock))
+                        if ((cshift || !entry.cshift) && (numpad || !entry.numpad)
+                                && (numlock || !entry.numlock) && key_macro == null)
                             key_macro = entry.macro;
                     }
                 }
