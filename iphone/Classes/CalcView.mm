@@ -1183,6 +1183,7 @@ static void calc_keydown(NSString *characters, long flags, int keycode) {
 
     unsigned short c = [characters characterAtIndex:0];
     bool printable = !ctrl && len == 1 && c >= 32 && c <= 126;
+    bool shift_mismatch_allowed = printable && !numpad && c != 32;
 
     if (ckey != 0) {
         shell_keyup();
@@ -1190,13 +1191,13 @@ static void calc_keydown(NSString *characters, long flags, int keycode) {
     }
 
     bool exact;
-    unsigned char *key_macro = skin_keymap_lookup(c, printable, ctrl, alt, numpad, shift, cshift, &exact);
+    unsigned char *key_macro = skin_keymap_lookup(c, shift_mismatch_allowed, ctrl, alt, numpad, shift, cshift, &exact);
     if (key_macro == NULL || !exact) {
         for (int i = 0; i < keymap_length; i++) {
             keymap_entry *entry = keymap + i;
             if (ctrl == entry->ctrl
                     && alt == entry->alt
-                    && (printable || shift == entry->shift)
+                    && (shift_mismatch_allowed || shift == entry->shift)
                     && c == entry->keychar) {
                 if ((!numpad || shift == entry->shift) && numpad == entry->numpad && cshift == entry->cshift) {
                     key_macro = entry->macro;

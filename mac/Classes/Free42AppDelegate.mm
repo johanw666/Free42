@@ -1296,6 +1296,7 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
     
     unsigned short c = [characters characterAtIndex:0];
     bool printable = !ctrl && len == 1 && c >= 32 && c <= 126;
+    bool shift_mismatch_allowed = printable && !numpad && c != 32;
 
     // TODO: If requiring 10.15 compatibility is not a problem, we
     // can use [NSEvent charactersByApplyingModifiers] to figure out
@@ -1327,13 +1328,13 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
     }
     
     bool exact;
-    unsigned char *key_macro = skin_keymap_lookup(c, printable, ctrl, alt, numpad, shift, cshift, &exact);
+    unsigned char *key_macro = skin_keymap_lookup(c, shift_mismatch_allowed, ctrl, alt, numpad, shift, cshift, &exact);
     if (key_macro == NULL || !exact) {
         for (int i = 0; i < keymap_length; i++) {
             keymap_entry *entry = keymap + i;
             if (ctrl == entry->ctrl
                     && alt == entry->alt
-                    && (printable || shift == entry->shift)
+                    && (shift_mismatch_allowed || shift == entry->shift)
                     && c == entry->keychar) {
                 if ((!numpad || shift == entry->shift) && numpad == entry->numpad && cshift == entry->cshift) {
                     key_macro = entry->macro;

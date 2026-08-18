@@ -1806,6 +1806,7 @@ public class Free42Activity extends Activity {
             }
 
             boolean printable = !ctrl && !alt && ch >= 32 && ch <= 126;
+            boolean shift_mismatch_allowed = printable && !numpad && ch != 32;
 
             if (ckey != 0) {
                 shell_keyup(null);
@@ -1813,12 +1814,12 @@ public class Free42Activity extends Activity {
             }
 
             BooleanHolder exact = new BooleanHolder();
-            byte[] key_macro = skin.keymap_lookup(code, printable, ctrl, alt, numpad, numlock, shift, cshift, exact);
+            byte[] key_macro = skin.keymap_lookup(code, shift_mismatch_allowed, ctrl, alt, numpad, numlock, shift, cshift, exact);
             if (key_macro == null || !exact.value) {
                 for (KeymapEntry entry : keymap) {
                     if (ctrl == entry.ctrl
                             && alt == entry.alt
-                            && (printable || shift == entry.shift)
+                            && (shift_mismatch_allowed || shift == entry.shift)
                             && code.equals(entry.keychar)) {
                         if (numpad == entry.numpad && numlock == entry.numlock
                                 && shift == entry.shift && cshift == entry.cshift) {

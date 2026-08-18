@@ -1040,7 +1040,7 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     return NULL;
 }
 
-unsigned char *skin_keymap_lookup(unsigned short keychar, bool printable,
+unsigned char *skin_keymap_lookup(unsigned short keychar, bool shift_mismatch_allowed,
                                   bool ctrl, bool alt, bool numpad, bool shift,
                                   bool cshift, bool *exact) {
     int i;
@@ -1049,7 +1049,7 @@ unsigned char *skin_keymap_lookup(unsigned short keychar, bool printable,
         keymap_entry *entry = keymap + i;
         if (ctrl == entry->ctrl
                 && alt == entry->alt
-                && (printable || shift == entry->shift)
+                && (shift_mismatch_allowed || shift == entry->shift)
                 && keychar == entry->keychar) {
             if ((!numpad || shift == entry->shift) && numpad == entry->numpad && cshift == entry->cshift) {
                 *exact = true;

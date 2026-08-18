@@ -2891,6 +2891,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
             int i;
 
             bool printable = event->length == 1 && event->string[0] >= 32 && event->string[0] <= 126;
+            bool shift_mismatch_allowed = printable && event->string[0] != 32;
             just_pressed_shift = false;
 
             if (event->keyval == GDK_KEY_Shift_L || event->keyval == GDK_KEY_Shift_R) {
@@ -2909,13 +2910,13 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
 
             bool exact;
             unsigned char *key_macro = skin_keymap_lookup(event->keyval,
-                                printable, ctrl, alt, shift, cshift, &exact);
+                                shift_mismatch_allowed, ctrl, alt, shift, cshift, &exact);
             if (key_macro == NULL || !exact) {
                 for (i = 0; i < keymap_length; i++) {
                     keymap_entry *entry = keymap + i;
                     if (ctrl == entry->ctrl
                             && alt == entry->alt
-                            && (printable || shift == entry->shift)
+                            && (shift_mismatch_allowed || shift == entry->shift)
                             && event->keyval == entry->keyval) {
                         if (shift == entry->shift && cshift == entry->cshift) {
                             key_macro = entry->macro;
