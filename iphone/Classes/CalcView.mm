@@ -1182,7 +1182,7 @@ static void calc_keydown(NSString *characters, long flags, int keycode) {
     bool cshift = ann_shift != 0;
 
     unsigned short c = [characters characterAtIndex:0];
-    bool printable = !ctrl && len == 1 && c >= 33 && c <= 126;
+    bool printable = !ctrl && len == 1 && c >= 32 && c <= 126;
 
     if (ckey != 0) {
         shell_keyup();
@@ -1215,7 +1215,7 @@ static void calc_keydown(NSString *characters, long flags, int keycode) {
         // effect for R/S will never be overridden by the special cases
         // for the ALPHA and A..F menus.
         if (!ctrl && !alt) {
-            if ((printable || c == ' ') && core_alpha_menu()) {
+            if (printable && core_alpha_menu()) {
                 if (c >= 'a' && c <= 'z')
                     c = c + 'A' - 'a';
                 else if (c >= 'A' && c <= 'Z')

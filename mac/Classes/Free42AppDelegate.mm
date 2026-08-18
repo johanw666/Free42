@@ -1295,7 +1295,7 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
     bool cshift = ann_shift != 0;
     
     unsigned short c = [characters characterAtIndex:0];
-    bool printable = !ctrl && len == 1 && c >= 33 && c <= 126;
+    bool printable = !ctrl && len == 1 && c >= 32 && c <= 126;
 
     // TODO: If requiring 10.15 compatibility is not a problem, we
     // can use [NSEvent charactersByApplyingModifiers] to figure out
@@ -1352,7 +1352,7 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
         // effect for R/S will never be overridden by the special cases
         // for the ALPHA and A..F menus.
         if (!ctrl && !alt) {
-            if ((printable || c == ' ') && core_alpha_menu()) {
+            if (printable && core_alpha_menu()) {
                 if (c >= 'a' && c <= 'z')
                     c = c + 'A' - 'a';
                 else if (c >= 'A' && c <= 'Z')
