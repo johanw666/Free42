@@ -25,9 +25,9 @@ public class KeymapEntry {
     private static final int KEYMAP_MAX_MACRO_LENGTH = 31;
     public boolean ctrl;
     public boolean alt;
+    public boolean shift;
     public boolean numpad;
     public boolean numlock;
-    public boolean shift;
     public boolean cshift;
     public String keychar;
     public byte[] macro;
@@ -131,4 +131,21 @@ public class KeymapEntry {
         } else
             return null;
     }
+
+    public int match(String keychar, boolean ctrl, boolean alt, boolean shift, boolean shift_mismatch_allowed,
+                     boolean numpad, boolean numlock, boolean cshift) {
+        if (!keychar.equals(this.keychar)
+                || ctrl != this.ctrl
+                || alt != this.alt
+                || !shift_mismatch_allowed && shift != this.shift
+                || !numpad && this.numpad
+                || !numlock && this.numlock
+                || !cshift && this.cshift)
+            return 0;
+        return (numpad == this.numpad ? 18 : 9)
+                + (numlock == this.numlock ? 6 : 3)
+                + (cshift == this.cshift ? 2 : 1);
+    }
+
+    public static final int MAX_MATCH_QUALITY = 26;
 }

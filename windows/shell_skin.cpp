@@ -123,6 +123,26 @@ extern const long skin_bitmap_size[];
 extern const unsigned char * const skin_bitmap_data[];
 
 
+/******************/
+/* Keymap matcher */
+/******************/
+
+int keymap_entry::match(int keycode, bool ctrl, bool alt, bool shift,
+                        bool extended, bool numlock, bool cshift) {
+    if (keycode != this->keycode
+            || ctrl != this->ctrl
+            || alt != this->alt
+            || shift != this->shift
+            || !extended && this->extended
+            || !numlock && this->numlock
+            || !cshift && this->cshift)
+        return 0;
+    return (extended == this->extended ? 18 : 9)
+            + (numlock == this->numlock ? 6 : 3)
+            + (cshift == this->cshift ? 2 : 1);
+}
+
+
 /*****************/
 /* Keymap parser */
 /*****************/
@@ -1124,25 +1144,22 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     return NULL;
 }
 
-unsigned char *skin_keymap_lookup(int keycode, bool ctrl, bool alt, bool extended,
-                                  bool shift, bool cshift, bool numlock, bool *exact) {
-    int i;
+unsigned char *skin_keymap_lookup(int keycode, bool ctrl, bool alt, bool shift,
+                                  bool extended, bool numlock, bool cshift, int *quality) {
     unsigned char *macro = NULL;
-    for (i = 0; i < keymap_length; i++) {
+    int q = 0;
+    for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        if (keycode == entry->keycode
-                && ctrl == entry->ctrl
-                && alt == entry->alt
-                && shift == entry->shift) {
-            if (extended == entry->extended && cshift == entry->cshift && numlock == entry->numlock) {
-                *exact = true;
-                return entry->macro;
-            }
-            if ((extended || !entry->extended) && (cshift || !entry->cshift) && (numlock || !entry->numlock))
-                macro = entry->macro;
+        int qq = entry->match(keycode, ctrl, alt, shift, extended, numlock, cshift);
+        if (qq == MAX_MATCH_QUALITY) {
+            *quality = qq;
+            return entry->macro;
+        } else if (qq > q) {
+            q = qq;
+            macro = entry->macro;
         }
     }
-    *exact = false;
+    *quality = q;
     return macro;
 }
 

@@ -1003,6 +1003,21 @@ static void kp_normalize(guint *keyval, bool *numpad) {
     *numpad = true;
 }
 
+int keymap_entry::match(guint keyval, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+                        bool numpad, bool numlock, bool cshift) {
+    if (keyval != this->keyval
+            || ctrl != this->ctrl
+            || alt != this->alt
+            || !shift_mismatch_allowed && shift != this->shift
+            || !numpad && this->numpad
+            || !numlock && this->numlock
+            || !cshift && this->cshift)
+        return 0;
+    return (numpad == this->numpad ? 18 : 9)
+            + (numlock == this->numlock ? 6 : 3)
+            + (cshift == this->cshift ? 2 : 1);
+}
+
 keymap_entry *parse_keymap_entry(char *line, int lineno) {
     char *p;
     static keymap_entry entry;
@@ -2974,23 +2989,19 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
             bool printable = event->length == 1 && event->string[0] >= 32 && event->string[0] <= 126;
             bool shift_mismatch_allowed = printable && !numpad && event->string[0] != 32;
 
-            bool exact;
-            unsigned char *key_macro = skin_keymap_lookup(event->keyval, shift_mismatch_allowed,
-                                                ctrl, alt, shift, cshift, numpad, numlock, &exact);
-            if (key_macro == NULL || !exact) {
+            int quality;
+            unsigned char *key_macro = skin_keymap_lookup(event->keyval, ctrl, alt, shift,
+                                            shift_mismatch_allowed, numpad, numlock, cshift, &quality);
+            if (key_macro == NULL || quality < MAX_MATCH_QUALITY) {
                 for (int i = 0; i < keymap_length; i++) {
                     keymap_entry *entry = keymap + i;
-                    if (ctrl == entry->ctrl
-                            && alt == entry->alt
-                            && (shift_mismatch_allowed || shift == entry->shift)
-                            && event->keyval == entry->keyval) {
-                        if (cshift == entry->cshift && numpad == entry->numpad && numlock == entry->numlock) {
-                            key_macro = entry->macro;
-                            break;
-                        } else if (key_macro == NULL && (cshift || !entry->cshift)
-                                && (numpad || !entry->numpad) && (numlock || !entry->numlock)) {
-                            key_macro = entry->macro;
-                        }
+                    int qq = entry->match(event->keyval, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
+                    if (qq == MAX_MATCH_QUALITY) {
+                        key_macro = entry->macro;
+                        break;
+                    } else if (qq > quality) {
+                        key_macro = entry->macro;
+                        quality = qq;
                     }
                 }
             }

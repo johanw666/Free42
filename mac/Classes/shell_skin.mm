@@ -90,6 +90,23 @@ static keymap_entry *keymap = NULL;
 static int keymap_length = 0;
 
 
+/******************/
+/* Keymap matcher */
+/******************/
+
+int keymap_entry::match(unsigned short keychar, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+                        bool numpad, bool cshift) {
+    if (keychar != this->keychar
+            || ctrl != this->ctrl
+            || alt != this->alt
+            || !shift_mismatch_allowed && shift != this->shift
+            || !numpad && this->numpad
+            || !cshift && this->cshift)
+        return 0;
+    return (numpad == this->numpad ? 6 : 3)
+            + (cshift == this->cshift ? 2 : 1);
+}
+
 /*****************/
 /* Keymap parser */
 /*****************/
@@ -1012,26 +1029,23 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     return NULL;
 }
 
-unsigned char *skin_keymap_lookup(unsigned short keychar, bool shift_mismatch_allowed,
-                                  bool ctrl, bool alt, bool numpad, bool shift,
-                                  bool cshift, bool *exact) {
-    int i;
+unsigned char *skin_keymap_lookup(unsigned short keychar,
+                                  bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+                                  bool numpad, bool cshift, int *quality) {
     unsigned char *macro = NULL;
-    for (i = 0; i < keymap_length; i++) {
+    int q = 0;
+    for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        if (ctrl == entry->ctrl
-                && alt == entry->alt
-                && (shift_mismatch_allowed || shift == entry->shift)
-                && keychar == entry->keychar) {
-            if (cshift == entry->cshift && numpad == entry->numpad) {
-                *exact = true;
-                return entry->macro;
-            } else if (macro == NULL && (cshift || !entry->cshift) && (numpad || !entry->numpad)) {
-                macro = entry->macro;
-            }
+        int qq = entry->match(keychar, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift);
+        if (qq == MAX_MATCH_QUALITY) {
+            *quality = qq;
+            return entry->macro;
+        } else if (qq > q) {
+            q = qq;
+            macro = entry->macro;
         }
     }
-    *exact = false;
+    *quality = q;
     return macro;
 }
 

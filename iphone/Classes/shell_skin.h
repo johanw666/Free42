@@ -25,14 +25,16 @@ struct SkinColor {
 #define IMGTYPE_TRUECOLOR 4
 
 #define KEYMAP_MAX_MACRO_LENGTH 31
+#define MAX_MATCH_QUALITY 8
 struct keymap_entry {
     bool ctrl;
     bool alt;
-    bool numpad;
     bool shift;
+    bool numpad;
     bool cshift; 
     unsigned short keychar;
     unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
+    int match(unsigned short keychar, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed, bool numpad, bool cshift);
 };
 
 keymap_entry *parse_keymap_entry(char *line, int lineno);

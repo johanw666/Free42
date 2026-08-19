@@ -822,30 +822,25 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     active_keycode = 0;
                 }
 
-                bool exact;
+                int quality;
                 bool extended = (lParam & (1 << 24)) != 0;
                 bool cshift_down = ann_shift != 0;
                 bool numlock = !extended && (virtKey == VK_HOME || virtKey == VK_UP || virtKey == VK_PRIOR
                         || virtKey == VK_LEFT || virtKey == VK_CLEAR || virtKey == VK_RIGHT || virtKey == VK_END
                         || virtKey == VK_DOWN || virtKey == VK_NEXT || virtKey == VK_INSERT || virtKey == VK_DELETE)
                     && (GetKeyState(VK_NUMLOCK) & 1) != 0;
-                unsigned char *key_macro = skin_keymap_lookup(virtKey, ctrl_down, alt_down, extended,
-                                                              shift_down, cshift_down, numlock, &exact);
-                if (key_macro == NULL || !exact) {
+                unsigned char *key_macro = skin_keymap_lookup(virtKey, ctrl_down, alt_down, shift_down,
+                                                              extended, numlock, cshift_down, &quality);
+                if (key_macro == NULL || quality < MAX_MATCH_QUALITY) {
                     for (i = 0; i < keymap_length; i++) {
                         keymap_entry *entry = keymap + i;
-                        if (ctrl_down == entry->ctrl
-                                && alt_down == entry->alt
-                                && shift_down == entry->shift
-                                && virtKey == entry->keycode) {
-                            if (extended == entry->extended && cshift_down == entry->cshift && numlock == entry->numlock) {
-                                key_macro = entry->macro;
-                                break;
-                            } else {
-                                if ((extended || !entry->extended) && (cshift_down || !entry->cshift)
-                                        && (numlock || !entry->numlock) && key_macro == NULL)
-                                    key_macro = entry->macro;
-                            }
+                        int qq = entry->match(virtKey, ctrl_down, alt_down, shift_down, extended, numlock, cshift_down);
+                        if (qq == MAX_MATCH_QUALITY) {
+                            key_macro = entry->macro;
+                            break;
+                        } else if (qq > quality) {
+                            key_macro = entry->macro;
+                            quality = qq;
                         }
                     }
                 }

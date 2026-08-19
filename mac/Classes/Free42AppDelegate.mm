@@ -1327,21 +1327,18 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
         active_keycode = -1;
     }
     
-    bool exact;
-    unsigned char *key_macro = skin_keymap_lookup(c, shift_mismatch_allowed, ctrl, alt, numpad, shift, cshift, &exact);
-    if (key_macro == NULL || !exact) {
+    int quality;
+    unsigned char *key_macro = skin_keymap_lookup(c, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift, &quality);
+    if (key_macro == NULL || quality < MAX_MATCH_QUALITY) {
         for (int i = 0; i < keymap_length; i++) {
             keymap_entry *entry = keymap + i;
-            if (ctrl == entry->ctrl
-                    && alt == entry->alt
-                    && (shift_mismatch_allowed || shift == entry->shift)
-                    && c == entry->keychar) {
-                if (cshift == entry->cshift && numpad == entry->numpad) {
-                    key_macro = entry->macro;
-                    break;
-                } else if (key_macro == NULL && (cshift || !entry->cshift) && (numpad || !entry->numpad)) {
-                    key_macro = entry->macro;
-                }
+            int qq = entry->match(c, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift);
+            if (qq == MAX_MATCH_QUALITY) {
+                key_macro = entry->macro;
+                break;
+            } else if (qq > quality) {
+                key_macro = entry->macro;
+                quality = qq;
             }
         }
     }

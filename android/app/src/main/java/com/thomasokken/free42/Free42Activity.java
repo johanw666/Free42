@@ -1847,21 +1847,17 @@ public class Free42Activity extends Activity {
                 active_keycode = -1;
             }
 
-            BooleanHolder exact = new BooleanHolder();
-            byte[] key_macro = skin.keymap_lookup(code, shift_mismatch_allowed, ctrl, alt, numpad, numlock, shift, cshift, exact);
-            if (key_macro == null || !exact.value) {
+            IntHolder quality = new IntHolder();
+            byte[] key_macro = skin.keymap_lookup(code, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift, quality);
+            if (key_macro == null || quality.value < KeymapEntry.MAX_MATCH_QUALITY) {
                 for (KeymapEntry entry : keymap) {
-                    if (ctrl == entry.ctrl
-                            && alt == entry.alt
-                            && (shift_mismatch_allowed || shift == entry.shift)
-                            && code.equals(entry.keychar)) {
-                        if (cshift == entry.cshift && numpad == entry.numpad && numlock == entry.numlock) {
-                            key_macro = entry.macro;
-                            break;
-                        } else if (key_macro == null && (cshift || !entry.cshift)
-                                && (numpad || !entry.numpad) && (numlock || !entry.numlock)) {
-                            key_macro = entry.macro;
-                        }
+                    int qq = entry.match(code, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
+                    if (qq == KeymapEntry.MAX_MATCH_QUALITY) {
+                        key_macro = entry.macro;
+                        break;
+                    } else if (qq > quality.value) {
+                        key_macro = entry.macro;
+                        quality.value = qq;
                     }
                 }
             }

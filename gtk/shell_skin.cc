@@ -962,27 +962,23 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     return NULL;
 }
 
-unsigned char *skin_keymap_lookup(guint keyval, bool shift_mismatch_allowed,
-                                  bool ctrl, bool alt, bool shift, bool cshift,
-                                  bool numpad, bool numlock, bool *exact) {
-    int i;
+unsigned char *skin_keymap_lookup(guint keyval,
+                                  bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+                                  bool numpad, bool numlock, bool cshift, int *quality) {
     unsigned char *macro = NULL;
-    for (i = 0; i < keymap_length; i++) {
+    int q = 0;
+    for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        if (ctrl == entry->ctrl
-                && alt == entry->alt
-                && (shift_mismatch_allowed || shift == entry->shift)
-                && keyval == entry->keyval) {
-            if (cshift == entry->cshift && numpad == entry->numpad && numlock == entry->numlock) {
-                *exact = true;
-                return entry->macro;
-            } else if (macro == NULL && (cshift || !entry->cshift)
-                    && (numpad || !entry->numpad) && (numlock || !entry->numlock)) {
-                macro = entry->macro;
-            }
+        int qq = entry->match(keyval, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
+        if (qq == MAX_MATCH_QUALITY) {
+            *quality = qq;
+            return entry->macro;
+        } else if (qq > q) {
+            q = qq;
+            macro = entry->macro;
         }
     }
-    *exact = false;
+    *quality = q;
     return macro;
 }
 

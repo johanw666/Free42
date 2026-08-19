@@ -47,9 +47,9 @@ void skin_invalidate_annunciator(GdkWindow *win, int which);
 void skin_find_key(int x, int y, bool cshift, int *key, int *code);
 int skin_find_skey(int ckey, bool cshift);
 unsigned char *skin_find_macro(int ckey, int *type);
-unsigned char *skin_keymap_lookup(guint keyval, bool printable,
-                                  bool ctrl, bool alt, bool shift, bool cshift,
-                                  bool numpad, bool numlock, bool *exact);
+unsigned char *skin_keymap_lookup(guint keyval,
+                                  bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+                                  bool numpad, bool numlock, bool cshift, int *quality);
 void skin_repaint_key(cairo_t *cr, int key, bool state);
 void skin_invalidate_key(GdkWindow *win, int key);
 void skin_display_invalidater(GdkWindow *win, const char *bits, int bytesperline,
