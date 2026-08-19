@@ -49,7 +49,7 @@ int skin_find_skey(int ckey, bool cshift);
 unsigned char *skin_find_macro(int ckey, int *type);
 unsigned char *skin_keymap_lookup(guint keyval, bool printable,
                                   bool ctrl, bool alt, bool shift, bool cshift,
-                                  bool *exact);
+                                  bool numpad, bool numlock, bool *exact);
 void skin_repaint_key(cairo_t *cr, int key, bool state);
 void skin_invalidate_key(GdkWindow *win, int key);
 void skin_display_invalidater(GdkWindow *win, const char *bits, int bytesperline,

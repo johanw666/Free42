@@ -61,6 +61,8 @@ struct keymap_entry {
     bool alt;
     bool shift;
     bool cshift;
+    bool numpad;
+    bool numlock;
     guint keyval;
     unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
 };

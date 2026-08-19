@@ -964,7 +964,7 @@ unsigned char *skin_find_macro(int ckey, int *type) {
 
 unsigned char *skin_keymap_lookup(guint keyval, bool shift_mismatch_allowed,
                                   bool ctrl, bool alt, bool shift, bool cshift,
-                                  bool *exact) {
+                                  bool numpad, bool numlock, bool *exact) {
     int i;
     unsigned char *macro = NULL;
     for (i = 0; i < keymap_length; i++) {
@@ -973,10 +973,11 @@ unsigned char *skin_keymap_lookup(guint keyval, bool shift_mismatch_allowed,
                 && alt == entry->alt
                 && (shift_mismatch_allowed || shift == entry->shift)
                 && keyval == entry->keyval) {
-            if (cshift == entry->cshift) {
+            if (cshift == entry->cshift && numpad == entry->numpad && numlock == entry->numlock) {
                 *exact = true;
                 return entry->macro;
-            } else if (macro == NULL && (cshift || !entry->cshift)) {
+            } else if (macro == NULL && (cshift || !entry->cshift)
+                    && (numpad || !entry->numpad) && (numlock || !entry->numlock)) {
                 macro = entry->macro;
             }
         }

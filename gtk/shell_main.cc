@@ -957,6 +957,52 @@ static void calc_resized(GtkWidget *w, GtkAllocation *allocation, gpointer data)
     resize_timeout_id = g_timeout_add(250, resizer, NULL);
 }
 
+static void kp_normalize(guint *keyval, bool *numpad) {
+    switch (*keyval) {
+        // Note:
+        // GDK_KEY_KP_Prior == GDK_KEY_KP_Page_Up
+        // GDK_KEY_KP_Next == GDK_KEY_KP_Page_Down
+        case GDK_KEY_KP_Space: *keyval = GDK_KEY_space; break;
+        case GDK_KEY_KP_Tab: *keyval = GDK_KEY_Tab; break;
+        case GDK_KEY_KP_Enter: *keyval = GDK_KEY_Return; break;
+        case GDK_KEY_KP_F1: *keyval = GDK_KEY_F1; break;
+        case GDK_KEY_KP_F2: *keyval = GDK_KEY_F2; break;
+        case GDK_KEY_KP_F3: *keyval = GDK_KEY_F3; break;
+        case GDK_KEY_KP_F4: *keyval = GDK_KEY_F4; break;
+        case GDK_KEY_KP_Home: *keyval = GDK_KEY_Home; break;
+        case GDK_KEY_KP_Left: *keyval = GDK_KEY_Left; break;
+        case GDK_KEY_KP_Up: *keyval = GDK_KEY_Up; break;
+        case GDK_KEY_KP_Right: *keyval = GDK_KEY_Right; break;
+        case GDK_KEY_KP_Down: *keyval = GDK_KEY_Down; break;
+        case GDK_KEY_KP_Page_Up: *keyval = GDK_KEY_Page_Up; break;
+        case GDK_KEY_KP_Page_Down: *keyval = GDK_KEY_Page_Down; break;
+        case GDK_KEY_KP_End: *keyval = GDK_KEY_End; break;
+        case GDK_KEY_KP_Begin: *keyval = GDK_KEY_Begin; break;
+        case GDK_KEY_KP_Insert: *keyval = GDK_KEY_Insert; break;
+        case GDK_KEY_KP_Delete: *keyval = GDK_KEY_Delete; break;
+        case GDK_KEY_KP_Equal: *keyval = GDK_KEY_equal; break;
+        case GDK_KEY_KP_Multiply: *keyval = GDK_KEY_asterisk; break;
+        case GDK_KEY_KP_Add: *keyval = GDK_KEY_plus; break;
+        case GDK_KEY_KP_Separator: *keyval = GDK_KEY_comma; break;
+        case GDK_KEY_KP_Subtract: *keyval = GDK_KEY_minus; break;
+        case GDK_KEY_KP_Decimal: *keyval = GDK_KEY_period; break;
+        case GDK_KEY_KP_Divide: *keyval = GDK_KEY_slash; break;
+        case GDK_KEY_KP_0: *keyval = GDK_KEY_0; break;
+        case GDK_KEY_KP_1: *keyval = GDK_KEY_1; break;
+        case GDK_KEY_KP_2: *keyval = GDK_KEY_2; break;
+        case GDK_KEY_KP_3: *keyval = GDK_KEY_3; break;
+        case GDK_KEY_KP_4: *keyval = GDK_KEY_4; break;
+        case GDK_KEY_KP_5: *keyval = GDK_KEY_5; break;
+        case GDK_KEY_KP_6: *keyval = GDK_KEY_6; break;
+        case GDK_KEY_KP_7: *keyval = GDK_KEY_7; break;
+        case GDK_KEY_KP_8: *keyval = GDK_KEY_8; break;
+        case GDK_KEY_KP_9: *keyval = GDK_KEY_9; break;
+        default:
+            return;
+    }
+    *numpad = true;
+}
+
 keymap_entry *parse_keymap_entry(char *line, int lineno) {
     char *p;
     static keymap_entry entry;
@@ -979,6 +1025,8 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
         bool alt = false;
         bool shift = false;
         bool cshift = false;
+        bool numpad = false;
+        bool numlock = false;
         guint keyval = GDK_KEY_VoidSymbol;
         bool done = false;
         unsigned char macrobuf[KEYMAP_MAX_MACRO_LENGTH + 1];
@@ -1000,12 +1048,17 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
                 shift = true;
             else if (strcasecmp(tok, "cshift") == 0)
                 cshift = true;
+            else if (strcasecmp(tok, "numpad") == 0)
+                numpad = true;
+            else if (strcasecmp(tok, "numlock") == 0)
+                numlock = true;
             else {
                 keyval = gdk_keyval_from_name(tok);
                 if (keyval == GDK_KEY_VoidSymbol) {
                     fprintf(stderr, "Keymap, line %d: Unrecognized KeyName.\n", lineno);
                     return NULL;
                 }
+                kp_normalize(&keyval, &numpad);
                 done = true;
             }
             tok = strtok(NULL, " \t");
@@ -1036,6 +1089,8 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
         entry.alt = alt;
         entry.shift = shift;
         entry.cshift = cshift;
+        entry.numpad = numpad;
+        entry.numlock = numlock;
         entry.keyval = keyval;
         strcpy((char *) entry.macro, (const char *) macrobuf);
         return &entry;
@@ -2888,40 +2943,52 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
             // Auto-repeat
             return TRUE;
         if (ckey == 0 || !mouse_key) {
-            int i;
+            if (ckey != 0) {
+                shell_keyup();
+                active_keycode = 0;
+            }
 
-            bool printable = event->length == 1 && event->string[0] >= 32 && event->string[0] <= 126;
-            bool shift_mismatch_allowed = printable && event->string[0] != 32;
             just_pressed_shift = false;
 
             if (event->keyval == GDK_KEY_Shift_L || event->keyval == GDK_KEY_Shift_R) {
                 just_pressed_shift = true;
                 return TRUE;
             }
+
             bool ctrl = (event->state & GDK_CONTROL_MASK) != 0;
             bool alt = (event->state & GDK_MOD1_MASK) != 0;
             bool shift = (event->state & GDK_SHIFT_MASK) != 0;
             bool cshift = ann_shift != 0;
 
-            if (ckey != 0) {
-                shell_keyup();
-                active_keycode = 0;
+            bool numpad = false;
+            bool numlock = false;
+            kp_normalize(&event->keyval, &numpad);
+            if (numpad && ((event->keyval >= GDK_KEY_0 && event->keyval <= GDK_KEY_9)
+                        || event->keyval == GDK_KEY_period
+                        || event->keyval == GDK_KEY_comma)) {
+                GdkDisplay *disp = gtk_widget_get_display(calc_widget);
+                GdkKeymap *kmap = gdk_keymap_get_for_display(disp);
+                numlock = gdk_keymap_get_num_lock_state(kmap);
             }
 
+            bool printable = event->length == 1 && event->string[0] >= 32 && event->string[0] <= 126;
+            bool shift_mismatch_allowed = printable && !numpad && event->string[0] != 32;
+
             bool exact;
-            unsigned char *key_macro = skin_keymap_lookup(event->keyval,
-                                shift_mismatch_allowed, ctrl, alt, shift, cshift, &exact);
+            unsigned char *key_macro = skin_keymap_lookup(event->keyval, shift_mismatch_allowed,
+                                                ctrl, alt, shift, cshift, numpad, numlock, &exact);
             if (key_macro == NULL || !exact) {
-                for (i = 0; i < keymap_length; i++) {
+                for (int i = 0; i < keymap_length; i++) {
                     keymap_entry *entry = keymap + i;
                     if (ctrl == entry->ctrl
                             && alt == entry->alt
                             && (shift_mismatch_allowed || shift == entry->shift)
                             && event->keyval == entry->keyval) {
-                        if (cshift == entry->cshift) {
+                        if (cshift == entry->cshift && numpad == entry->numpad && numlock == entry->numlock) {
                             key_macro = entry->macro;
                             break;
-                        } else if (key_macro == NULL && (cshift || !entry->cshift)) {
+                        } else if (key_macro == NULL && (cshift || !entry->cshift)
+                                && (numpad || !entry->numpad) && (numlock || !entry->numlock)) {
                             key_macro = entry->macro;
                         }
                     }
