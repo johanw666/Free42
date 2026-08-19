@@ -281,10 +281,16 @@ bool core_keydown_command(const char *name, bool is_text, bool *enqueued, int *r
         }
         return core_keydown_2(ch == 0 ? 0 : ch + 1024, enqueued, repeat);
     } else {
-        int cmd = find_builtin(hpname, len);
-        if (cmd == CMD_NONE) {
+        int cmd;
+        if (string_equals(hpname, len, "NULL", 4)) {
+            cmd = CMD_NONE;
             set_shift(false);
-            squeak();
+        } else {
+            cmd = find_builtin(hpname, len);
+            if (cmd == CMD_NONE) {
+                set_shift(false);
+                squeak();
+            }
         }
         return core_keydown_2(cmd == CMD_NONE ? 0 : cmd + 2048, enqueued, repeat);
     }
