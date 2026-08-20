@@ -25,7 +25,7 @@
 # ignored.
 #
 # NOTE: Key events that translate to a single character in the printable ASCII
-# range (32..126) are matched without regard of the state of the Shift keys --
+# range (32..126) are matched without regard of the state of the Shift key --
 # so you don't have to use "Shift A" to match uppercase "A", etc. For other key
 # events, shift IS relevant (e.g. "Return" is not the same as "Shift Return").
 
