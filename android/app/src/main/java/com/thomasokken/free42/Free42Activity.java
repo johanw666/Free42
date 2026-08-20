@@ -1788,33 +1788,9 @@ public class Free42Activity extends Activity {
             boolean shift = event.isShiftPressed();
             boolean cshift = skin.getAnnunciators()[1];
 
-            boolean numpad = true;
-            int ch = 0;
+            int ch = KeymapEntry.numpad_normalize(keyCode);
+            boolean numpad = ch != 0;
             String code;
-            switch (keyCode) {
-                case KeyEvent.KEYCODE_NUMPAD_0: ch = '0'; break;
-                case KeyEvent.KEYCODE_NUMPAD_1: ch = '1'; break;
-                case KeyEvent.KEYCODE_NUMPAD_2: ch = '2'; break;
-                case KeyEvent.KEYCODE_NUMPAD_3: ch = '3'; break;
-                case KeyEvent.KEYCODE_NUMPAD_4: ch = '4'; break;
-                case KeyEvent.KEYCODE_NUMPAD_5: ch = '5'; break;
-                case KeyEvent.KEYCODE_NUMPAD_6: ch = '6'; break;
-                case KeyEvent.KEYCODE_NUMPAD_7: ch = '7'; break;
-                case KeyEvent.KEYCODE_NUMPAD_8: ch = '8'; break;
-                case KeyEvent.KEYCODE_NUMPAD_9: ch = '9'; break;
-                case KeyEvent.KEYCODE_NUMPAD_ADD: ch = '+'; break;
-                case KeyEvent.KEYCODE_NUMPAD_SUBTRACT: ch = '-'; break;
-                case KeyEvent.KEYCODE_NUMPAD_MULTIPLY: ch = '*'; break;
-                case KeyEvent.KEYCODE_NUMPAD_DIVIDE: ch = '/'; break;
-                case KeyEvent.KEYCODE_NUMPAD_COMMA: ch = ','; break;
-                case KeyEvent.KEYCODE_NUMPAD_DOT: ch = '.'; break;
-                case KeyEvent.KEYCODE_NUMPAD_ENTER: ch = 10; break;
-                case KeyEvent.KEYCODE_NUMPAD_EQUALS: ch = '='; break;
-                case KeyEvent.KEYCODE_NUMPAD_LEFT_PAREN: ch = '('; break;
-                case KeyEvent.KEYCODE_NUMPAD_RIGHT_PAREN: ch = ')'; break;
-                default:
-                    numpad = false;
-            }
             if (numpad) {
                 code = "" + (char) ch;
             } else {

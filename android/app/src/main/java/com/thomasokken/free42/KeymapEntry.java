@@ -20,6 +20,8 @@ package com.thomasokken.free42;
 import java.io.ByteArrayOutputStream;
 import java.util.StringTokenizer;
 
+import android.view.KeyEvent;
+
 /** @noinspection ALL */
 public class KeymapEntry {
     private static final int KEYMAP_MAX_MACRO_LENGTH = 31;
@@ -88,6 +90,14 @@ public class KeymapEntry {
                     } catch (NumberFormatException e) {}
                     if (!success) {
                         keychar = tok;
+                        int keycode = KeyEvent.keyCodeFromString(keychar);
+                        if (keycode != KeyEvent.KEYCODE_UNKNOWN) {
+                            int kc = numpad_normalize(keycode);
+                            if (kc != 0) {
+                                keychar = "" + (char) kc;
+                                numpad = true;
+                            }
+                        }
                     }
                     done = true;
                 }
@@ -148,4 +158,30 @@ public class KeymapEntry {
     }
 
     public static final int MAX_MATCH_QUALITY = 26;
+
+    public static int numpad_normalize(int keycode) {
+        switch (keycode) {
+            case KeyEvent.KEYCODE_NUMPAD_0: return '0';
+            case KeyEvent.KEYCODE_NUMPAD_1: return '1';
+            case KeyEvent.KEYCODE_NUMPAD_2: return '2';
+            case KeyEvent.KEYCODE_NUMPAD_3: return '3';
+            case KeyEvent.KEYCODE_NUMPAD_4: return '4';
+            case KeyEvent.KEYCODE_NUMPAD_5: return '5';
+            case KeyEvent.KEYCODE_NUMPAD_6: return '6';
+            case KeyEvent.KEYCODE_NUMPAD_7: return '7';
+            case KeyEvent.KEYCODE_NUMPAD_8: return '8';
+            case KeyEvent.KEYCODE_NUMPAD_9: return '9';
+            case KeyEvent.KEYCODE_NUMPAD_ADD: return '+';
+            case KeyEvent.KEYCODE_NUMPAD_SUBTRACT: return '-';
+            case KeyEvent.KEYCODE_NUMPAD_MULTIPLY: return '*';
+            case KeyEvent.KEYCODE_NUMPAD_DIVIDE: return '/';
+            case KeyEvent.KEYCODE_NUMPAD_COMMA: return ',';
+            case KeyEvent.KEYCODE_NUMPAD_DOT: return '.';
+            case KeyEvent.KEYCODE_NUMPAD_ENTER: return 10;
+            case KeyEvent.KEYCODE_NUMPAD_EQUALS: return '=';
+            case KeyEvent.KEYCODE_NUMPAD_LEFT_PAREN: return '(';
+            case KeyEvent.KEYCODE_NUMPAD_RIGHT_PAREN: return ')';
+            default: return 0;
+        }
+    }
 }
