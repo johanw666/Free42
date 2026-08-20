@@ -8,23 +8,26 @@
 # while codes 38..255 can be used to refer to extra keys defined by customized
 # skins.
 #
-# Ctrl, Alt, Shift, and NumLock refer to the modifier keys on the PC keyboard.
+# Ctrl, Alt, Shift, and NumLock refer to the corresponding modifier keys.
 # CShift refers to the state of the Calculator's Shift annunciator. This
 # modifier makes it possible for [CShift] [Key] to activate a different
 # keystroke or macro than the unshifted [Key], so you can, for example, make
 # CShift SQRT be something other than X^2.
 # NumPad indicates a key on the numeric keypad. For example, 'NumPad period'
 # is equivalent to 'KP_Decimal'.
+# Keystrokes with NumPad, NumLock, or CShift may be matched with key mappings
+# without some or all of these modifiers, if no exact match is found. If
+# multiple inexact matches are found, mappings with matching NumPad modifiers
+# get the highest priority, followed by NumLock and CShift.
 #
 # Anything from a "#" until the end of the line is a comment, and is ignored.
 # White space (Space, Tab) separates tokens in the key map, but is otherwise
 # ignored.
 #
-# NOTE: Key events that translate to a single character in the printable
-# ASCII range (32..126) are matched without regard of the state of the Shift
-# and Caps Lock keys -- so you don't have to use "Shift A" to match uppercase
-# "A", etc. For other key events, shift *is* relevant (e.g. "Return" is not
-# the same as "Shift Return").
+# NOTE: Key events that translate to a single character in the printable ASCII
+# range (32..126) are matched without regard of the state of the Shift keys --
+# so you don't have to use "Shift A" to match uppercase "A", etc. For other key
+# events, shift IS relevant (e.g. "Return" is not the same as "Shift Return").
 
 F1              : 1       # menu key 1
 Shift F1        : 28 1    # menu key 1, shifted

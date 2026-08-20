@@ -1,6 +1,6 @@
 # Default key mapping table for Free42 (Android version)
 #
-# Format: [Ctrl|Alt|Shift|CShift|NumPad]* <Character> : <macro>
+# Format: [Ctrl|Alt|Shift|CShift|NumPad|NumLock]* <Character> : <macro>
 # <Character> can be a printable character, or a unicode character code written
 # in hexadecimal with a 0x prefix, or an Android keycode name. For example, the
 # character 0 (zero) can be written as "0" or "0x30" (without the quotes), the
@@ -13,15 +13,17 @@
 # keyboard, while codes 38..255 can be used to refer to extra keys defined by
 # customized skins.
 #
-# Ctrl, Alt, and Shift refer to the Control, Option, and Shift modifier keys on
-# the keyboard.
+# Ctrl, Alt, Shift, and NumLock refer to the corresponding modifier keys.
 # CShift refers to the state of the Calculator's Shift annunciator. This
 # modifier makes it possible for [CShift] [Key] to activate a different
 # keystroke or macro than the unshifted [Key], so you can, for example, make
 # CShift SQRT be something other than X^2.
-# NumPad indicates keys on the numeric keypad. Note that if a key on the
-# numeric keypad does not have a mapping, the corresponding non-NumPad mapping
-# will be used instead.
+# NumPad indicates a key on the numeric keypad. For example, 'NumPad *' is
+# equivalent to 'NUMPAD_MULTIPLY'.
+# Keystrokes with NumPad, NumLock, or CShift may be matched with key mappings
+# without some or all of these modifiers, if no exact match is found. If
+# multiple inexact matches are found, mappings with matching NumPad modifiers
+# get the highest priority, followed by NumLock and CShift.
 #
 # Anything from a "#" until the end of the line is a comment, and is ignored.
 # White space (Space, Tab) separates tokens in the key map, but is otherwise
@@ -31,7 +33,7 @@
 # NOTE: Key events that translate to a single character in the printable ASCII
 # range (32..126) are matched without regard of the state of the Shift key --
 # so you don't have to use "Shift A" to match uppercase "A", etc. For other key
-# events, shift *is* relevant (e.g. "ENTER" is not the same as "Shift ENTER").
+# events, shift IS relevant (e.g. "ENTER" is not the same as "Shift ENTER").
 
 F1              : 1       # menu key 1
 Shift F1        : 28 1    # menu key 1, shifted
