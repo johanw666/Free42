@@ -2866,7 +2866,7 @@ static void shell_keydown(bool cshift) {
 
     if (macro != NULL) {
         if (macro_type != 0) {
-            keep_running = core_keydown_command((const char *) macro, macro_type == 2, &enqueued, &repeat);
+            keep_running = core_keydown_command((const char *) macro, macro_type - 1, &enqueued, &repeat);
         } else {
             if (*macro == 0) {
                 squeak();

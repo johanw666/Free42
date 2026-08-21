@@ -168,7 +168,7 @@ public class Free42Activity extends Activity {
     private int ckey;
     private int skey;
     private Object macroObj;
-    private boolean macroIsText;
+    private int macroType;
     private boolean mouse_key;
     private int active_keycode = -1;
     private boolean just_pressed_shift;
@@ -1626,7 +1626,7 @@ public class Free42Activity extends Activity {
             } else if (macroObj instanceof String) {
                 // Direct-mapped command
                 String cmd = (String) macroObj;
-                running = core_keydown_command(cmd, macroIsText, enqueued, repeat, true);
+                running = core_keydown_command(cmd, macroType - 1, enqueued, repeat, true);
             } else {
                 running = false;
                 byte[] macro = (byte[]) macroObj;
@@ -1716,7 +1716,7 @@ public class Free42Activity extends Activity {
                 if (macroObj instanceof Object[]) {
                     Object[] arr = (Object[]) macroObj;
                     macroObj = arr[0];
-                    macroIsText = (Boolean) arr[1];
+                    macroType = (Integer) arr[1];
                 }
                 boolean cshift = skin.getAnnunciators()[1];
                 shell_keydown(cshift);
@@ -1937,7 +1937,7 @@ public class Free42Activity extends Activity {
                         } else if (m instanceof Object[]) {
                             Object[] arr = (Object[]) m;
                             macroObj = arr[0];
-                            macroIsText = (Boolean) arr[1];
+                            macroType = (Integer) arr[1];
                             is_string = true;
                             break;
                         }
@@ -2023,7 +2023,7 @@ public class Free42Activity extends Activity {
             }
             skey = -1;
             macroObj = macro;
-            macroIsText = false;
+            macroType = 0;
             shell_keydown(false);
             mouse_key = false;
             active_keycode = -1;
@@ -2843,7 +2843,7 @@ public class Free42Activity extends Activity {
     private native boolean core_hex_menu();
     private native int core_special_menu_key(int which);
     private native boolean core_keydown(int key, BooleanHolder enqueued, IntHolder repeat, boolean immediate_return);
-    private native boolean core_keydown_command(String cmd, boolean is_text, BooleanHolder enqueued, IntHolder repeat, boolean immediate_return);
+    private native boolean core_keydown_command(String cmd, int type, BooleanHolder enqueued, IntHolder repeat, boolean immediate_return);
     private native int core_repeat();
     private native void core_keytimeout1();
     private native void core_keytimeout2();

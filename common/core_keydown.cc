@@ -31,6 +31,17 @@
 #include "shell.h"
 
 
+// Buffer used to pass LBL name, for direct XEQ "LBL" mapping
+char dcm_lbl[8];
+
+static void handle_dcm_xeq() {
+    pending_command = CMD_XEQ;
+    pending_command_arg.type = ARGTYPE_STR;
+    pending_command_arg.length = dcm_lbl[0];
+    for (int i = 0; i < pending_command_arg.length; i++)
+        pending_command_arg.val.text[i] = dcm_lbl[i + 1];
+}
+
 static bool is_number_key(int shift, int key, bool *invalid) {
     *invalid = false;
     if (get_front_menu() == MENU_BASE_A_THRU_F
@@ -2104,6 +2115,11 @@ void keydown_alpha_mode(int shift, int key) {
         return;
     }
 
+    if (key == 2048 + CMD_NULL) {
+        handle_dcm_xeq();
+        return;
+    }
+
     command = CMD_CANCELLED;
     if (!shift) {
         switch (key) {
@@ -2884,6 +2900,11 @@ void keydown_normal_mode(int shift, int key) {
          */
         clear_all_rtns();
         squeak();
+        return;
+    }
+
+    if (key == 2048 + CMD_NULL) {
+        handle_dcm_xeq();
         return;
     }
 

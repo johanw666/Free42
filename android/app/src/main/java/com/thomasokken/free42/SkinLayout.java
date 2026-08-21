@@ -66,10 +66,14 @@ public class SkinLayout {
     }
 
     private static class SkinMacro {
+        static final int CMD = 1;
+        static final int LBL = 2;
+        static final int TEXT = 3;
         int code;
         Object macro;
         String macro2;
-        boolean secondIsText;
+        int type;
+        int type2;
     }
 
     private static class SkinAnnunciator {
@@ -257,9 +261,10 @@ public class SkinLayout {
                         // ignore
                     }
                 } else if (lcline.startsWith("macro:")) {
-                    int quot1 = line.indexOf('"');
+                    int quot1 = find_quote(line, 0, true);
                     if (quot1 != -1) {
-                        int quot2 = line.indexOf('"', quot1 + 1);
+                        char q = line.charAt(quot1);
+                        int quot2 = line.indexOf(q, quot1 + 1);
                         if (quot2 != -1) {
                             int len = quot2 - quot1 - 1;
                             try {
@@ -268,15 +273,14 @@ public class SkinLayout {
                                     SkinMacro macro = new SkinMacro();
                                     macro.code = n;
                                     macro.macro = line.substring(quot1 + 1, quot2);
-                                    quot1 = line.indexOf('"', quot2 + 1);
-                                    if (quot1 == -1)
-                                        quot1 = line.indexOf('\'', quot2 + 1);
+                                    macro.type = q == '"' ? SkinMacro.CMD : SkinMacro.LBL;
+                                    quot1 = find_quote(line, quot2 + 1, false);
                                     if (quot1 != -1) {
-                                        char q = line.charAt(quot1);
+                                        q = line.charAt(quot1);
                                         quot2 = line.indexOf(q, quot1 + 1);
                                         if (quot2 != -1) {
                                             macro.macro2 = line.substring(quot1 + 1, quot2);
-                                            macro.secondIsText = q == '\'';
+                                            macro.type2 = q == '"' ? SkinMacro.CMD : q == '`' ? SkinMacro.LBL : SkinMacro.TEXT;
                                         }
                                     }
                                     tempmacrolist.add(macro);
@@ -353,6 +357,17 @@ public class SkinLayout {
                     is.close();
                 } catch (IOException e) {}
         }
+    }
+
+    private static int find_quote(String s, int offset, boolean first) {
+        int pos = offset;
+        while (pos < s.length()) {
+            char c = s.charAt(pos);
+            if (c == '"' || c == '`' || !first && c == '\'')
+                return pos;
+            pos++;
+        }
+        return -1;
     }
     
     public void setSmoothing(boolean skinSmoothing, boolean displaySmoothing) {
@@ -458,9 +473,9 @@ public class SkinLayout {
                 if (macro.macro instanceof byte[])
                     return macro.macro;
                 else if (macro.macro2 == null || !Free42Activity.instance.core_alpha_menu())
-                    return new Object[] { macro.macro, false };
+                    return new Object[] { macro.macro, macro.type };
                 else
-                    return new Object[] { macro.macro2, macro.secondIsText };
+                    return new Object[] { macro.macro2, macro.type2 };
             }
         return null;
     }

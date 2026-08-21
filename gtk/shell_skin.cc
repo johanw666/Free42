@@ -62,10 +62,16 @@ struct SkinKey {
 #define SKIN_MAX_MACRO_LENGTH 63
 #define SKIN_MAX_HALF_MACRO_LENGTH ((SKIN_MAX_MACRO_LENGTH - 1) / 2)
 
+#define MACRO_NONE -1
+#define MACRO_KEYS 0
+#define MACRO_CMD 1
+#define MACRO_LBL 2
+#define MACRO_TEXT 3
+
 struct SkinMacro {
     int code;
-    bool isName;
-    char secondType; // 0:none, 1:name, 2:text
+    char type; // can be keys, cmd, or lbl
+    char type2; // can be none, cmd, lbl, or text
     unsigned char macro[SKIN_MAX_HALF_MACRO_LENGTH + 1];
     unsigned char macro2[SKIN_MAX_HALF_MACRO_LENGTH + 1];
     SkinMacro *next;
@@ -353,6 +359,16 @@ void skin_menu_update(GtkWidget *w) {
     }
 }
 
+static char *find_quote(char *s, bool first) {
+    char c;
+    while ((c = *s) != 0) {
+        if (c == '"' || c == '`' || !first && c == '\'')
+            return s;
+        s++;
+    }
+    return NULL;
+}
+
 void skin_load(int *width, int *height) {
     char line[1024];
     bool force_builtin = false;
@@ -459,9 +475,9 @@ void skin_load(int *width, int *height) {
                 }
             }
         } else if (strncasecmp(line, "macro:", 6) == 0) {
-            char *quot1 = strchr(line + 6, '"');
+            char *quot1 = find_quote(line + 6, true);
             if (quot1 != NULL) {
-                char *quot2 = strchr(quot1 + 1, '"');
+                char *quot2 = strchr(quot1 + 1, *quot1);
                 if (quot2 != NULL) {
                     long len = quot2 - quot1 - 1;
                     if (len > SKIN_MAX_HALF_MACRO_LENGTH)
@@ -471,11 +487,11 @@ void skin_load(int *width, int *height) {
                         SkinMacro *macro = (SkinMacro *) malloc(sizeof(SkinMacro));
                         // TODO - handle memory allocation failure
                         macro->code = n;
-                        macro->isName = true;
+                        macro->type = *quot1 == '"' ? MACRO_CMD : MACRO_LBL;
                         memcpy(macro->macro, quot1 + 1, len);
                         macro->macro[len] = 0;
-                        macro->secondType = 0;
-                        quot1 = strchr(quot2 + 1, '"');
+                        macro->type2 = MACRO_NONE;
+                        quot1 = find_quote(quot2 + 1, false);
                         if (quot1 == NULL)
                             quot1 = strchr(quot2 + 1, '\'');
                         if (quot1 != NULL) {
@@ -486,7 +502,7 @@ void skin_load(int *width, int *height) {
                                     len = SKIN_MAX_HALF_MACRO_LENGTH;
                                 memcpy(macro->macro2, quot1 + 1, len);
                                 macro->macro2[len] = 0;
-                                macro->secondType = *quot1 == '"' ? 1 : 2;
+                                macro->type2 = *quot1 == '"' ? MACRO_CMD : *quot1 == '`' ? MACRO_LBL : MACRO_TEXT;
                             }
                         }
                         macro->next = macrolist;
@@ -515,7 +531,7 @@ void skin_load(int *width, int *height) {
                         macro = (SkinMacro *) malloc(sizeof(SkinMacro));
                         // TODO - handle memory allocation failure
                         macro->code = n;
-                        macro->isName = false;
+                        macro->type = MACRO_KEYS;
                     } else if (len < SKIN_MAX_MACRO_LENGTH) {
                         if (n < 1 || n > 37) {
                             /* Key code out of range; ignore this macro */
@@ -949,11 +965,11 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     SkinMacro *m = macrolist;
     while (m != NULL) {
         if (m->code == ckey) {
-            if (!m->isName || m->secondType == 0 || !core_alpha_menu()) {
-                *type = m->isName ? 1 : 0;
+            if (m->type == MACRO_KEYS || m->type2 == MACRO_NONE || !core_alpha_menu()) {
+                *type = m->type;
                 return m->macro;
             } else {
-                *type = m->secondType;
+                *type = m->type2;
                 return m->macro2;
             }
         }

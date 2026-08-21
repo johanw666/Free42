@@ -152,11 +152,15 @@ bool core_keydown(int key, bool *enqueued, int *repeat);
  * mapping by creating a macro that performs XEQ and spells out the command
  * name, or selects the command from a menu or the FCN catalog, all of which
  * have potentially undesirable side effects.
- * The is_text parameter signals that the command is actually literal text to
- * be entered. This should only happen when ALPHA is active. This corresponds
- * to secondary macros with '' delimiters.
+ * The type parameter indicates the type of the name parameter: 0 means a
+ * built-in function, as described above; 1 means a LBL name, requesting an
+ * XEQ "name" to be performed; and 2 requests to insert literal text. Type 2
+ * will only happen when ALPHA mode is active.
+ * Type 0 names are specified in the layout file by using "" delimiters,
+ * type 1 is specified using `` delimiters, and type 2 is specified using ''
+ * delimiters.
  */
-bool core_keydown_command(const char *name, bool is_text, bool *enqueued, int *repeat);
+bool core_keydown_command(const char *name, int type, bool *enqueued, int *repeat);
 
 /* core_repeat()
  *

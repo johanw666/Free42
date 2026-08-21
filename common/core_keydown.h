@@ -20,6 +20,8 @@
 
 #include "free42.h"
 
+extern char dcm_lbl[8];
+
 void keydown(int shift, int key);
 void keydown_number_entry(int shift, int key);
 void keydown_command_entry(int shift, int key);

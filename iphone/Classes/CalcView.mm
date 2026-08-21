@@ -1043,7 +1043,7 @@ static void shell_keydown(bool cshift) {
     if (macro != NULL) {
         if (macro_type != 0) {
             we_want_cpu = true;
-            keep_running = core_keydown_command((const char *) macro, macro_type == 2, &enqueued, &repeat);
+            keep_running = core_keydown_command((const char *) macro, macro_type - 1, &enqueued, &repeat);
             we_want_cpu = false;
         } else {
             if (*macro == 0) {

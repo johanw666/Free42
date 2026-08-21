@@ -269,10 +269,10 @@ bool core_keydown(int key, bool *enqueued, int *repeat) {
     return core_keydown_2(key, enqueued, repeat);
 }
 
-bool core_keydown_command(const char *name, bool is_text, bool *enqueued, int *repeat) {
+bool core_keydown_command(const char *name, int type, bool *enqueued, int *repeat) {
     char hpname[70];
     int len = ascii2hp(hpname, 63, name);
-    if (is_text) {
+    if (type == 2) {
         int ch = hpname[0] & 255;
         if (len == 0) {
             ch = 0;
@@ -282,14 +282,26 @@ bool core_keydown_command(const char *name, bool is_text, bool *enqueued, int *r
         return core_keydown_2(ch == 0 ? 0 : ch + 1024, enqueued, repeat);
     } else {
         int cmd;
-        if (string_equals(hpname, len, "NULL", 4)) {
-            cmd = CMD_NONE;
-            set_shift(false);
+        if (type == 0) {
+            if (string_equals(hpname, len, "NULL", 4)) {
+                cmd = CMD_NONE;
+                set_shift(false);
+            } else {
+                cmd = find_builtin(hpname, len);
+                if (cmd == CMD_NONE) {
+                    set_shift(false);
+                    squeak();
+                }
+            }
         } else {
-            cmd = find_builtin(hpname, len);
-            if (cmd == CMD_NONE) {
+            if (len == 0 || len > 7) {
+                cmd = CMD_NONE;
                 set_shift(false);
                 squeak();
+            } else {
+                memcpy(dcm_lbl + 1, hpname, len);
+                dcm_lbl[0] = len;
+                cmd = CMD_NULL; // Magic value to trigger XEQ "dcm_lbl"
             }
         }
         return core_keydown_2(cmd == CMD_NONE ? 0 : cmd + 2048, enqueued, repeat);
