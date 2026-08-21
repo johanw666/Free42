@@ -40,6 +40,13 @@ static void handle_dcm_xeq() {
     pending_command_arg.length = dcm_lbl[0];
     for (int i = 0; i < pending_command_arg.length; i++)
         pending_command_arg.val.text[i] = dcm_lbl[i + 1];
+    if (flags.f.prgm_mode) {
+        store_command_after(&pc, pending_command,
+                                    &pending_command_arg, NULL);
+        prgm_highlight_row = 1;
+        pending_command = CMD_NONE;
+        redisplay();
+    }
 }
 
 static bool is_number_key(int shift, int key, bool *invalid) {
