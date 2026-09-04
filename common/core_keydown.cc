@@ -381,28 +381,26 @@ void keydown(int shift, int key) {
         return;
     }
 
-    if (key == KEY_UP || key == KEY_DOWN) {
-        if (get_front_menu() == MENU_CATALOG) {
-            int sect = get_cat_section();
-            switch (sect) {
-                case CATSECT_TOP:
-                    sect = key == KEY_UP ? CATSECT_EXT_2 : CATSECT_EXT_1;
-                    break;
-                case CATSECT_EXT_1:
-                    sect = key == KEY_UP ? CATSECT_TOP : CATSECT_EXT_2;
-                    break;
-                case CATSECT_EXT_2:
-                    sect = key == KEY_UP ? CATSECT_EXT_1 : CATSECT_TOP;
-                    break;
-                default:
-                    sect = -1;
-                    break;
-            }
-            if (sect != -1) {
-                set_cat_section(sect);
-                redisplay();
-                return;
-            }
+    if (!shift && (key == KEY_UP || key == KEY_DOWN) && get_front_menu() == MENU_CATALOG) {
+        int sect = get_cat_section();
+        switch (sect) {
+            case CATSECT_TOP:
+                sect = key == KEY_UP ? CATSECT_EXT_2 : CATSECT_EXT_1;
+                break;
+            case CATSECT_EXT_1:
+                sect = key == KEY_UP ? CATSECT_TOP : CATSECT_EXT_2;
+                break;
+            case CATSECT_EXT_2:
+                sect = key == KEY_UP ? CATSECT_EXT_1 : CATSECT_TOP;
+                break;
+            default:
+                sect = -1;
+                break;
+        }
+        if (sect != -1) {
+            set_cat_section(sect);
+            redisplay();
+            return;
         }
     }
 
