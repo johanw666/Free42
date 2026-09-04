@@ -31,11 +31,13 @@ Macro: for keys with keycodes in the range 38..255, this defines the sequence
   keycode, followed by zero or more keycodes in the range 1..37.
   An alternate way of describing the action to be taken when a key is pressed
   is direct command mapping. In this case, the action is not a sequence of
-  HP-42S keys, but the name of a built-in function, enclosed in double quotes.
+  HP-42S keys, but the name of a built-in function, enclosed in double quotes,
+  or the name of a global LBL, enclosed in backquotes.
   By default, direct command mappings take effect in all modes, but it is
-  possible to define alternate behaviors for ALPHA mode.  The alternate may be
-  a different built-in function, again enclosed in double quotes, or it may be
-  a character, enclosed in single quotes, which will be typed as is.
+  possible to define alternate behaviors for ALPHA mode. The alternate may be a
+  different built-in function or LBL, again enclosed in double quotes or
+  backquotes, or it may be a character, enclosed in single quotes, which will
+  be typed as is.
   If the alternate is "" or '', the key is inactive in ALPHA mode, and pressing
   it will only cause an error beep.
   See below for examples of all types of macros.
@@ -63,11 +65,11 @@ Key: 38,39 <sens_rect> <disp_rect> <active_pt>
 Macro: 38 "STO" "ASTO"
 Macro: 39 "SQRT" '√'
 
-To define a key that performs GTO in all modes, and whose shifted function is
-1/X in normal mode and no action in ALPHA mode:
+To define a key that performs XEQ "INV" in all modes, and whose shifted
+function is 1/X in normal mode and no action in ALPHA mode:
 
 Key: 40,41 <sens_rect> <disp_rect> <active_pt>
-Macro: 40 "GTO"
+Macro: 40 `INV`
 Macro: 41 "1/X" ''
 
 PC Keyboard Mapping:
