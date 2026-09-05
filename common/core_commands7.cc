@@ -2239,6 +2239,21 @@ int docmd_nn_to_s(arg_struct *args) {
     return err;
 }
 
+int docmd_ip_to_s(arg_struct *arg) {
+    char buf[44];
+    int size = ip2revstring(((vartype_real *) stack[sp])->x, buf, 44);
+    for (int i = 0; i < size / 2; i++) {
+        char t = buf[i];
+        buf[i] = buf[size - 1 - i];
+        buf[size - 1 - i] = t;
+    }
+    vartype *s = new_string(buf, size);
+    if (s == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(s);
+    return ERR_NONE;
+}
+
 int docmd_c_to_n(arg_struct *arg) {
     // C->N: convert character to number, like ATOX
     vartype_string *s = (vartype_string *) stack[sp];
