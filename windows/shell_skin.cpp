@@ -746,7 +746,7 @@ void skin_finish_image() {
     skin_bitmap = new Gdiplus::Bitmap((BITMAPINFO *) bh, skin_data);
 }
 
-static bool need_to_paint_only_display(RECT* r) {
+static bool need_to_paint_only_display(RECT *r) {
     int d_left = (int) (((double) display_loc.x) * window_width / skin.width);
     int d_top = (int) (((double) display_loc.y) * window_height / skin.height);
     int d_right = (int) ceil((display_loc.x + 131 * display_scale_x) * window_width / skin.width);
@@ -758,7 +758,7 @@ static bool need_to_paint_only_display(RECT* r) {
 }
 
 static void skin_repaint_annunciator(Graphics *g, int which) {
-    SkinAnnunciator* ann = annunciators + (which - 1);
+    SkinAnnunciator *ann = annunciators + (which - 1);
     g->DrawImage(skin_bitmap, ann->disp_rect.x, ann->disp_rect.y, ann->src.x, ann->src.y, ann->disp_rect.width, ann->disp_rect.height, Gdiplus::UnitPixel);
 }
 
@@ -1013,6 +1013,11 @@ void skin_repaint(bool shortcuts) {
     if (!only_disp) {
         g.SetInterpolationMode(InterpolationModeBilinear);
         g.DrawImage(skin_bitmap, 0, 0, skin.x, skin.y, skin.width, skin.height, Gdiplus::UnitPixel);
+        if (skey >= 0 && skey < nkeys) {
+            SkinKey *key = keylist + skey;
+            g.DrawImage(skin_bitmap, key->disp_rect.x, key->disp_rect.y, key->src.x, key->src.y,
+                        key->disp_rect.width, key->disp_rect.height, Gdiplus::UnitPixel);
+        }
     }
 
     Region oldClip;
@@ -1066,11 +1071,6 @@ void skin_repaint(bool shortcuts) {
             skin_repaint_annunciator(&g, 6);
         if (ann_rad)
             skin_repaint_annunciator(&g, 7);
-        if (skey >= 0 && skey < nkeys) {
-            SkinKey* key = keylist + skey;
-            g.DrawImage(skin_bitmap, key->disp_rect.x, key->disp_rect.y, key->src.x, key->src.y,
-                        key->disp_rect.width, key->disp_rect.height, Gdiplus::UnitPixel);
-        }
     }
 
     if (shortcuts) {
@@ -1189,7 +1189,7 @@ void skin_invalidate_key(int key) {
     } else if (key < 0 || key >= nkeys) {
         return;
     } else {
-        SkinRect* rect = &keylist[key].disp_rect;
+        SkinRect *rect = &keylist[key].disp_rect;
         skin_invalidate(rect->x, rect->y, rect->x + rect->width, rect->y + rect->height);
     }
 }
