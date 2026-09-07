@@ -118,9 +118,9 @@ int keymap_entry::match(unsigned short keychar, bool ctrl, bool alt, bool shift,
             + (cshift == this->cshift ? 2 : 0)
             + 2
         : 0;
-    if (result == MAX_MATCH_QUALITY || !cshift)
+    if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
         return result;
-    int result2 = match(keychar, ctrl, alt, !shift, shift_mismatch_allowed, numpad, false);
+    int result2 = match(keychar, ctrl, alt, !shift, false, numpad, false);
     return result2 > result ? result2 - 1 : result;
 }
 
