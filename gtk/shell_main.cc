@@ -1057,9 +1057,9 @@ int keymap_entry::match(guint keyval, bool ctrl, bool alt, bool shift, bool shif
             + (cshift == this->cshift ? 2 : 0)
             + 2
         : 0;
-    if (result == MAX_MATCH_QUALITY || !cshift)
+    if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
         return result;
-    int result2 = match(keyval, ctrl, alt, !shift, shift_mismatch_allowed, numpad, numlock, false);
+    int result2 = match(keyval, ctrl, alt, !shift, false, numpad, numlock, false);
     return result2 > result ? result2 - 1 : result;
 }
 
