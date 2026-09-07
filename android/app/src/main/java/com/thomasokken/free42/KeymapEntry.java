@@ -128,6 +128,15 @@ public class KeymapEntry {
                     macro.write(k);
             }
 
+            if (!ctrl && !alt && keychar.length() == 1) {
+                char kc = keychar.charAt(0);
+                if (kc >= 'A' && kc <= 'Z') {
+                    keychar = "" + (char) (kc + 32);
+                    shift = true;
+                } else if (kc >= 'a' && kc <= 'z')
+                    shift = false;
+            }
+
             KeymapEntry entry = new KeymapEntry();
             entry.ctrl = ctrl;
             entry.alt = alt;
@@ -144,20 +153,25 @@ public class KeymapEntry {
 
     public int match(String keychar, boolean ctrl, boolean alt, boolean shift, boolean shift_mismatch_allowed,
                      boolean numpad, boolean numlock, boolean cshift) {
-        if (!keychar.equals(this.keychar)
-                || ctrl != this.ctrl
-                || alt != this.alt
-                || !shift_mismatch_allowed && shift != this.shift
-                || !numpad && this.numpad
-                || !numlock && this.numlock
-                || !cshift && this.cshift)
-            return 0;
-        return (numpad == this.numpad ? 18 : 9)
-                + (numlock == this.numlock ? 6 : 3)
-                + (cshift == this.cshift ? 2 : 1);
+        int result = keychar.equals(this.keychar)
+                && ctrl == this.ctrl
+                && alt == this.alt
+                && (shift_mismatch_allowed || shift == this.shift)
+                && (numpad || !this.numpad)
+                && (numlock || !this.numlock)
+                && (cshift || !this.cshift)
+            ? (numpad == this.numpad ? 8 : 0)
+                + (numlock == this.numlock ? 4 : 0)
+                + (cshift == this.cshift ? 2 : 0)
+                + 2
+            : 0;
+        if (result == MAX_MATCH_QUALITY || !cshift)
+            return result;
+        int result2 = match(keychar, ctrl, alt, !shift, shift_mismatch_allowed, numpad, numlock, false);
+        return result2 > result ? result2 - 1 : result;
     }
 
-    public static final int MAX_MATCH_QUALITY = 26;
+    public static final int MAX_MATCH_QUALITY = 16;
 
     public static int numpad_normalize(int keycode) {
         switch (keycode) {

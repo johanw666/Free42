@@ -480,22 +480,32 @@ public class SkinLayout {
         return null;
     }
 
-    public byte[] keymap_lookup(String keychar, boolean ctrl, boolean alt, boolean shift, boolean shift_mismatch_allowed,
-                                boolean numpad, boolean numlock, boolean cshift, IntHolder quality) {
-        byte[] macro = null;
+    public KeymapEntry keymap_lookup(String keychar, boolean ctrl, boolean alt, boolean shift, boolean shift_mismatch_allowed,
+                              boolean numpad, boolean numlock, boolean cshift, IntHolder quality) {
+        KeymapEntry ke = null;
         int q = 0;
         for (KeymapEntry entry : keymap) {
             int qq = entry.match(keychar, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
             if (qq == KeymapEntry.MAX_MATCH_QUALITY) {
                 quality.value = qq;
-                return entry.macro;
+                return entry;
             } else if (qq > q) {
                 q = qq;
-                macro = entry.macro;
+                ke = entry;
             }
         }
         quality.value = q;
-        return macro;
+        return ke;
+    }
+
+    public int find_shifted_code(int code) {
+        for (SkinKey key : keylist) {
+            if (key.code == code) {
+                int r = key.shifted_code;
+                return r == code ? 0 : r;
+            }
+        }
+        return 0;
     }
 
     private void repaint_key(Canvas canvas, Bitmap skin, int key, boolean state) {

@@ -465,6 +465,46 @@ static void copy_one_utf8_char(char *dst, const char *src) {
     strncat(dst, src, n);
 }
 
+static int utf8_length(const char *s) {
+    int len = 0;
+    char c;
+    while ((c = *s++) != 0) {
+        int n;
+        if (c == 0)
+            break;
+        if ((c & 0x80) == 0x00)
+            n = 1;
+        else if ((c & 0xc0) == 0x80)
+            continue;
+        else if ((c & 0xe0) == 0xc0)
+            n = 2;
+        else if ((c & 0xf0) == 0xe0)
+            n = 3;
+        else
+            continue;
+        while (--n) {
+            if (*s++ == 0)
+                break;
+        }
+        len++;
+    }
+    return len;
+}
+
+static int get_first_utf8_char(const char *s) {
+    int c = *s & 255;
+    if ((c & 0x80) == 0)
+        return c;
+    else if ((c & 0xc0) == 0x80)
+        return -1;
+    else if ((c & 0xe0) == 0xc0)
+        return ((c & 0x1f) << 6) | (s[1] & 0x3f);
+    else if ((c & 0xf0) == 0xe0)
+        return ((c & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f);
+    else
+        return -1;
+}
+
 static void activate(GtkApplication *theApp, gpointer userData) {
 
     if (app != NULL) {
@@ -1005,17 +1045,22 @@ static void kp_normalize(guint *keyval, bool *numpad) {
 
 int keymap_entry::match(guint keyval, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
                         bool numpad, bool numlock, bool cshift) {
-    if (keyval != this->keyval
-            || ctrl != this->ctrl
-            || alt != this->alt
-            || !shift_mismatch_allowed && shift != this->shift
-            || !numpad && this->numpad
-            || !numlock && this->numlock
-            || !cshift && this->cshift)
-        return 0;
-    return (numpad == this->numpad ? 18 : 9)
-            + (numlock == this->numlock ? 6 : 3)
-            + (cshift == this->cshift ? 2 : 1);
+    int result = keyval == this->keyval
+            && ctrl == this->ctrl
+            && alt == this->alt
+            && (shift_mismatch_allowed || shift == this->shift)
+            && (numpad || !this->numpad)
+            && (numlock || !this->numlock)
+            && (cshift || !this->cshift)
+        ? (numpad == this->numpad ? 8 : 0)
+            + (numlock == this->numlock ? 4 : 0)
+            + (cshift == this->cshift ? 2 : 0)
+            + 2
+        : 0;
+    if (result == MAX_MATCH_QUALITY || !cshift)
+        return result;
+    int result2 = match(keyval, ctrl, alt, !shift, shift_mismatch_allowed, numpad, numlock, false);
+    return result2 > result ? result2 - 1 : result;
 }
 
 keymap_entry *parse_keymap_entry(char *line, int lineno) {
@@ -1099,6 +1144,15 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
             tok = strtok(NULL, " \t");
         }
         macrobuf[macrolen] = 0;
+
+        if (!ctrl && !alt) {
+            // GDK_KEY_[A-Za-z] == '[A-Za-z]'
+            if (keyval >= 'A' && keyval <= 'Z') {
+                keyval += 32;
+                shift = true;
+            } else if (keyval >= 'a' && keyval <= 'z')
+                shift = false;
+        }
 
         entry.ctrl = ctrl;
         entry.alt = alt;
@@ -2851,7 +2905,7 @@ static gboolean print_key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
     return TRUE;
 }
 
-static void shell_keydown(bool cshift) {
+static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
     GdkWindow *win = gtk_widget_get_window(calc_widget);
 
     int repeat;
@@ -2867,11 +2921,23 @@ static void shell_keydown(bool cshift) {
 
     if (macro != NULL) {
         if (macro_type != 0) {
+            if (cshift_to_shift_fallback) {
+                core_keydown(28, &enqueued, &repeat);
+                core_keyup();
+            }
             keep_running = core_keydown_command((const char *) macro, macro_type - 1, &enqueued, &repeat);
         } else {
             if (*macro == 0) {
                 squeak();
                 return;
+            }
+            if (cshift_to_shift_fallback) {
+                if (macro[0] == 28)
+                    macro++;
+                else {
+                    keep_running = core_keydown(28, &enqueued, &repeat);
+                    core_keyup();
+                }
             }
             bool one_key_macro = macro[1] == 0 || (macro[2] == 0 && macro[0] == 28);
             if (one_key_macro) {
@@ -2942,7 +3008,7 @@ static gboolean button_cb(GtkWidget *w, GdkEventButton *event, gpointer cd) {
             skin_find_key(x, y, ann_shift != 0, &skey, &ckey);
             if (ckey != 0) {
                 macro = skin_find_macro(ckey, &macro_type);
-                shell_keydown(ann_shift != 0);
+                shell_keydown(ann_shift != 0, false);
                 mouse_key = true;
             }
         }
@@ -2987,46 +3053,57 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                 numlock = gdk_keymap_get_num_lock_state(kmap);
             }
 
-            bool printable = event->length == 1 && event->string[0] >= 32 && event->string[0] <= 126;
-            bool shift_mismatch_allowed = printable && !numpad && event->string[0] != 32;
+            int c = get_first_utf8_char(event->string);
+            bool printable = utf8_length(event->string) == 1 && (c >= 32 && c <= 126 || c >= 128);
+            bool shift_mismatch_allowed = printable && !numpad && c != 32;
+
+            guint kv = event->keyval;
+            if (!ctrl && !alt) {
+                // GDK_KEY_[A-Za-z] == '[A-Za-z]'
+                if (kv >= 'A' && kv <= 'Z') {
+                    kv += 32;
+                    shift_mismatch_allowed = false;
+                } else if (kv >= 'a' && kv <= 'z')
+                    shift_mismatch_allowed = false;
+            }
 
             int quality;
-            unsigned char *key_macro = skin_keymap_lookup(event->keyval, ctrl, alt, shift,
+            keymap_entry *ke = skin_keymap_lookup(kv, ctrl, alt, shift,
                                             shift_mismatch_allowed, numpad, numlock, cshift, &quality);
-            if (key_macro == NULL || quality < MAX_MATCH_QUALITY) {
+            if (ke == NULL || quality < MAX_MATCH_QUALITY) {
                 for (int i = 0; i < keymap_length; i++) {
                     keymap_entry *entry = keymap + i;
-                    int qq = entry->match(event->keyval, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
+                    int qq = entry->match(kv, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
                     if (qq == MAX_MATCH_QUALITY) {
-                        key_macro = entry->macro;
+                        ke = entry;
                         break;
                     } else if (qq > quality) {
-                        key_macro = entry->macro;
+                        ke = entry;
                         quality = qq;
                     }
                 }
             }
+            unsigned char *key_macro = ke == NULL ? NULL : ke->macro;
 
             if (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
                     && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0)) {
                 // The test above is to make sure that whatever mapping is in
                 // effect for R/S will never be overridden by the special cases
                 // for the ALPHA and A..F menus.
-                if (!ctrl && !alt) {
-                    char c = event->string[0];
-                    if (printable && core_alpha_menu()) {
-                        if (c >= 'a' && c <= 'z')
-                            c = c + 'A' - 'a';
-                        else if (c >= 'A' && c <= 'Z')
-                            c = c + 'a' - 'A';
-                        ckey = 1024 + c;
-                        skey = -1;
-                        macro = NULL;
-                        shell_keydown(false);
-                        mouse_key = false;
-                        active_keycode = event->hardware_keycode;
-                        return TRUE;
-                    } else if (core_hex_menu() && ((c >= 'a' && c <= 'f')
+                if (printable && core_alpha_menu()) {
+                    if (c >= 'a' && c <= 'z')
+                        c = c + 'A' - 'a';
+                    else if (c >= 'A' && c <= 'Z')
+                        c = c + 'a' - 'A';
+                    ckey = 1024 + c;
+                    skey = -1;
+                    macro = NULL;
+                    shell_keydown(false, false);
+                    mouse_key = false;
+                    active_keycode = event->hardware_keycode;
+                    return TRUE;
+                } else if (!ctrl && !alt) {
+                    if (core_hex_menu() && ((c >= 'a' && c <= 'f')
                                                 || (c >= 'A' && c <= 'F'))) {
                         if (c >= 'a' && c <= 'f')
                             ckey = c - 'a' + 1;
@@ -3034,7 +3111,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                             ckey = c - 'A' + 1;
                         skey = -1;
                         macro = NULL;
-                        shell_keydown(false);
+                        shell_keydown(false, false);
                         mouse_key = false;
                         active_keycode = event->hardware_keycode;
                         return TRUE;
@@ -3056,7 +3133,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                                 ckey = which;
                                 skey = -1;
                                 macro = NULL;
-                                shell_keydown(false);
+                                shell_keydown(false, false);
                                 mouse_key = false;
                                 active_keycode = event->hardware_keycode;
                                 return TRUE;
@@ -3077,6 +3154,19 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                 ckey = -10;
                 skey = -1;
                 bool skin_shift = cshift;
+                if (cshift && (quality & 1) == 0 && key_macro[0] != 0 && key_macro[1] == 0
+                        && !ke->shift && !ke->cshift) {
+                    // CShift active, but we ended up with an unshifted mapping.
+                    // Check if this is one of an 'unshifted,shifted' macro pair,
+                    // and if so, use the shifted partner as the fallback.
+                    int alt_code = skin_find_shifted_code(key_macro[0]);
+                    if (alt_code != 0) {
+                        static unsigned char m[2];
+                        m[0] = alt_code;
+                        m[1] = 0;
+                        key_macro = m;
+                    }
+                }
                 if (key_macro[0] != 0)
                     if (key_macro[1] == 0)
                         ckey = key_macro[0];
@@ -3110,7 +3200,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                     macro = key_macro;
                     macro_type = 0;
                 }
-                shell_keydown(skin_shift);
+                shell_keydown(skin_shift, (quality & 1) != 0);
                 mouse_key = false;
                 active_keycode = event->hardware_keycode;
             }
@@ -3122,7 +3212,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                 ckey = 28;
                 skey = -1;
                 macro = NULL;
-                shell_keydown(false);
+                shell_keydown(false, false);
                 shell_keyup();
             }
         } else {

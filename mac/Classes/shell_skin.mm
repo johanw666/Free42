@@ -102,15 +102,20 @@ static int keymap_length = 0;
 
 int keymap_entry::match(unsigned short keychar, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
                         bool numpad, bool cshift) {
-    if (keychar != this->keychar
-            || ctrl != this->ctrl
-            || alt != this->alt
-            || !shift_mismatch_allowed && shift != this->shift
-            || !numpad && this->numpad
-            || !cshift && this->cshift)
-        return 0;
-    return (numpad == this->numpad ? 6 : 3)
-            + (cshift == this->cshift ? 2 : 1);
+    int result = keychar == this->keychar
+            && ctrl == this->ctrl
+            && alt == this->alt
+            && (shift_mismatch_allowed || shift == this->shift)
+            && (numpad || !this->numpad)
+            && (cshift || !this->cshift)
+        ? (numpad == this->numpad ? 4 : 0)
+            + (cshift == this->cshift ? 2 : 0)
+            + 2
+        : 0;
+    if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
+        return result;
+    int result2 = match(keychar, ctrl, alt, !shift, false, numpad, false);
+    return result2 > result ? result2 - 1 : result;
 }
 
 /*****************/
@@ -195,6 +200,18 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
             tok = strtok(NULL, " \t");
         }
         macro[macrolen] = 0;
+
+        if (!ctrl && !alt) {
+            if (keychar >= 'A' && keychar <= 'Z') {
+                keychar += 32;
+                shift = true;
+            } else if (keychar >= 'a' && keychar <= 'z')
+                shift = false;
+        } else if (keychar == 25) {
+            // Shift-Tab
+            keychar = 9;
+            shift = true;
+        }
         
         entry.ctrl = ctrl;
         entry.alt = alt;
@@ -1043,24 +1060,33 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     return NULL;
 }
 
-unsigned char *skin_keymap_lookup(unsigned short keychar,
-                                  bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
-                                  bool numpad, bool cshift, int *quality) {
-    unsigned char *macro = NULL;
+int skin_find_shifted_code(int code) {
+    for (int i = 0; i < nkeys; i++)
+        if (keylist[i].code == code) {
+            int r = keylist[i].shifted_code;
+            return r == code ? 0 : r;
+        }
+    return 0;
+}
+
+keymap_entry *skin_keymap_lookup(unsigned short keychar,
+                                 bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+                                 bool numpad, bool cshift, int *quality) {
+    keymap_entry *ke = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
         int qq = entry->match(keychar, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
-            return entry->macro;
+            return entry;
         } else if (qq > q) {
             q = qq;
-            macro = entry->macro;
+            ke = entry;
         }
     }
     *quality = q;
-    return macro;
+    return ke;
 }
 
 static void invalidate_key(int key) {

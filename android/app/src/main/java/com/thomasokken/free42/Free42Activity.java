@@ -1607,7 +1607,7 @@ public class Free42Activity extends Activity {
             skin.repaint(canvas, shortcutsShowing);
         }
 
-        private void shell_keydown(boolean cshift) {
+        private void shell_keydown(boolean cshift, boolean cshift_to_shift_fallback) {
             if (timeout3_active && (macroObj != null || ckey != 28 /* SHIFT */)) {
                 cancelTimeout3();
                 core_timeout3(false);
@@ -1625,11 +1625,25 @@ public class Free42Activity extends Activity {
                 running = core_keydown(ckey, enqueued, repeat, true);
             } else if (macroObj instanceof String) {
                 // Direct-mapped command
+                if (cshift_to_shift_fallback) {
+                    core_keydown(28, enqueued, repeat, true);
+                    core_keyup();
+                }
                 String cmd = (String) macroObj;
                 running = core_keydown_command(cmd, macroType - 1, enqueued, repeat, true);
             } else {
                 running = false;
                 byte[] macro = (byte[]) macroObj;
+                if (cshift_to_shift_fallback) {
+                    if (macro.length > 0 && macro[0] == 28) {
+                        byte[] new_macro = new byte[macro.length - 1];
+                        System.arraycopy(macro, 1, new_macro, 0, macro.length - 1);
+                        macro = new_macro;
+                    } else {
+                        core_keydown(28, enqueued, repeat, true);
+                        core_keyup();
+                    }
+                }
                 boolean one_key_macro = macro.length == 1 || (macro.length == 2 && macro[0] == 28);
                 if (one_key_macro) {
                     for (int i = 0; i < macro.length; i++) {
@@ -1719,7 +1733,7 @@ public class Free42Activity extends Activity {
                     macroType = (Integer) arr[1];
                 }
                 boolean cshift = skin.getAnnunciators()[1];
-                shell_keydown(cshift);
+                shell_keydown(cshift, false);
                 mouse_key = true;
             } else {
                 shell_keyup(e);
@@ -1815,7 +1829,7 @@ public class Free42Activity extends Activity {
                 }
             }
 
-            boolean printable = !ctrl && !alt && ch >= 32 && ch <= 126;
+            boolean printable = !ctrl && !alt && (ch >= 32 && ch <= 126 || ch >= 128);
             boolean shift_mismatch_allowed = printable && !numpad && ch != 32;
 
             if (ckey != 0) {
@@ -1823,40 +1837,51 @@ public class Free42Activity extends Activity {
                 active_keycode = -1;
             }
 
+            String lcode = code;
+            if (printable && !alt && lcode.length() == 1) {
+                char lc = lcode.charAt(0);
+                if (lc >= 'A' && lc <= 'Z') {
+                    lcode = "" + (char) (lc + 32);
+                    shift_mismatch_allowed = false;
+                } else if (lc >= 'a' && lc <= 'z')
+                    shift_mismatch_allowed = false;
+            }
+
             IntHolder quality = new IntHolder();
-            byte[] key_macro = skin.keymap_lookup(code, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift, quality);
-            if (key_macro == null || quality.value < KeymapEntry.MAX_MATCH_QUALITY) {
+            KeymapEntry ke = skin.keymap_lookup(lcode, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift, quality);
+            if (ke == null || quality.value < KeymapEntry.MAX_MATCH_QUALITY) {
                 for (KeymapEntry entry : keymap) {
-                    int qq = entry.match(code, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
+                    int qq = entry.match(lcode, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
                     if (qq == KeymapEntry.MAX_MATCH_QUALITY) {
-                        key_macro = entry.macro;
+                        ke = entry;
                         break;
                     } else if (qq > quality.value) {
-                        key_macro = entry.macro;
+                        ke = entry;
                         quality.value = qq;
                     }
                 }
             }
+            byte[] key_macro = ke == null ? null : ke.macro;
 
             if (key_macro == null || (key_macro[0] != 36 || key_macro.length > 1)
                     && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro.length > 2)) {
                 // The test above is to make sure that whatever mapping is in
                 // effect for R/S will never be overridden by the special cases
                 // for the ALPHA and A..F menus.
-                if (!ctrl && !alt) {
-                    if (printable && core_alpha_menu()) {
-                        if (ch >= 'a' && ch <= 'z')
-                            ch += 'A' - 'a';
-                        else if (ch >= 'A' && ch <= 'Z')
-                            ch += 'a' - 'A';
-                        ckey = 1024 + ch;
-                        skey = -1;
-                        macroObj = null;
-                        shell_keydown(false);
-                        mouse_key = false;
-                        active_keycode = keyCode;
-                        return true;
-                    } else if (core_hex_menu() && ((ch >= 'a' && ch <= 'f')
+                if (printable && core_alpha_menu()) {
+                    if (ch >= 'a' && ch <= 'z')
+                        ch += 'A' - 'a';
+                    else if (ch >= 'A' && ch <= 'Z')
+                        ch += 'a' - 'A';
+                    ckey = 1024 + ch;
+                    skey = -1;
+                    macroObj = null;
+                    shell_keydown(false, false);
+                    mouse_key = false;
+                    active_keycode = keyCode;
+                    return true;
+                } else if (!ctrl && !alt) {
+                    if (core_hex_menu() && ((ch >= 'a' && ch <= 'f')
                                                 || (ch >= 'A' && ch <= 'F'))) {
                         if (ch >= 'a' && ch <= 'f')
                             ckey = ch - 'a' + 1;
@@ -1864,7 +1889,7 @@ public class Free42Activity extends Activity {
                             ckey = ch - 'A' + 1;
                         skey = -1;
                         macroObj = null;
-                        shell_keydown(false);
+                        shell_keydown(false, false);
                         mouse_key = false;
                         active_keycode = keyCode;
                         return true;
@@ -1884,7 +1909,7 @@ public class Free42Activity extends Activity {
                                 ckey = which;
                                 skey = -1;
                                 macroObj = null;
-                                shell_keydown(false);
+                                shell_keydown(false, false);
                                 mouse_key = false;
                                 active_keycode = keyCode;
                                 return true;
@@ -1907,6 +1932,15 @@ public class Free42Activity extends Activity {
             ckey = -10;
             skey = -1;
             boolean skin_shift = cshift;
+            if (cshift && (quality.value & 1) == 0 && key_macro.length == 1
+                    && !ke.shift && !ke.cshift) {
+                // CShift active, but we ended up with an unshifted mapping.
+                // Check if this is one of an 'unshifted,shifted' macro pair,
+                // and if so, use the shifted partner as the fallback.
+                int alt_code = skin.find_shifted_code(key_macro[0]);
+                if (alt_code != 0)
+                    key_macro = new byte[] { (byte) alt_code };
+            }
             if (key_macro.length > 0)
                 if (key_macro.length == 1)
                     ckey = key_macro[0];
@@ -1951,7 +1985,7 @@ public class Free42Activity extends Activity {
             } else {
                 macroObj = key_macro;
             }
-            shell_keydown(skin_shift);
+            shell_keydown(skin_shift, (quality.value & 1) != 0);
             mouse_key = false;
             active_keycode = keyCode;
             return true;
@@ -1970,7 +2004,7 @@ public class Free42Activity extends Activity {
                 ckey = 28;
                 skey = -1;
                 macroObj = null;
-                shell_keydown(false);
+                shell_keydown(false, false);
                 shell_keyup(null);
                 return true;
             } else if (!mouse_key && event.getKeyCode() == active_keycode) {
@@ -2003,7 +2037,7 @@ public class Free42Activity extends Activity {
             ckey = 1024 + c;
             skey = -1;
             macroObj = null;
-            shell_keydown(false);
+            shell_keydown(false, false);
             mouse_key = false;
             active_keycode = -1;
         }
@@ -2024,7 +2058,7 @@ public class Free42Activity extends Activity {
             skey = -1;
             macroObj = macro;
             macroType = 0;
-            shell_keydown(false);
+            shell_keydown(false, false);
             mouse_key = false;
             active_keycode = -1;
         }

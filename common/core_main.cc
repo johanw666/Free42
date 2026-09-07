@@ -262,6 +262,9 @@ bool core_keydown(int key, bool *enqueued, int *repeat) {
         int len = ascii2hp(hpbuf, 1, ubuf);
         if (len == 0)
             goto fail;
+        if (hpbuf[0] == 31 && code != 0x2022 && code != 0xb7)
+            // Unsupported character
+            goto fail;
         if (hpbuf[0] == 30)
             hpbuf[0] = 94;
         key = 1024 + (hpbuf[0] & 255);

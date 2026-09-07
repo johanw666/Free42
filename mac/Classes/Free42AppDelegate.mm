@@ -99,7 +99,7 @@ static void read_key_map(const char *keymapfilename);
 static void init_shell_state(int4 ver);
 static int read_shell_state(int4 *ver);
 static int write_shell_state();
-static void shell_keydown(bool cshift);
+static void shell_keydown(bool cshift, bool cshift_to_shift_fallback);
 static void shell_keyup();
 
 static void txt_writer(const char *text, int length);
@@ -1174,7 +1174,7 @@ static char version[32] = "";
 
 @end
 
-static void shell_keydown(bool cshift) {
+static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
     int repeat;
     if (skey == -1)
         skey = skin_find_skey(ckey, cshift);
@@ -1194,12 +1194,26 @@ static void shell_keydown(bool cshift) {
     if (macro != NULL) {
         if (macro_type != 0) {
             we_want_cpu = true;
+            if (cshift_to_shift_fallback) {
+                core_keydown(28, &enqueued, &repeat);
+                core_keyup();
+            }
             keep_running = core_keydown_command((const char *) macro, macro_type - 1, &enqueued, &repeat);
             we_want_cpu = false;
         } else {
             if (*macro == 0) {
                 squeak();
                 return;
+            }
+            if (cshift_to_shift_fallback) {
+                if (macro[0] == 28)
+                    macro++;
+                else {
+                    we_want_cpu = true;
+                    keep_running = core_keydown(28, &enqueued, &repeat);
+                    core_keyup();
+                    we_want_cpu = false;
+                }
             }
             bool one_key_macro = macro[1] == 0 || (macro[2] == 0 && macro[0] == 28);
             if (one_key_macro) {
@@ -1269,7 +1283,7 @@ void calc_mousedown(int x, int y) {
         skin_find_key(x, y, ann_shift != 0, &skey, &ckey);
         if (ckey != 0) {
             macro = skin_find_macro(ckey, &macro_type);
-            shell_keydown(ann_shift != 0);
+            shell_keydown(ann_shift != 0, false);
             mouse_key = 1;
         }
     }
@@ -1295,7 +1309,7 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
     bool cshift = ann_shift != 0;
     
     unsigned short c = [characters characterAtIndex:0];
-    bool printable = !ctrl && len == 1 && c >= 32 && c <= 126;
+    bool printable = !ctrl && len == 1 && (c >= 32 && c <= 126 || c >= 128 && c < 0xf700 || c >= 0xf900);
     bool shift_mismatch_allowed = printable && !numpad && c != 32;
 
     // TODO: If requiring 10.15 compatibility is not a problem, we
@@ -1327,41 +1341,58 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
         active_keycode = -1;
     }
     
+    unsigned short lc = c;
+    if (printable && !alt) {
+        if (lc >= 'A' && lc <= 'Z') {
+            lc += 32;
+            shift_mismatch_allowed = false;
+        } else if (lc >= 'a' && lc <= 'z')
+            shift_mismatch_allowed = false;
+    } else if (lc == 9) {
+        // Tab
+        shift_mismatch_allowed = false;
+    } else if (lc == 25) {
+        // Shift-Tab
+        lc = 9;
+        shift_mismatch_allowed = false;
+    }
+
     int quality;
-    unsigned char *key_macro = skin_keymap_lookup(c, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift, &quality);
-    if (key_macro == NULL || quality < MAX_MATCH_QUALITY) {
+    keymap_entry *ke = skin_keymap_lookup(lc, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift, &quality);
+    if (ke == NULL || quality < MAX_MATCH_QUALITY) {
         for (int i = 0; i < keymap_length; i++) {
             keymap_entry *entry = keymap + i;
-            int qq = entry->match(c, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift);
+            int qq = entry->match(lc, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift);
             if (qq == MAX_MATCH_QUALITY) {
-                key_macro = entry->macro;
+                ke = entry;
                 break;
             } else if (qq > quality) {
-                key_macro = entry->macro;
+                ke = entry;
                 quality = qq;
             }
         }
     }
+    unsigned char *key_macro = ke == NULL ? NULL : ke->macro;
 
     if (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
             && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0)) {
         // The test above is to make sure that whatever mapping is in
         // effect for R/S will never be overridden by the special cases
         // for the ALPHA and A..F menus.
-        if (!ctrl && !alt) {
-            if (printable && core_alpha_menu()) {
-                if (c >= 'a' && c <= 'z')
-                    c = c + 'A' - 'a';
-                else if (c >= 'A' && c <= 'Z')
-                    c = c + 'a' - 'A';
-                ckey = 1024 + c;
-                skey = -1;
-                macro = NULL;
-                shell_keydown(false);
-                mouse_key = 0;
-                active_keycode = keycode;
-                return;
-            } else if (core_hex_menu() && ((c >= 'a' && c <= 'f')
+        if (printable && core_alpha_menu()) {
+            if (c >= 'a' && c <= 'z')
+                c = c + 'A' - 'a';
+            else if (c >= 'A' && c <= 'Z')
+                c = c + 'a' - 'A';
+            ckey = 1024 + c;
+            skey = -1;
+            macro = NULL;
+            shell_keydown(false, false);
+            mouse_key = 0;
+            active_keycode = keycode;
+            return;
+        } else if (!ctrl && !alt) {
+            if (core_hex_menu() && ((c >= 'a' && c <= 'f')
                                         || (c >= 'A' && c <= 'F'))) {
                 if (c >= 'a' && c <= 'f')
                     ckey = c - 'a' + 1;
@@ -1369,7 +1400,7 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
                     ckey = c - 'A' + 1;
                 skey = -1;
                 macro = NULL;
-                shell_keydown(false);
+                shell_keydown(false, false);
                 mouse_key = 0;
                 active_keycode = keycode;
                 return;
@@ -1389,7 +1420,7 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
                         ckey = which;
                         skey = -1;
                         macro = NULL;
-                        shell_keydown(false);
+                        shell_keydown(false, false);
                         mouse_key = 0;
                         active_keycode = keycode;
                         return;
@@ -1410,6 +1441,19 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
         ckey = -10;
         skey = -1;
         bool skin_shift = cshift;
+        if (cshift && (quality & 1) == 0 && key_macro[0] != 0 && key_macro[1] == 0
+                && !ke->shift && !ke->cshift) {
+            // CShift active, but we ended up with an unshifted mapping.
+            // Check if this is one of an 'unshifted,shifted' macro pair,
+            // and if so, use the shifted partner as the fallback.
+            int alt_code = skin_find_shifted_code(key_macro[0]);
+            if (alt_code != 0) {
+                static unsigned char m[2];
+                m[0] = alt_code;
+                m[1] = 0;
+                key_macro = m;
+            }
+        }
         if (key_macro[0] != 0)
             if (key_macro[1] == 0)
                 ckey = key_macro[0];
@@ -1443,7 +1487,7 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
             macro = key_macro;
             macro_type = 0;
         }
-        shell_keydown(skin_shift);
+        shell_keydown(skin_shift, (quality & 1) != 0);
         mouse_key = 0;
         active_keycode = keycode;
     }
@@ -1473,7 +1517,7 @@ void calc_keymodifierschanged(NSUInteger flags) {
             ckey = 28;
             skey = -1;
             macro = NULL;
-            shell_keydown(false);
+            shell_keydown(false, false);
             shell_keyup();
         }
     }

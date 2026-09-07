@@ -978,24 +978,33 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     return NULL;
 }
 
-unsigned char *skin_keymap_lookup(guint keyval,
-                                  bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
-                                  bool numpad, bool numlock, bool cshift, int *quality) {
-    unsigned char *macro = NULL;
+int skin_find_shifted_code(int code) {
+    for (int i = 0; i < nkeys; i++)
+        if (keylist[i].code == code) {
+            int r = keylist[i].shifted_code;
+            return r == code ? 0 : r;
+        }
+    return 0;
+}
+
+keymap_entry *skin_keymap_lookup(guint keyval,
+                                 bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+                                 bool numpad, bool numlock, bool cshift, int *quality) {
+    keymap_entry *ke = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
         int qq = entry->match(keyval, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
-            return entry->macro;
+            return entry;
         } else if (qq > q) {
             q = qq;
-            macro = entry->macro;
+            ke = entry;
         }
     }
     *quality = q;
-    return macro;
+    return ke;
 }
 
 void skin_repaint_key(cairo_t *cr, int key, bool state) {
