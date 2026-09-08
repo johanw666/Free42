@@ -135,22 +135,17 @@ extern const unsigned char * const skin_bitmap_data[];
 
 int keymap_entry::match(int keycode, bool ctrl, bool alt, bool shift,
                         bool extended, bool numlock, bool cshift) {
-    int result = keycode == this->keycode
-            && ctrl == this->ctrl
-            && alt == this->alt
-            && shift == this->shift
-            && (extended || !this->extended)
-            && (numlock || !this->numlock)
-            && (cshift || !this->cshift)
-        ? (extended == this->extended ? 8 : 0)
-            + (numlock == this->numlock ? 4 : 0)
-            + (cshift == this->cshift ? 2 : 0)
-            + 2
-        : 0;
-    if (result == MAX_MATCH_QUALITY || !cshift)
-        return result;
-    int result2 = match(keycode, ctrl, alt, !shift, extended, numlock, false);
-    return result2 > result ? result2 - 1 : result;
+    if (keycode != this->keycode
+            || ctrl != this->ctrl
+            || alt != this->alt
+            || shift != this->shift
+            || !extended && this->extended
+            || !numlock && this->numlock
+            || !cshift && this->cshift)
+        return 0;
+    return (extended == this->extended ? 18 : 9)
+            + (numlock == this->numlock ? 6 : 3)
+            + (cshift == this->cshift ? 2 : 1);
 }
 
 
