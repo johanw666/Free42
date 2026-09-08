@@ -1778,9 +1778,6 @@ public class Free42Activity extends Activity {
 
         @Override
         public boolean onKeyDown(int keyCode, KeyEvent event) {
-            long prevTime = eventTime;
-            eventTime = event.getEventTime();
-
             if (ckey != 0 && mouse_key)
                 return super.onKeyDown(keyCode, event);
             if (event.getRepeatCount() > 0)
@@ -1795,6 +1792,8 @@ public class Free42Activity extends Activity {
                     || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT)
                 return super.onKeyDown(keyCode, event);
 
+            long prevTime = eventTime;
+            eventTime = event.getEventTime();
             if (eventTime == prevTime)
                 return true;
 
