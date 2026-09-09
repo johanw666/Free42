@@ -133,34 +133,56 @@ extern const unsigned char * const skin_bitmap_data[];
 /* Keymap matcher */
 /******************/
 
-int keymap_entry::match(int keycode, bool ctrl, bool alt, bool shift,
-                        bool numpad, bool numlock, bool cshift,
-                        int old_keycode, bool old_shift, bool old_extended) {
+int keymap_entry::match(int keychar, int keycode, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+              bool numpad, bool numlock, bool cshift, bool old_shift, bool old_extended) {
+    int result;
     if (old_style) {
-        if (old_keycode != this->keycode
-                || ctrl != this->ctrl
-                || alt != this->alt
-                || old_shift != this->shift
-                || !old_extended && this->numpad
-                || !numlock && this->numlock
-                || !cshift && this->cshift)
-            return 0;
-        return (old_extended == this->numpad ? 18 : 9)
-                + (numlock == this->numlock ? 6 : 3)
-                + (cshift == this->cshift ? 2 : 1);
+        result = keycode == this->keycode
+                && ctrl == this->ctrl
+                && alt == this->alt
+                && old_shift == this->shift
+                && (old_extended || !this->numpad)
+                && (numlock || !this->numlock)
+                && (cshift || !this->cshift)
+            ? (old_extended == this->numpad ? 8 : 0)
+                + (numlock == this->numlock ? 4 : 0)
+                + (cshift == this->cshift ? 2 : 0)
+                + 2
+            : 0;
+    } else if (this->keycode != 0) {
+        result = keycode == this->keycode
+                && ctrl == this->ctrl
+                && alt == this->alt
+                && shift == this->shift
+                && (numpad || !this->numpad)
+                && (numlock || !this->numlock)
+                && (cshift || !this->cshift)
+            ? (numpad == this->numpad ? 8 : 0)
+                + (numlock == this->numlock ? 4 : 0)
+                + (cshift == this->cshift ? 2 : 0)
+                + 2
+            : 0;
     } else {
-        if (keycode != this->keycode
-                || ctrl != this->ctrl
-                || alt != this->alt
-                || shift != this->shift
-                || !numpad && this->numpad
-                || !numlock && this->numlock
-                || !cshift && this->cshift)
-            return 0;
-        return (numpad == this->numpad ? 18 : 9)
-                + (numlock == this->numlock ? 6 : 3)
-                + (cshift == this->cshift ? 2 : 1);
+        result = keychar == this->keychar
+                && ctrl == this->ctrl
+                && alt == this->alt
+                && (shift_mismatch_allowed || shift == this->shift)
+                && (numpad || !this->numpad)
+                && (numlock || !this->numlock)
+                && (cshift || !this->cshift)
+            ? (numpad == this->numpad ? 8 : 0)
+                + (numlock == this->numlock ? 4 : 0)
+                + (cshift == this->cshift ? 2 : 0)
+                + 2
+            : 0;
     }
+    return result;
+    /*
+    if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
+        return result;
+    int result2 = match(keychar, keycode, ctrl, alt, !shift, false, numpad, numlock, false, old_shift, old_extended);
+    return result2 > result ? result2 - 1 : result;
+    */
 }
 
 
@@ -168,80 +190,109 @@ int keymap_entry::match(int keycode, bool ctrl, bool alt, bool shift,
 /* Keymap parser */
 /*****************/
 
-static const char *hwk = "A\0B\0C\0D\0E\0F\0G\0H\0I\0J\0K\0L\0M\0N\0O\0P\0Q\0R\0S\0T\0U\0V\0W\0X\0Y\0Z\0000\0001\0002\0003\0004\0005\0006\0007\08\09\0SPACE\0TAB\0ENTER\0ESC\0F1\0F2\0F3\0F4\0F5\0F6\0F7\0F8\0F9\0F10\0F11\0F12\0F13\0F14\0F15\0F16\0F17\0F18\0F19\0F20\0ADD\0SUBTRACT\0MULTIPLY\0DIVIDE\0EQUALS\0GRAVE\0LEFT_BR\0RIGHT_BR\0QUOTE\0PERIOD\0COMMA\0SEMICOLON\0BACKSLASH\0BACKSPACE\0CLEAR\0INSERT\0DELETE\0HOME\0END\0PRIOR\0NEXT\0UP\0DOWN\0LEFT\0RIGHT\0";
+static const char *vk =
+    // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+    // Note: I removed modifiers and non-keyboard codes
+    "\x08" "BACK"       "\0" // Backspace key
+    "\x09" "TAB"        "\0" // Tab key
+    "\x0C" "CLEAR"      "\0" // Clear key
+    "\x0D" "RETURN"     "\0" // Enter key
+    "\x1B" "ESCAPE"     "\0" // Esc key
+    "\x20" "SPACE"      "\0" // Spacebar key
+    "\x21" "PRIOR"      "\0" // Page up key
+    "\x22" "NEXT"       "\0" // Page down key
+    "\x23" "END"        "\0" // End key
+    "\x24" "HOME"       "\0" // Home key
+    "\x25" "LEFT"       "\0" // Left arrow key
+    "\x26" "UP"         "\0" // Up arrow key
+    "\x27" "RIGHT"      "\0" // Right arrow key
+    "\x28" "DOWN"       "\0" // Down arrow key
+    "\x29" "SELECT"     "\0" // Select key
+    "\x2A" "PRINT"      "\0" // Print key
+    "\x2B" "EXECUTE"    "\0" // Execute key
+    "\x2C" "SNAPSHOT"   "\0" // Print screen key
+    "\x2D" "INSERT"     "\0" // Insert key
+    "\x2E" "DELETE"     "\0" // Delete key
+    "\x2F" "HELP"       "\0" // Help key
+    "\x60" "NUMPAD0"    "\0" // Numeric keypad 0 key
+    "\x61" "NUMPAD1"    "\0" // Numeric keypad 1 key
+    "\x62" "NUMPAD2"    "\0" // Numeric keypad 2 key
+    "\x63" "NUMPAD3"    "\0" // Numeric keypad 3 key
+    "\x64" "NUMPAD4"    "\0" // Numeric keypad 4 key
+    "\x65" "NUMPAD5"    "\0" // Numeric keypad 5 key
+    "\x66" "NUMPAD6"    "\0" // Numeric keypad 6 key
+    "\x67" "NUMPAD7"    "\0" // Numeric keypad 7 key
+    "\x68" "NUMPAD8"    "\0" // Numeric keypad 8 key
+    "\x69" "NUMPAD9"    "\0" // Numeric keypad 9 key
+    "\x6A" "MULTIPLY"   "\0" // Multiply key
+    "\x6B" "ADD"        "\0" // Add key
+    "\x6C" "SEPARATOR"  "\0" // Separator key
+    "\x6D" "SUBTRACT"   "\0" // Subtract key
+    "\x6E" "DECIMAL"    "\0" // Decimal key
+    "\x6F" "DIVIDE"     "\0" // Divide key
+    "\x70" "F1"         "\0" // F1 key
+    "\x71" "F2"         "\0" // F2 key
+    "\x72" "F3"         "\0" // F3 key
+    "\x73" "F4"         "\0" // F4 key
+    "\x74" "F5"         "\0" // F5 key
+    "\x75" "F6"         "\0" // F6 key
+    "\x76" "F7"         "\0" // F7 key
+    "\x77" "F8"         "\0" // F8 key
+    "\x78" "F9"         "\0" // F9 key
+    "\x79" "F10"        "\0" // F10 key
+    "\x7A" "F11"        "\0" // F11 key
+    "\x7B" "F12"        "\0" // F12 key
+    "\x7C" "F13"        "\0" // F13 key
+    "\x7D" "F14"        "\0" // F14 key
+    "\x7E" "F15"        "\0" // F15 key
+    "\x7F" "F16"        "\0" // F16 key
+    "\x80" "F17"        "\0" // F17 key
+    "\x81" "F18"        "\0" // F18 key
+    "\x82" "F19"        "\0" // F19 key
+    "\x83" "F20"        "\0" // F20 key
+    "\x84" "F21"        "\0" // F21 key
+    "\x85" "F22"        "\0" // F22 key
+    "\x86" "F23"        "\0" // F23 key
+    "\x87" "F24"        "\0" // F24 key
+    "\xBA" "OEM_1"      "\0" // It can vary by keyboard. For the US ANSI keyboard , the Semiсolon and Colon key
+    "\xBB" "OEM_PLUS"   "\0" // For any country/region, the Equals and Plus key
+    "\xBC" "OEM_COMMA"  "\0" // For any country/region, the Comma and Less Than key
+    "\xBD" "OEM_MINUS"  "\0" // For any country/region, the Dash and Underscore key
+    "\xBE" "OEM_PERIOD" "\0" // For any country/region, the Period and Greater Than key
+    "\xBF" "OEM_2"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Forward Slash and Question Mark key
+    "\xC0" "OEM_3"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Grave Accent and Tilde key
+    "\xDB" "OEM_4"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Left Brace key
+    "\xDC" "OEM_5"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Backslash and Pipe key
+    "\xDD" "OEM_6"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Right Brace key
+    "\xDE" "OEM_7"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Apostrophe and Double Quotation Mark key
+    "\xDF" "OEM_8"      "\0" // It can vary by keyboard. For the Canadian CSA keyboard, the Right Ctrl key
+    "\xE2" "OEM_102"    "\0" // It can vary by keyboard. For the European ISO keyboard, the Backslash and Pipe key
+    "\xFE" "OEM_CLEAR"  "\0" // Clear key
+    "\0";
 
-static int hwk_parse(const char *code) {
-    const char *p = hwk;
-    int k = 1;
+static int vk_parse(const char *code) {
+    const char *p = vk;
     while (*p) {
-        if (strcmp(code, p) == 0)
-            return k;
-        p += strlen(p) + 1;
-        k++;
+        if (strcmp(code, p + 1) == 0)
+            return *p & 255;
+        p += strlen(p + 1) + 2;
     }
     return 0;
 }
 
-const char *hwk_text(int key) {
+const char *vk_text(int key) {
     if (key <= 0)
-        return "UNKNOWN";
-    const char *k = hwk;
+        return NULL;
+    const char *k = vk;
     while (true) {
-        if (--key == 0)
-            return k;
-        k += strlen(k) + 1;
-        if (*k == 0)
-            return "UNKNOWN";
-    }
-}
-
-int hwk_key(int virtKey, bool extended, bool *hwk_numpad) {
-    *hwk_numpad = false;
-    if (virtKey >= 'A' && virtKey <= 'Z')
-        return HWK_A + virtKey - 'A';
-    if (virtKey >= '0' && virtKey <= '9')
-        return HWK_0 + virtKey - '0';
-    if (virtKey >= VK_NUMPAD0 && virtKey <= VK_NUMPAD9) {
-        *hwk_numpad = true;
-        return HWK_0 + virtKey - VK_NUMPAD0;
-    }
-    if (virtKey >= VK_F1 && virtKey <= VK_F20)
-        return HWK_F1 + virtKey - VK_F1;
-    switch (virtKey) {
-        case VK_HOME: *hwk_numpad = !extended; return HWK_HOME;
-        case VK_UP: *hwk_numpad = !extended; return HWK_UP;
-        case VK_PRIOR: *hwk_numpad = !extended; return HWK_PRIOR;
-        case VK_LEFT: *hwk_numpad = !extended; return HWK_LEFT;
-        case VK_CLEAR: *hwk_numpad = !extended; return HWK_CLEAR;
-        case VK_RIGHT: *hwk_numpad = !extended; return HWK_RIGHT;
-        case VK_END: *hwk_numpad = !extended; return HWK_END;
-        case VK_DOWN: *hwk_numpad = !extended; return HWK_DOWN;
-        case VK_NEXT: *hwk_numpad = !extended; return HWK_NEXT;
-        case VK_INSERT: *hwk_numpad = !extended; return HWK_INSERT;
-        case VK_DELETE: *hwk_numpad = !extended; return HWK_DELETE;
-        case VK_ADD: *hwk_numpad = true; return HWK_ADD;
-        case VK_SUBTRACT: *hwk_numpad = true; return HWK_SUBTRACT;
-        case VK_MULTIPLY: *hwk_numpad = true; return HWK_MULTIPLY;
-        case VK_DIVIDE: *hwk_numpad = true; return HWK_DIVIDE;
-        case VK_SEPARATOR: *hwk_numpad = true; return HWK_COMMA;
-        case VK_DECIMAL: *hwk_numpad = true; return HWK_PERIOD;
-        case VK_OEM_1: return HWK_SEMICOLON;
-        case VK_OEM_2: return HWK_DIVIDE;
-        case VK_OEM_3: return HWK_GRAVE;
-        case VK_OEM_4: return HWK_LEFT_BR;
-        case VK_OEM_5: return HWK_BACKSLASH;
-        case VK_OEM_6: return HWK_RIGHT_BR;
-        case VK_OEM_7: return HWK_QUOTE;
-        case VK_OEM_PERIOD: return HWK_PERIOD;
-        case VK_OEM_COMMA: return HWK_COMMA;
-        case VK_OEM_PLUS: return HWK_EQUALS;
-        case VK_OEM_MINUS: return HWK_SUBTRACT;
-        case VK_SPACE: return HWK_SPACE;
-        case VK_TAB: return HWK_TAB;
-        case VK_ESCAPE: return HWK_ESC;
-        case VK_BACK: return HWK_BACKSPACE;
-        case VK_RETURN: *hwk_numpad = extended; return HWK_ENTER;
-        default: return HWK_UNKNOWN;
+        int c = *k & 255;
+        if (c == 0)
+            return NULL;
+        if (key == c)
+            return k + 1;
+        if (key < c)
+            return NULL;
+        k += strlen(k + 1) + 2;
     }
 }
 
@@ -270,6 +321,7 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
         bool cshift = false;
         bool numlock = false;
         int keycode = 0;
+        int keychar = 0;
         int done = 0;
         unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
         int macrolen = 0;
@@ -305,10 +357,20 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
                 keycode = k;
                 done = 1;
             } else {
-                int k = hwk_parse(tok);
-                if (k == HWK_UNKNOWN)
-                    goto bad_keycode;
-                keycode = k;
+                if (strlen(tok) == 1) {
+                    keychar = tok[0];
+                } else if (_strnicmp(tok, "0x", 2) == 0) {
+                    char *endptr;
+                    long k = strtol(tok + 2, &endptr, 16);
+                    if (*endptr != 0)
+                        goto bad_keycode;
+                    keychar = k;
+                } else {
+                    int k = vk_parse(tok);
+                    if (k == 0)
+                        goto bad_keycode;
+                    keycode = k;
+                }
                 done = 1;
             }
             tok = strtok(NULL, " \t");
@@ -343,6 +405,7 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
         entry.cshift = cshift;
         entry.numlock = numlock;
         entry.keycode = keycode;
+        entry.keychar = keychar;
         strcpy((char *) entry.macro, (const char *) macro);
         return &entry;
     } else
@@ -655,8 +718,8 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
                     ann->src.y = act_y;
                 }
             }
-        } else if ((old_style = _strnicmp(line, "winkey:", 7) == 0) || _strnicmp(line, "mapkey:", 7) == 0) {
-            keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
+        } else if ((old_style = _strnicmp(line, "winkey:", 7) == 0) || _strnicmp(line, "winkeyx:", 8) == 0) {
+            keymap_entry *entry = parse_keymap_entry(old_style, line + (old_style ? 7 : 8), lineno);
             if (entry != NULL) {
                 if (keymap_length == kmcap) {
                     kmcap += 50;
@@ -904,125 +967,62 @@ struct KeyShortcutInfo {
 };
 
 static wstring keycode_to_text(int code) {
-    // source: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-    // dated 06/06/2024
+    // We don't use the same names for display as we use in key mappings,
+    // because some of those names are rather long, and space is tight when
+    // we're showing keyboard shortcuts superimposed on the skin.
+    // So, here are some useful abbreviations:
 
-    if (code >= '0' && code <= '9' || code >= 'A' && code <= 'Z') {
-        wchar_t s[2] = { (wchar_t) code, 0 };
-        return s;
-    } else if (code >= VK_NUMPAD0 && code <= VK_NUMPAD9) {
+    if (code >= VK_NUMPAD0 && code <= VK_NUMPAD9)
         return wstring(L"Kp") + to_wstring(code - VK_NUMPAD0);
-    } else if (code >= VK_F1 && code <= VK_F24) {
-        return wstring(L"F") + to_wstring(code - VK_F1 + 1);
-    }
 
     switch (code) {
-        case VK_LBUTTON: return L"LBUTTON"; // Left mouse button
-        case VK_RBUTTON: return L"RBUTTON"; // Right mouse button
-        case VK_CANCEL: return L"CANCEL"; // Control - break processing
-        case VK_MBUTTON: return L"MBUTTON"; // Middle mouse button
-        case VK_XBUTTON1: return L"XBUTTON1"; // X1 mouse button
-        case VK_XBUTTON2: return L"XBUTTON2"; // X2 mouse button
-        case VK_BACK: return L"\x232B"; // BACKSPACE key
-        case VK_TAB: return L"TAB"; // TAB key
-        case VK_CLEAR: return L"CLEAR"; // CLEAR key
-        case VK_RETURN: return L"Enter"; // ENTER key
-        case VK_SHIFT: return L"SHIFT"; // SHIFT key
-        case VK_CONTROL: return L"CONTROL"; // CTRL key
-        case VK_MENU: return L"MENU"; // ALT key
-        case VK_PAUSE: return L"PAUSE"; // PAUSE key
-        case VK_CAPITAL: return L"CAPITAL"; // CAPS LOCK key
-        case VK_KANA: return L"KANA"; // IME Kana mode
-        //case VK_HANGUL: return L"HANGUL"; // IME Hangul mode
-        case VK_IME_ON: return L"IME_ON"; // IME On
-        case VK_JUNJA: return L"JUNJA"; // IME Junja mode
-        case VK_FINAL: return L"FINAL"; // IME final mode
-        case VK_HANJA: return L"HANJA"; // IME Hanja mode
-        //case VK_KANJI: return L"KANJI"; // IME Kanji mode
-        case VK_IME_OFF: return L"IME_OFF"; // IME Off
-        case VK_ESCAPE: return L"Esc"; // ESC key
-        case VK_CONVERT: return L"CONVERT"; // IME convert
-        case VK_NONCONVERT: return L"NONCONVERT"; // IME nonconvert
-        case VK_ACCEPT: return L"ACCEPT"; // IME accept
-        case VK_MODECHANGE: return L"MODECHANGE"; // IME mode change request
-        case VK_SPACE: return L"SPACE"; // SPACEBAR
-        case VK_PRIOR: return L"PRIOR"; // PAGE UP key
-        case VK_NEXT: return L"Next"; // PAGE DOWN key
-        case VK_END: return L"End"; // END key
-        case VK_HOME: return L"Home"; // HOME key
-        case VK_LEFT: return L"\x2190"; // LEFT ARROW key
-        case VK_UP: return L"\x2191"; // UP ARROW key
-        case VK_RIGHT: return L"\x2192"; // RIGHT ARROW key
-        case VK_DOWN: return L"\x2193"; // DOWN ARROW key
-        case VK_SELECT: return L"SELECT"; // SELECT key
-        case VK_PRINT: return L"PRINT"; // PRINT key
-        case VK_EXECUTE: return L"EXECUTE"; // EXECUTE key
-        case VK_SNAPSHOT: return L"SNAPSHOT"; // PRINT SCREEN key
-        case VK_INSERT: return L"Ins"; // INS key
-        case VK_DELETE: return L"\x2326"; // DEL key
-        case VK_HELP: return L"HELP"; // HELP key
-        case VK_LWIN: return L"LWIN"; // Left Windows key
-        case VK_RWIN: return L"RWIN"; // Right Windows key
-        case VK_APPS: return L"APPS"; // Applications key
-        case VK_SLEEP: return L"SLEEP"; // Computer Sleep key
-        case VK_MULTIPLY: return L"*"; // Multiply key
-        case VK_ADD: return L"+"; // Add key
-        case VK_SEPARATOR: return L","; // Separator key
-        case VK_SUBTRACT: return L"-"; // Subtract key
-        case VK_DECIMAL: return L"."; // Decimal key
-        case VK_DIVIDE: return L"/"; // Divide key
-        case VK_NUMLOCK: return L"NUMLOCK"; // NUM LOCK key
-        case VK_SCROLL: return L"SCROLL"; // SCROLL LOCK key
-        case VK_LSHIFT: return L"LSHIFT"; // Left SHIFT key
-        case VK_RSHIFT: return L"RSHIFT"; // Right SHIFT key
-        case VK_LCONTROL: return L"LCONTROL"; // Left CONTROL key
-        case VK_RCONTROL: return L"RCONTROL"; // Right CONTROL key
-        case VK_LMENU: return L"LMENU"; // Left ALT key
-        case VK_RMENU: return L"RMENU"; // Right ALT key
-        case VK_BROWSER_BACK: return L"BROWSER_BACK"; // Browser Back key
-        case VK_BROWSER_FORWARD: return L"BROWSER_FORWARD"; // Browser Forward key
-        case VK_BROWSER_REFRESH: return L"BROWSER_REFRESH"; // Browser Refresh key
-        case VK_BROWSER_STOP: return L"BROWSER_STOP"; // Browser Stop key
-        case VK_BROWSER_SEARCH: return L"BROWSER_SEARCH"; // Browser Search key
-        case VK_BROWSER_FAVORITES: return L"BROWSER_FAVORITES"; // Browser Favorites key
-        case VK_BROWSER_HOME: return L"BROWSER_HOME"; // Browser Start and Home key
-        case VK_VOLUME_MUTE: return L"VOLUME_MUTE"; // Volume Mute key
-        case VK_VOLUME_DOWN: return L"VOLUME_DOWN"; // Volume Down key
-        case VK_VOLUME_UP: return L"VOLUME_UP"; // Volume Up key
-        case VK_MEDIA_NEXT_TRACK: return L"MEDIA_NEXT_TRACK"; // Next Track key
-        case VK_MEDIA_PREV_TRACK: return L"MEDIA_PREV_TRACK"; // Previous Track key
-        case VK_MEDIA_STOP: return L"MEDIA_STOP"; // Stop Media key
-        case VK_MEDIA_PLAY_PAUSE: return L"MEDIA_PLAY_PAUSE"; // Play / Pause Media key
-        case VK_LAUNCH_MAIL: return L"LAUNCH_MAIL"; // Start Mail key
-        case VK_LAUNCH_MEDIA_SELECT: return L"LAUNCH_MEDIA_SELECT"; // Select Media key
-        case VK_LAUNCH_APP1: return L"LAUNCH_APP1"; // Start Application 1 key
-        case VK_LAUNCH_APP2: return L"LAUNCH_APP2"; // Start Application 2 key
-        case VK_OEM_1: return L";"; // Used for miscellaneous characters; it can vary by keyboard.For the US standard keyboard, the; : key
-        case VK_OEM_PLUS: return L"+"; // For any country / region, the + key
-        case VK_OEM_COMMA: return L","; // For any country / region, the, key
-        case VK_OEM_MINUS: return L"-"; // For any country / region, the - key
-        case VK_OEM_PERIOD: return L"."; // For any country / region, the.key
-        case VK_OEM_2: return L"/"; // Used for miscellaneous characters; it can vary by keyboard.For the US standard keyboard, the / ? key
-        case VK_OEM_3: return L"`"; // Used for miscellaneous characters; it can vary by keyboard.For the US standard keyboard, the `~ key
-        case VK_OEM_4: return L"["; // Used for miscellaneous characters; it can vary by keyboard.For the US standard keyboard, the[{ key
-        case VK_OEM_5: return L"\\"; // Used for miscellaneous characters; it can vary by keyboard.For the US standard keyboard, the \\ | key
-        case VK_OEM_6: return L"]"; // Used for miscellaneous characters; it can vary by keyboard.For the US standard keyboard, the]} key
-        case VK_OEM_7: return L"'"; // Used for miscellaneous characters; it can vary by keyboard.For the US standard keyboard, the '" key
-        case VK_OEM_8: return L"OEM_8"; // Used for miscellaneous characters; it can vary by keyboard.
-        case VK_OEM_102: return L"OEM_102"; // The <> keys on the US standard keyboard, or the \\ | key on the non - US 102 - key keyboard
-        case VK_PROCESSKEY: return L"PROCESSKEY"; // IME PROCESS key
-        case VK_PACKET: return L"PACKET"; // Used to pass Unicode characters as if they were keystrokes.The VK_PACKET key is the low word of a 32 - bit Virtual Key value used for non - keyboard input methods.For more information, see Remark in KEYBDINPUT, SendInput, WM_KEYDOWN, and WM_KEYUP
-        case VK_ATTN: return L"ATTN"; // Attn key
-        case VK_CRSEL: return L"CRSEL"; // CrSel key
-        case VK_EXSEL: return L"EXSEL"; // ExSel key
-        case VK_EREOF: return L"EREOF"; // Erase EOF key
-        case VK_PLAY: return L"PLAY"; // Play key
-        case VK_ZOOM: return L"ZOOM"; // Zoom key
-        case VK_NONAME: return L"NONAME"; // Reserved
-        case VK_PA1: return L"PA1"; // PA1 key
-        case VK_OEM_CLEAR: return L"OEM_CLEAR"; // Clear key
-        default: return wstring(L"VK(") + to_wstring(code) + L")";
+        case VK_BACK: return L"\x232B";
+        case VK_TAB: return L"Tab";
+        case VK_CLEAR: return L"Clr";
+        case VK_RETURN: return L"Enter";
+        case VK_ESCAPE: return L"Esc";
+        case VK_PRIOR: return L"PgUp";
+        case VK_NEXT: return L"PgDn";
+        case VK_END: return L"End";
+        case VK_HOME: return L"Home";
+        case VK_LEFT: return L"\x2190";
+        case VK_UP: return L"\x2191";
+        case VK_RIGHT: return L"\x2192";
+        case VK_DOWN: return L"\x2193";
+        case VK_INSERT: return L"Ins";
+        case VK_DELETE: return L"\x2326";
+        case VK_MULTIPLY: return L"Kp*";
+        case VK_ADD: return L"Kp+";
+        case VK_SEPARATOR: return L"Kp,";
+        case VK_SUBTRACT: return L"Kp-";
+        case VK_DECIMAL: return L"Kp.";
+        case VK_DIVIDE: return L"Kp/";
+        case VK_OEM_1: return L"Oem1
+        case VK_OEM_PLUS: return L"Oem+";
+        case VK_OEM_COMMA: return L"Oem,";
+        case VK_OEM_MINUS: return L"Oem-";
+        case VK_OEM_PERIOD: return L"Oem.";
+        case VK_OEM_2: return L"Oem2";
+        case VK_OEM_3: return L"Oem3";
+        case VK_OEM_4: return L"Oem4";
+        case VK_OEM_5: return L"Oem5";
+        case VK_OEM_6: return L"Oem6";
+        case VK_OEM_7: return L"Oem7";
+        case VK_OEM_8: return L"Oem8";
+        case VK_OEM_102: return L"Oem102";
+        case VK_OEM_CLEAR: return L"OemClr";
     }
+
+    const char *k = vk_text(code);
+    if (k != NULL) {
+        wstring r;
+        char c;
+        while ((c = *k++) != 0)
+            r += (wchar_t) c;
+        return r;
+    }
+
+    default: return wstring(L"VK(") + to_wstring(code) + L")";
 }
 
 static wstring entry_to_text(keymap_entry *e) {
@@ -1037,15 +1037,10 @@ static wstring entry_to_text(keymap_entry *e) {
         mods += L"\x2325";
     if (e->shift)
         mods += L"\x21e7";
-    if (e->old_style) {
+    if (e->old_style || e->keycode != 0)
         return mods + keycode_to_text(e->keycode);
-    } else {
-        const char *k = hwk_text(e->keycode);
-        char c;
-        while ((c = *k++) != 0)
-            mods += (wchar_t) c;
-        return mods;
-    }
+    else
+        return mods + (wchar_t) e->keychar;
 }
 
 static KeyShortcutInfo *get_shortcut_info() {
@@ -1267,16 +1262,15 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     return NULL;
 }
 
-unsigned char *skin_keymap_lookup(int keycode, bool ctrl, bool alt, bool shift,
-                                  bool numpad, bool numlock, bool cshift,
-                                  int old_keycode, bool old_shift, bool old_extended,
-                                  int *quality) {
+unsigned char *skin_keymap_lookup(int keychar, int keycode, bool ctrl, bool alt, bool shift,
+                                  bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift,
+                                  bool old_shift, bool old_extended, int *quality) {
     unsigned char *macro = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        int qq = entry->match(keycode, ctrl, alt, shift, numpad, numlock, cshift,
-                              old_keycode, old_shift, old_extended);
+        int qq = entry->match(keychar, keycode, ctrl, alt, shift, shift_mismatch_allowed,
+                              numpad, numlock, cshift, old_shift, old_extended);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
             return entry->macro;

@@ -842,19 +842,41 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         || virtKey == VK_DOWN || virtKey == VK_NEXT || virtKey == VK_INSERT || virtKey == VK_DELETE)
                     && (GetKeyState(VK_NUMLOCK) & 1) != 0;
 
-                bool hwk_numpad = false;
-                int hwk_code = hwk_key(virtKey, extended, &hwk_numpad);
-                bool hwk_shift = shift_down || cshift_suppressed;
+                bool numpad = false;
 
-                unsigned char *key_macro = skin_keymap_lookup(hwk_code, ctrl_down, alt_down, shift_down || cshift_suppressed,
-                                                              hwk_numpad, numlock, cshift_down,
-                                                              virtKey, shift_down, extended, &quality);
+                if (virtKey >= VK_NUMPAD0 && virtKey <= VK_NUMPAD9)
+                    numpad = true;
+
+                switch (virtKey) {
+                    case VK_HOME: case VK_UP: case VK_PRIOR:
+                    case VK_LEFT: case VK_CLEAR: case VK_RIGHT:
+                    case VK_END: case VK_DOWN: case VK_NEXT:
+                    case VK_INSERT: case VK_DELETE:
+                        numpad = !extended;
+                        break;
+                    case VK_NUMPAD0: case VK_NUMPAD1: case VK_NUMPAD2:
+                    case VK_NUMPAD3: case VK_NUMPAD4: case VK_NUMPAD5:
+                    case VK_NUMPAD6: case VK_NUMPAD7: case VK_NUMPAD8:
+                    case VK_NUMPAD9: case VK_SEPARATOR: case VK_DECIMAL:
+                    case VK_ADD: case VK_SUBTRACT: case VK_MULTIPLY: case VK_DIVIDE:
+                        numpad = true;
+                        break;
+                    case VK_RETURN:
+                        numpad = extended;
+                        break;
+                }
+
+                bool shift_mismatch_allowed = printable && !numpad && keyChar != ' ';
+
+                unsigned char *key_macro = skin_keymap_lookup(keyChar, virtKey, ctrl_down, alt_down,
+                                                              shift_down || cshift_suppressed,
+                                                              shift_mismatch_allowed, numpad, numlock, cshift_down,
+                                                              shift_down, extended, &quality);
                 if (key_macro == NULL || quality < MAX_MATCH_QUALITY) {
                     for (i = 0; i < keymap_length; i++) {
                         keymap_entry *entry = keymap + i;
-                        int qq = entry->match(hwk_code, ctrl_down, alt_down, shift_down || cshift_suppressed,
-                                              hwk_numpad, numlock, cshift_down,
-                                              virtKey, shift_down, extended);
+                        int qq = entry->match(keyChar, virtKey, ctrl_down, alt_down, shift_down || cshift_suppressed,
+                                              shift_mismatch_allowed, numpad, numlock, cshift_down, shift_down, extended);
                         if (qq == MAX_MATCH_QUALITY) {
                             key_macro = entry->macro;
                             break;
