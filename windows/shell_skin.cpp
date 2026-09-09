@@ -997,7 +997,7 @@ static wstring keycode_to_text(int code) {
         case VK_SUBTRACT: return L"Kp-";
         case VK_DECIMAL: return L"Kp.";
         case VK_DIVIDE: return L"Kp/";
-        case VK_OEM_1: return L"Oem1
+        case VK_OEM_1: return L"Oem1";
         case VK_OEM_PLUS: return L"Oem+";
         case VK_OEM_COMMA: return L"Oem,";
         case VK_OEM_MINUS: return L"Oem-";
@@ -1022,7 +1022,7 @@ static wstring keycode_to_text(int code) {
         return r;
     }
 
-    default: return wstring(L"VK(") + to_wstring(code) + L")";
+    return wstring(L"VK(") + to_wstring(code) + L")";
 }
 
 static wstring entry_to_text(keymap_entry *e) {
