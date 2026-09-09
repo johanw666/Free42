@@ -114,7 +114,7 @@ static int keymap_length = 0;
 static keymap_entry *keymap = NULL;
 
 
-#define SHELL_VERSION 14
+#define SHELL_VERSION 15
 
 state_type state;
 static int placement_saved = 0;
@@ -125,6 +125,7 @@ wchar_t free42dirname[FILENAMELEN];
 static wchar_t statefilename[FILENAMELEN];
 static FILE *statefile = NULL;
 static wchar_t printfilename[FILENAMELEN];
+static bool keymap_obsolete = false;
 
 static FILE *print_txt = NULL;
 static FILE *print_gif = NULL;
@@ -331,8 +332,6 @@ static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     swprintf(printfilename, L"%ls\\print.bin", free42dirname);
     swprintf(keymapfilename, L"%ls\\keymap.txt", free42dirname);
 
-    read_key_map(keymapfilename);
-
     printout = (char *) malloc(PRINT_SIZE);
     print_text = (char *) malloc(PRINT_TEXT_SIZE);
     // TODO - handle memory allocation failure
@@ -413,6 +412,17 @@ static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
             version = 26;
         }
     }
+
+    if (keymap_obsolete) {
+        size_t len = wcslen(keymapfilename);
+        if (len > 4 && _wcsicmp(keymapfilename + len - 4, L".txt") == 0) {
+            wchar_t keymapbackup[FILENAMELEN];
+            wcscpy(keymapbackup, keymapfilename);
+            wcscpy(keymapbackup + len - 4, L".old");
+            _wrename(keymapfilename, keymapbackup);
+        }
+    }
+    read_key_map(keymapfilename);
 
     RECT r;
 
@@ -825,16 +835,26 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 int quality;
                 bool extended = (lParam & (1 << 24)) != 0;
                 bool cshift_down = ann_shift != 0;
-                bool numlock = !extended && (virtKey == VK_HOME || virtKey == VK_UP || virtKey == VK_PRIOR
+                bool numlock = (virtKey >= VK_NUMPAD0 && virtKey <= VK_NUMPAD9
+                        || virtKey == VK_DECIMAL || virtKey == VK_SEPARATOR)
+                    || !extended && (virtKey == VK_HOME || virtKey == VK_UP || virtKey == VK_PRIOR
                         || virtKey == VK_LEFT || virtKey == VK_CLEAR || virtKey == VK_RIGHT || virtKey == VK_END
                         || virtKey == VK_DOWN || virtKey == VK_NEXT || virtKey == VK_INSERT || virtKey == VK_DELETE)
                     && (GetKeyState(VK_NUMLOCK) & 1) != 0;
-                unsigned char *key_macro = skin_keymap_lookup(virtKey, ctrl_down, alt_down, shift_down,
-                                                              extended, numlock, cshift_down, &quality);
+
+                bool hwk_numpad = false;
+                int hwk_code = hwk_key(virtKey, extended, &hwk_numpad);
+                bool hwk_shift = shift_down || cshift_suppressed;
+
+                unsigned char *key_macro = skin_keymap_lookup(hwk_code, ctrl_down, alt_down, shift_down || cshift_suppressed,
+                                                              hwk_numpad, numlock, cshift_down,
+                                                              virtKey, shift_down, extended, &quality);
                 if (key_macro == NULL || quality < MAX_MATCH_QUALITY) {
                     for (i = 0; i < keymap_length; i++) {
                         keymap_entry *entry = keymap + i;
-                        int qq = entry->match(virtKey, ctrl_down, alt_down, shift_down, extended, numlock, cshift_down);
+                        int qq = entry->match(hwk_code, ctrl_down, alt_down, shift_down || cshift_suppressed,
+                                              hwk_numpad, numlock, cshift_down,
+                                              virtKey, shift_down, extended);
                         if (qq == MAX_MATCH_QUALITY) {
                             key_macro = entry->macro;
                             break;
@@ -2682,7 +2702,7 @@ static void read_key_map(const wchar_t *keymapfilename) {
 
     while (fgets(line, 1024, keymapfile) != NULL) {
         lineno++;
-        keymap_entry *entry = parse_keymap_entry(line, lineno);
+        keymap_entry *entry = parse_keymap_entry(false, line, lineno);
         if (entry != NULL) {
             /* Create new keymap entry */
             if (keymap_length == kmcap) {
@@ -2752,7 +2772,10 @@ static void init_shell_state(int4 version) {
             state.mainWindowHeight = 0;
             // fall through
         case 14:
-            // current version (SHELL_VERSION = 14),
+            keymap_obsolete = true;
+            // fall through
+        case 15:
+            // current version (SHELL_VERSION = 15),
             // so nothing to do here since everything
             // was initialized from the state file.
             ;

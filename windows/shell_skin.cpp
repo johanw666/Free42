@@ -134,18 +134,33 @@ extern const unsigned char * const skin_bitmap_data[];
 /******************/
 
 int keymap_entry::match(int keycode, bool ctrl, bool alt, bool shift,
-                        bool extended, bool numlock, bool cshift) {
-    if (keycode != this->keycode
-            || ctrl != this->ctrl
-            || alt != this->alt
-            || shift != this->shift
-            || !extended && this->extended
-            || !numlock && this->numlock
-            || !cshift && this->cshift)
-        return 0;
-    return (extended == this->extended ? 18 : 9)
-            + (numlock == this->numlock ? 6 : 3)
-            + (cshift == this->cshift ? 2 : 1);
+                        bool numpad, bool numlock, bool cshift,
+                        int old_keycode, bool old_shift, bool old_extended) {
+    if (old_style) {
+        if (old_keycode != this->keycode
+                || ctrl != this->ctrl
+                || alt != this->alt
+                || old_shift != this->shift
+                || !old_extended && this->numpad
+                || !numlock && this->numlock
+                || !cshift && this->cshift)
+            return 0;
+        return (old_extended == this->numpad ? 18 : 9)
+                + (numlock == this->numlock ? 6 : 3)
+                + (cshift == this->cshift ? 2 : 1);
+    } else {
+        if (keycode != this->keycode
+                || ctrl != this->ctrl
+                || alt != this->alt
+                || shift != this->shift
+                || !numpad && this->numpad
+                || !numlock && this->numlock
+                || !cshift && this->cshift)
+            return 0;
+        return (numpad == this->numpad ? 18 : 9)
+                + (numlock == this->numlock ? 6 : 3)
+                + (cshift == this->cshift ? 2 : 1);
+    }
 }
 
 
@@ -153,7 +168,84 @@ int keymap_entry::match(int keycode, bool ctrl, bool alt, bool shift,
 /* Keymap parser */
 /*****************/
 
-keymap_entry *parse_keymap_entry(char *line, int lineno) {
+static const char *hwk = "A\0B\0C\0D\0E\0F\0G\0H\0I\0J\0K\0L\0M\0N\0O\0P\0Q\0R\0S\0T\0U\0V\0W\0X\0Y\0Z\0000\0001\0002\0003\0004\0005\0006\0007\08\09\0SPACE\0TAB\0ENTER\0ESC\0F1\0F2\0F3\0F4\0F5\0F6\0F7\0F8\0F9\0F10\0F11\0F12\0F13\0F14\0F15\0F16\0F17\0F18\0F19\0F20\0ADD\0SUBTRACT\0MULTIPLY\0DIVIDE\0EQUALS\0GRAVE\0LEFT_BR\0RIGHT_BR\0QUOTE\0PERIOD\0COMMA\0SEMICOLON\0BACKSLASH\0BACKSPACE\0CLEAR\0INSERT\0DELETE\0HOME\0END\0PRIOR\0NEXT\0UP\0DOWN\0LEFT\0RIGHT\0";
+
+static int hwk_parse(const char *code) {
+    const char *p = hwk;
+    int k = 1;
+    while (*p) {
+        if (strcmp(code, p) == 0)
+            return k;
+        p += strlen(p) + 1;
+        k++;
+    }
+    return 0;
+}
+
+const char *hwk_text(int key) {
+    if (key <= 0)
+        return "UNKNOWN";
+    const char *k = hwk;
+    while (true) {
+        if (--key == 0)
+            return k;
+        k += strlen(k) + 1;
+        if (*k == 0)
+            return "UNKNOWN";
+    }
+}
+
+int hwk_key(int virtKey, bool extended, bool *hwk_numpad) {
+    *hwk_numpad = false;
+    if (virtKey >= 'A' && virtKey <= 'Z')
+        return HWK_A + virtKey - 'A';
+    if (virtKey >= '0' && virtKey <= '9')
+        return HWK_0 + virtKey - '0';
+    if (virtKey >= VK_NUMPAD0 && virtKey <= VK_NUMPAD9) {
+        *hwk_numpad = true;
+        return HWK_0 + virtKey - VK_NUMPAD0;
+    }
+    if (virtKey >= VK_F1 && virtKey <= VK_F20)
+        return HWK_F1 + virtKey - VK_F1;
+    switch (virtKey) {
+        case VK_HOME: *hwk_numpad = !extended; return HWK_HOME;
+        case VK_UP: *hwk_numpad = !extended; return HWK_UP;
+        case VK_PRIOR: *hwk_numpad = !extended; return HWK_PRIOR;
+        case VK_LEFT: *hwk_numpad = !extended; return HWK_LEFT;
+        case VK_CLEAR: *hwk_numpad = !extended; return HWK_CLEAR;
+        case VK_RIGHT: *hwk_numpad = !extended; return HWK_RIGHT;
+        case VK_END: *hwk_numpad = !extended; return HWK_END;
+        case VK_DOWN: *hwk_numpad = !extended; return HWK_DOWN;
+        case VK_NEXT: *hwk_numpad = !extended; return HWK_NEXT;
+        case VK_INSERT: *hwk_numpad = !extended; return HWK_INSERT;
+        case VK_DELETE: *hwk_numpad = !extended; return HWK_DELETE;
+        case VK_ADD: *hwk_numpad = true; return HWK_ADD;
+        case VK_SUBTRACT: *hwk_numpad = true; return HWK_SUBTRACT;
+        case VK_MULTIPLY: *hwk_numpad = true; return HWK_MULTIPLY;
+        case VK_DIVIDE: *hwk_numpad = true; return HWK_DIVIDE;
+        case VK_SEPARATOR: *hwk_numpad = true; return HWK_COMMA;
+        case VK_DECIMAL: *hwk_numpad = true; return HWK_PERIOD;
+        case VK_OEM_1: return HWK_SEMICOLON;
+        case VK_OEM_2: return HWK_DIVIDE;
+        case VK_OEM_3: return HWK_GRAVE;
+        case VK_OEM_4: return HWK_LEFT_BR;
+        case VK_OEM_5: return HWK_BACKSLASH;
+        case VK_OEM_6: return HWK_RIGHT_BR;
+        case VK_OEM_7: return HWK_QUOTE;
+        case VK_OEM_PERIOD: return HWK_PERIOD;
+        case VK_OEM_COMMA: return HWK_COMMA;
+        case VK_OEM_PLUS: return HWK_EQUALS;
+        case VK_OEM_MINUS: return HWK_SUBTRACT;
+        case VK_SPACE: return HWK_SPACE;
+        case VK_TAB: return HWK_TAB;
+        case VK_ESCAPE: return HWK_ESC;
+        case VK_BACK: return HWK_BACKSPACE;
+        case VK_RETURN: *hwk_numpad = extended; return HWK_ENTER;
+        default: return HWK_UNKNOWN;
+    }
+}
+
+keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
     char *p;
     static keymap_entry entry;
 
@@ -173,7 +265,7 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
         char *tok;
         bool ctrl = false;
         bool alt = false;
-        bool extended = false;
+        bool numpad = false;
         bool shift = false;
         bool cshift = false;
         bool numlock = false;
@@ -194,21 +286,28 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
                 ctrl = true;
             else if (_stricmp(tok, "alt") == 0)
                 alt = true;
-            else if (_stricmp(tok, "extended") == 0)
-                extended = true;
+            else if (_stricmp(tok, old_style ? "extended" : "numpad") == 0)
+                numpad = true;
             else if (_stricmp(tok, "shift") == 0)
                 shift = true;
             else if (_stricmp(tok, "cshift") == 0)
                 cshift = true;
             else if (_stricmp(tok, "numlock") == 0)
                 numlock = true;
-            else {
+            else if (old_style) {
                 char *endptr;
                 long k = strtol(tok, &endptr, 10);
                 if (k < 1 || *endptr != 0) {
+                    bad_keycode:
                     fprintf(stderr, "Keymap, line %d: Bad keycode.\n", lineno);
                     return NULL;
                 }
+                keycode = k;
+                done = 1;
+            } else {
+                int k = hwk_parse(tok);
+                if (k == HWK_UNKNOWN)
+                    goto bad_keycode;
                 keycode = k;
                 done = 1;
             }
@@ -236,9 +335,10 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
         }
         macro[macrolen] = 0;
 
+        entry.old_style = old_style;
         entry.ctrl = ctrl;
         entry.alt = alt;
-        entry.extended = extended;
+        entry.numpad = numpad;
         entry.shift = shift;
         entry.cshift = cshift;
         entry.numlock = numlock;
@@ -399,6 +499,7 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
     int kmcap = 0;
 
     int lineno = 0;
+    bool old_style;
 
     while (skin_gets(line, 1024)) {
         lineno++;
@@ -554,8 +655,8 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
                     ann->src.y = act_y;
                 }
             }
-        } else if (_strnicmp(line, "winkey:", 7) == 0) {
-            keymap_entry *entry = parse_keymap_entry(line + 7, lineno);
+        } else if ((old_style = _strnicmp(line, "winkey:", 7) == 0) || _strnicmp(line, "mapkey:", 7) == 0) {
+            keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
             if (entry != NULL) {
                 if (keymap_length == kmcap) {
                     kmcap += 50;
@@ -746,7 +847,7 @@ void skin_finish_image() {
     skin_bitmap = new Gdiplus::Bitmap((BITMAPINFO *) bh, skin_data);
 }
 
-static bool need_to_paint_only_display(RECT *r) {
+static bool need_to_paint_only_display(RECT* r) {
     int d_left = (int) (((double) display_loc.x) * window_width / skin.width);
     int d_top = (int) (((double) display_loc.y) * window_height / skin.height);
     int d_right = (int) ceil((display_loc.x + 131 * display_scale_x) * window_width / skin.width);
@@ -758,7 +859,7 @@ static bool need_to_paint_only_display(RECT *r) {
 }
 
 static void skin_repaint_annunciator(Graphics *g, int which) {
-    SkinAnnunciator *ann = annunciators + (which - 1);
+    SkinAnnunciator* ann = annunciators + (which - 1);
     g->DrawImage(skin_bitmap, ann->disp_rect.x, ann->disp_rect.y, ann->src.x, ann->src.y, ann->disp_rect.width, ann->disp_rect.height, Gdiplus::UnitPixel);
 }
 
@@ -926,17 +1027,25 @@ static wstring keycode_to_text(int code) {
 
 static wstring entry_to_text(keymap_entry *e) {
     wstring mods = L"";
-    if (e->extended)
-        mods += L"{e}";
+    if (e->numpad)
+        mods += e->old_style ? L"{E}" : L"{N}";
     if (e->numlock)
-        mods += L"{n}";
+        mods += L"{L}";
     if (e->ctrl)
         mods += L"^";
     if (e->alt)
         mods += L"\x2325";
     if (e->shift)
         mods += L"\x21e7";
-    return mods + keycode_to_text(e->keycode);
+    if (e->old_style) {
+        return mods + keycode_to_text(e->keycode);
+    } else {
+        const char *k = hwk_text(e->keycode);
+        char c;
+        while ((c = *k++) != 0)
+            mods += (wchar_t) c;
+        return mods;
+    }
 }
 
 static KeyShortcutInfo *get_shortcut_info() {
@@ -1013,11 +1122,6 @@ void skin_repaint(bool shortcuts) {
     if (!only_disp) {
         g.SetInterpolationMode(InterpolationModeBilinear);
         g.DrawImage(skin_bitmap, 0, 0, skin.x, skin.y, skin.width, skin.height, Gdiplus::UnitPixel);
-        if (skey >= 0 && skey < nkeys) {
-            SkinKey *key = keylist + skey;
-            g.DrawImage(skin_bitmap, key->disp_rect.x, key->disp_rect.y, key->src.x, key->src.y,
-                        key->disp_rect.width, key->disp_rect.height, Gdiplus::UnitPixel);
-        }
     }
 
     Region oldClip;
@@ -1071,6 +1175,11 @@ void skin_repaint(bool shortcuts) {
             skin_repaint_annunciator(&g, 6);
         if (ann_rad)
             skin_repaint_annunciator(&g, 7);
+        if (skey >= 0 && skey < nkeys) {
+            SkinKey* key = keylist + skey;
+            g.DrawImage(skin_bitmap, key->disp_rect.x, key->disp_rect.y, key->src.x, key->src.y,
+                        key->disp_rect.width, key->disp_rect.height, Gdiplus::UnitPixel);
+        }
     }
 
     if (shortcuts) {
@@ -1159,12 +1268,15 @@ unsigned char *skin_find_macro(int ckey, int *type) {
 }
 
 unsigned char *skin_keymap_lookup(int keycode, bool ctrl, bool alt, bool shift,
-                                  bool extended, bool numlock, bool cshift, int *quality) {
+                                  bool numpad, bool numlock, bool cshift,
+                                  int old_keycode, bool old_shift, bool old_extended,
+                                  int *quality) {
     unsigned char *macro = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        int qq = entry->match(keycode, ctrl, alt, shift, extended, numlock, cshift);
+        int qq = entry->match(keycode, ctrl, alt, shift, numpad, numlock, cshift,
+                              old_keycode, old_shift, old_extended);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
             return entry->macro;
@@ -1189,7 +1301,7 @@ void skin_invalidate_key(int key) {
     } else if (key < 0 || key >= nkeys) {
         return;
     } else {
-        SkinRect *rect = &keylist[key].disp_rect;
+        SkinRect* rect = &keylist[key].disp_rect;
         skin_invalidate(rect->x, rect->y, rect->x + rect->width, rect->y + rect->height);
     }
 }
