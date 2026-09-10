@@ -62,9 +62,10 @@ void skin_invalidate_annunciator(int which);
 void skin_find_key(int x, int y, bool cshift, int *skey, int *ckey);
 int skin_find_skey(int ckey, bool cshift);
 unsigned char *skin_find_macro(int ckey, int *type);
-unsigned char *skin_keymap_lookup(int keychar, int keycode, bool ctrl, bool alt, bool shift,
-                                  bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift,
-                                  bool old_shift, bool old_extended, int *quality);
+keymap_entry *skin_keymap_lookup(int keychar, int keycode, bool ctrl, bool alt, bool shift,
+                                 bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift,
+                                 bool old_shift, bool old_extended, int *quality);
+int skin_find_shifted_code(int code);
 void skin_invalidate_key(int key);
 void skin_display_blitter(const char *bits, int bytesperline, int x, int y, int width, int height);
 void skin_get_size(int *width, int *height);

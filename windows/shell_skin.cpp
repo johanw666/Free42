@@ -397,6 +397,14 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
         }
         macro[macrolen] = 0;
 
+        if (!ctrl && !alt) {
+            if (keychar >= 'A' && keychar <= 'Z') {
+                keychar += 32;
+                shift = true;
+            } else if (keychar >= 'a' && keychar <= 'z')
+                shift = false;
+        }
+
         entry.old_style = old_style;
         entry.ctrl = ctrl;
         entry.alt = alt;
@@ -1262,10 +1270,19 @@ unsigned char *skin_find_macro(int ckey, int *type) {
     return NULL;
 }
 
-unsigned char *skin_keymap_lookup(int keychar, int keycode, bool ctrl, bool alt, bool shift,
-                                  bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift,
-                                  bool old_shift, bool old_extended, int *quality) {
-    unsigned char *macro = NULL;
+int skin_find_shifted_code(int code) {
+    for (int i = 0; i < nkeys; i++)
+        if (keylist[i].code == code) {
+            int r = keylist[i].shifted_code;
+            return r == code ? 0 : r;
+        }
+    return 0;
+}
+
+keymap_entry *skin_keymap_lookup(int keychar, int keycode, bool ctrl, bool alt, bool shift,
+                                 bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift,
+                                 bool old_shift, bool old_extended, int *quality) {
+    keymap_entry *ke = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
@@ -1273,14 +1290,14 @@ unsigned char *skin_keymap_lookup(int keychar, int keycode, bool ctrl, bool alt,
                               numpad, numlock, cshift, old_shift, old_extended);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
-            return entry->macro;
+            return entry;
         } else if (qq > q) {
             q = qq;
-            macro = entry->macro;
+            ke = entry;
         }
     }
     *quality = q;
-    return macro;
+    return ke;
 }
 
 void skin_invalidate_key(int key) {

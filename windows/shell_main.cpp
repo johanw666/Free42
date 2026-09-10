@@ -475,7 +475,7 @@ static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     return TRUE;
 }
 
-static void shell_keydown(bool cshift) {
+static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
     if (ckey != 0) {
         if (skey == -1)
             skey = skin_find_skey(ckey, cshift);
@@ -493,11 +493,23 @@ static void shell_keydown(bool cshift) {
     int repeat;
     if (macro != NULL) {
         if (macro_type != 0) {
+            if (cshift_to_shift_fallback) {
+                core_keydown(28, &enqueued, &repeat);
+                core_keyup();
+            }
             running = core_keydown_command((const char *) macro, macro_type - 1, &enqueued, &repeat);
         } else {
             if (*macro == 0) {
                 squeak();
                 return;
+            }
+            if (cshift_to_shift_fallback) {
+                if (macro[0] == 28)
+                    macro++;
+                else {
+                    running = core_keydown(28, &enqueued, &repeat);
+                    core_keyup();
+                }
             }
             bool one_key_macro = macro[1] == 0 || (macro[2] == 0 && macro[0] == 28);
             if (one_key_macro) {
@@ -774,7 +786,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 skin_find_key(x, y, ann_shift != 0, &skey, &ckey);
                 if (ckey != 0) {
                     macro = skin_find_macro(ckey, &macro_type);
-                    shell_keydown(ann_shift != 0);
+                    shell_keydown(ann_shift != 0, false);
                     mouse_key = true;
                 }
             }
@@ -868,24 +880,34 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
                 bool shift_mismatch_allowed = printable && !numpad && keyChar != ' ';
 
-                unsigned char *key_macro = skin_keymap_lookup(keyChar, virtKey, ctrl_down, alt_down,
-                                                              shift_down || cshift_suppressed,
-                                                              shift_mismatch_allowed, numpad, numlock, cshift_down,
-                                                              shift_down, extended, &quality);
-                if (key_macro == NULL || quality < MAX_MATCH_QUALITY) {
+                int lKeyChar = keyChar;
+                if (printable) {
+                    if (lKeyChar >= 'A' && lKeyChar <= 'Z') {
+                        lKeyChar += 32;
+                        shift_mismatch_allowed = false;
+                    } else if (lKeyChar >= 'a' && lKeyChar <= 'z')
+                        shift_mismatch_allowed = false;
+                }
+
+                keymap_entry *ke = skin_keymap_lookup(lKeyChar, virtKey, ctrl_down, alt_down,
+                                                      shift_down || cshift_suppressed,
+                                                      shift_mismatch_allowed, numpad, numlock, cshift_down,
+                                                      shift_down, extended, &quality);
+                if (ke == NULL || quality < MAX_MATCH_QUALITY) {
                     for (i = 0; i < keymap_length; i++) {
                         keymap_entry *entry = keymap + i;
-                        int qq = entry->match(keyChar, virtKey, ctrl_down, alt_down, shift_down || cshift_suppressed,
+                        int qq = entry->match(lKeyChar, virtKey, ctrl_down, alt_down, shift_down || cshift_suppressed,
                                               shift_mismatch_allowed, numpad, numlock, cshift_down, shift_down, extended);
                         if (qq == MAX_MATCH_QUALITY) {
-                            key_macro = entry->macro;
+                            ke = entry;
                             break;
                         } else if (qq > quality) {
-                            key_macro = entry->macro;
+                            ke = entry;
                             quality = qq;
                         }
                     }
                 }
+                unsigned char *key_macro = ke == NULL ? NULL : ke->macro;
 
                 if (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
                         && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0)) {
@@ -900,7 +922,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         ckey = 1024 + keyChar;
                         skey = -1;
                         macro = NULL;
-                        shell_keydown(false);
+                        shell_keydown(false, false);
                         mouse_key = false;
                         active_keycode = virtKey;
                         break;
@@ -912,7 +934,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                             ckey = keyChar - 'A' + 1;
                         skey = -1;
                         macro = NULL;
-                        shell_keydown(false);
+                        shell_keydown(false, false);
                         mouse_key = false;
                         active_keycode = virtKey;
                         break;
@@ -932,7 +954,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                                 ckey = which;
                                 skey = -1;
                                 macro = NULL;
-                                shell_keydown(false);
+                                shell_keydown(false, false);
                                 mouse_key = false;
                                 active_keycode = virtKey;
                                 break;
@@ -952,6 +974,19 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     ckey = -10;
                     skey = -1;
                     bool skin_shift = cshift_down;
+                    if (cshift_down && (quality & 1) == 0 && key_macro[0] != 0 && key_macro[1] == 0
+                            && !ke->shift && !ke->cshift) {
+                        // CShift active, but we ended up with an unshifted mapping.
+                        // Check if this is one of an 'unshifted,shifted' macro pair,
+                        // and if so, use the shifted partner as the fallback.
+                        int alt_code = skin_find_shifted_code(key_macro[0]);
+                        if (alt_code != 0) {
+                            static unsigned char m[2];
+                            m[0] = alt_code;
+                            m[1] = 0;
+                            key_macro = m;
+                        }
+                    }
                     if (key_macro[0] != 0)
                         if (key_macro[1] == 0)
                             ckey = key_macro[0];
@@ -985,7 +1020,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         macro = key_macro;
                         macro_type = 0;
                     }
-                    shell_keydown(skin_shift);
+                    shell_keydown(skin_shift, (quality & 1) != 0);
                     mouse_key = false;
                     active_keycode = virtKey;
                     break;
@@ -1027,7 +1062,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         ckey = 28;
                         skey = -1;
                         macro = NULL;
-                        shell_keydown(false);
+                        shell_keydown(false, false);
                         shell_keyup();
                     }
                 }
