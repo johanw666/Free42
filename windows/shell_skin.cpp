@@ -1122,6 +1122,11 @@ void skin_repaint(bool shortcuts) {
     if (!only_disp) {
         g.SetInterpolationMode(InterpolationModeBilinear);
         g.DrawImage(skin_bitmap, 0, 0, skin.x, skin.y, skin.width, skin.height, Gdiplus::UnitPixel);
+        if (skey >= 0 && skey < nkeys) {
+            SkinKey *key = keylist + skey;
+            g.DrawImage(skin_bitmap, key->disp_rect.x, key->disp_rect.y, key->src.x, key->src.y,
+                        key->disp_rect.width, key->disp_rect.height, Gdiplus::UnitPixel);
+        }
     }
 
     Region oldClip;
@@ -1175,11 +1180,6 @@ void skin_repaint(bool shortcuts) {
             skin_repaint_annunciator(&g, 6);
         if (ann_rad)
             skin_repaint_annunciator(&g, 7);
-        if (skey >= 0 && skey < nkeys) {
-            SkinKey *key = keylist + skey;
-            g.DrawImage(skin_bitmap, key->disp_rect.x, key->disp_rect.y, key->src.x, key->src.y,
-                        key->disp_rect.width, key->disp_rect.height, Gdiplus::UnitPixel);
-        }
     }
 
     if (shortcuts) {
