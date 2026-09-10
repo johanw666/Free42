@@ -176,13 +176,10 @@ int keymap_entry::match(int keychar, int keycode, bool ctrl, bool alt, bool shif
                 + 2
             : 0;
     }
-    return result;
-    /*
     if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
         return result;
-    int result2 = match(keychar, keycode, ctrl, alt, !shift, false, numpad, numlock, false, old_shift, old_extended);
+    int result2 = match(keychar, keycode, ctrl, alt, !shift, false, numpad, numlock, false, !old_shift, old_extended);
     return result2 > result ? result2 - 1 : result;
-    */
 }
 
 
