@@ -833,7 +833,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 //                }
 //            }
 
-            wchar_t keyChar = 0;
+            UINT scanCode = MapVirtualKey(virtKey, MAPVK_VK_TO_VSC);
 
             BYTE kb[256];
             GetKeyboardState(kb);
@@ -845,13 +845,8 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             kb[VK_RMENU] = 0;
 
             wchar_t wbuf[5] = L"";
-
-            UINT scanCode = MapVirtualKey(virtKey, MAPVK_VK_TO_VSC);
             int n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
-            if (n > 0)
-                keyChar = wbuf[0];
-            else
-                keyChar = 0;
+            wchar_t keyChar = n > 0 ? wbuf[0] : 0;
 
             if (ckey == 0 || !mouse_key) {
                 int i;
@@ -861,7 +856,6 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     active_keycode = 0;
                 }
 
-                int quality;
                 bool extended = (lParam & (1 << 24)) != 0;
                 bool cshift_down = ann_shift != 0;
                 bool numlock = (virtKey >= VK_NUMPAD0 && virtKey <= VK_NUMPAD9
@@ -872,9 +866,6 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     && (GetKeyState(VK_NUMLOCK) & 1) != 0;
 
                 bool numpad = false;
-
-                if (virtKey >= VK_NUMPAD0 && virtKey <= VK_NUMPAD9)
-                    numpad = true;
 
                 switch (virtKey) {
                     case VK_HOME: case VK_UP: case VK_PRIOR:
@@ -897,13 +888,14 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
                 bool shift_mismatch_allowed = printable && !numpad && keyChar != ' ';
 
-                char lKeyChar = (keyChar & !127) == 0 ? keyChar : 0;
+                char lKeyChar = (keyChar & ~127) == 0 ? keyChar : 0;
                 if (lKeyChar >= 'A' && lKeyChar <= 'Z') {
                     lKeyChar += 32;
                     shift_mismatch_allowed = false;
                 } else if (lKeyChar >= 'a' && lKeyChar <= 'z')
                     shift_mismatch_allowed = false;
 
+                int quality;
                 keymap_entry *ke = skin_keymap_lookup(lKeyChar, virtKey, ctrl_down, alt_down,
                                                       shift_down || cshift_suppressed,
                                                       shift_mismatch_allowed, numpad, numlock, cshift_down,
