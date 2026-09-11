@@ -801,7 +801,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         case WM_SYSKEYDOWN:
         case WM_SYSCHAR: {
             static int virtKey = 0;
-            int keyChar;
+            wchar_t keyChar;
 
             if ((lParam & (1 << 30)) != 0)
                 // Auto-repeat event; ignore.
@@ -809,8 +809,25 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             if (message == WM_KEYDOWN || message == WM_SYSKEYDOWN) {
                 keyChar = 0;
                 virtKey = (int) wParam;
-            } else
-                keyChar = (int) wParam;
+            } else {
+                BYTE kb[256];
+                GetKeyboardState(kb);
+                kb[VK_CONTROL] = 0;
+                kb[VK_LCONTROL] = 0;
+                kb[VK_RCONTROL] = 0;
+                kb[VK_MENU] = 0;
+                kb[VK_LMENU] = 0;
+                kb[VK_RMENU] = 0;
+
+                wchar_t wbuf[5] = L"";
+
+                UINT scanCode = MapVirtualKey(virtKey, MAPVK_VK_TO_VSC);
+                int n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
+                if (n > 0)
+                    keyChar = wbuf[0];
+                else
+                    keyChar = 0;
+            }
             just_pressed_shift = false;
             if (virtKey == 17) {
                 ctrl_down = true;
@@ -838,7 +855,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
             if (ckey == 0 || !mouse_key) {
                 int i;
-                bool printable = keyChar >= 32 && keyChar <= 126;
+                bool printable = !(keyChar >= 0 && keyChar <= 31 || keyChar == 127);
                 if (ckey != 0) {
                     shell_keyup();
                     active_keycode = 0;
@@ -880,35 +897,12 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
                 bool shift_mismatch_allowed = printable && !numpad && keyChar != ' ';
 
-                int lKeyChar;
-
-                {
-                    BYTE kb[256];
-                    GetKeyboardState(kb);
-                    kb[VK_CONTROL] = 0;
-                    kb[VK_LCONTROL] = 0;
-                    kb[VK_RCONTROL] = 0;
-                    kb[VK_MENU] = 0;
-                    kb[VK_LMENU] = 0;
-                    kb[VK_RMENU] = 0;
-
-                    WCHAR uc[5] = {};
-
-                    UINT scanCode = MapVirtualKey(virtKey, MAPVK_VK_TO_VSC);
-                    int n = ToUnicode(virtKey, scanCode, kb, uc, 4, 0);
-                    if (n > 0 && (uc[0] & !255) == 0)
-                        lKeyChar = uc[0] & 255;
-                    else
-                        lKeyChar = keyChar;
-                }
-
-                if (printable) {
-                    if (lKeyChar >= 'A' && lKeyChar <= 'Z') {
-                        lKeyChar += 32;
-                        shift_mismatch_allowed = false;
-                    } else if (lKeyChar >= 'a' && lKeyChar <= 'z')
-                        shift_mismatch_allowed = false;
-                }
+                char lKeyChar = (keyChar & !127) == 0 ? keyChar : 0;
+                if (lKeyChar >= 'A' && lKeyChar <= 'Z') {
+                    lKeyChar += 32;
+                    shift_mismatch_allowed = false;
+                } else if (lKeyChar >= 'a' && lKeyChar <= 'z')
+                    shift_mismatch_allowed = false;
 
                 keymap_entry *ke = skin_keymap_lookup(lKeyChar, virtKey, ctrl_down, alt_down,
                                                       shift_down || cshift_suppressed,
@@ -940,7 +934,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                             keyChar = keyChar + 'A' - 'a';
                         else if (keyChar >= 'A' && keyChar <= 'Z')
                             keyChar = keyChar + 'a' - 'A';
-                        ckey = 1024 + keyChar;
+                        ckey = 1024 + (keyChar & 65535);
                         skey = -1;
                         macro = NULL;
                         shell_keydown(false, false);

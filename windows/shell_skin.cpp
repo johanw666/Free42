@@ -394,13 +394,11 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
         }
         macro[macrolen] = 0;
 
-        if (!ctrl && !alt) {
-            if (keychar >= 'A' && keychar <= 'Z') {
-                keychar += 32;
-                shift = true;
-            } else if (keychar >= 'a' && keychar <= 'z')
-                shift = false;
-        }
+        if (keychar >= 'A' && keychar <= 'Z') {
+            keychar += 32;
+            shift = true;
+        } else if (keychar >= 'a' && keychar <= 'z')
+            shift = false;
 
         entry.old_style = old_style;
         entry.ctrl = ctrl;
