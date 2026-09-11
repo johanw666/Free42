@@ -796,38 +796,18 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             if (ckey != 0 && mouse_key)
                 shell_keyup();
             break;
-        case WM_KEYDOWN:
         case WM_CHAR:
-        case WM_SYSKEYDOWN:
-        case WM_SYSCHAR: {
-            static int virtKey = 0;
-            wchar_t keyChar;
+        case WM_SYSCHAR:
+            // We're resolving the typed character ourselves, so we
+            // can just ignore these.
+            break;
+        case WM_KEYDOWN:
+        case WM_SYSKEYDOWN: {
+            int virtKey = (int) wParam;
 
             if ((lParam & (1 << 30)) != 0)
                 // Auto-repeat event; ignore.
                 break;
-            if (message == WM_KEYDOWN || message == WM_SYSKEYDOWN) {
-                keyChar = 0;
-                virtKey = (int) wParam;
-            } else {
-                BYTE kb[256];
-                GetKeyboardState(kb);
-                kb[VK_CONTROL] = 0;
-                kb[VK_LCONTROL] = 0;
-                kb[VK_RCONTROL] = 0;
-                kb[VK_MENU] = 0;
-                kb[VK_LMENU] = 0;
-                kb[VK_RMENU] = 0;
-
-                wchar_t wbuf[5] = L"";
-
-                UINT scanCode = MapVirtualKey(virtKey, MAPVK_VK_TO_VSC);
-                int n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
-                if (n > 0)
-                    keyChar = wbuf[0];
-                else
-                    keyChar = 0;
-            }
             just_pressed_shift = false;
             if (virtKey == 17) {
                 ctrl_down = true;
@@ -842,16 +822,36 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 goto do_default;
             }
 
-            if (message == WM_KEYDOWN || message == WM_SYSKEYDOWN) {
-                MSG cmsg;
-                UINT cmsgtype = message == WM_KEYDOWN ? WM_CHAR : WM_SYSCHAR;
-                if (PeekMessage(&cmsg, hWnd, cmsgtype, cmsgtype, PM_NOREMOVE)
-                        && cmsg.lParam == lParam) {
-                    // Keystrokes that are followed by a WM_CHAR or WM_SYSCHAR
-                    // message; we defer handling them until then.
-                    break;
-                }
-            }
+//            if (message == WM_KEYDOWN || message == WM_SYSKEYDOWN) {
+//                MSG cmsg;
+//                UINT cmsgtype = message == WM_KEYDOWN ? WM_CHAR : WM_SYSCHAR;
+//                if (PeekMessage(&cmsg, hWnd, cmsgtype, cmsgtype, PM_NOREMOVE)
+//                        && cmsg.lParam == lParam) {
+//                    // Keystrokes that are followed by a WM_CHAR or WM_SYSCHAR
+//                    // message; we defer handling them until then.
+//                    break;
+//                }
+//            }
+
+            wchar_t keyChar = 0;
+
+            BYTE kb[256];
+            GetKeyboardState(kb);
+            kb[VK_CONTROL] = 0;
+            kb[VK_LCONTROL] = 0;
+            kb[VK_RCONTROL] = 0;
+            kb[VK_MENU] = 0;
+            kb[VK_LMENU] = 0;
+            kb[VK_RMENU] = 0;
+
+            wchar_t wbuf[5] = L"";
+
+            UINT scanCode = MapVirtualKey(virtKey, MAPVK_VK_TO_VSC);
+            int n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
+            if (n > 0)
+                keyChar = wbuf[0];
+            else
+                keyChar = 0;
 
             if (ckey == 0 || !mouse_key) {
                 int i;
