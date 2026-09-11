@@ -880,7 +880,28 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
                 bool shift_mismatch_allowed = printable && !numpad && keyChar != ' ';
 
-                int lKeyChar = keyChar;
+                int lKeyChar;
+
+                {
+                    BYTE kb[256];
+                    GetKeyboardState(kb);
+                    kb[VK_CONTROL] = 0;
+                    kb[VK_LCONTROL] = 0;
+                    kb[VK_RCONTROL] = 0;
+                    kb[VK_MENU] = 0;
+                    kb[VK_LMENU] = 0;
+                    kb[VK_RMENU] = 0;
+
+                    WCHAR uc[5] = {};
+
+                    UINT scanCode = MapVirtualKey(virtKey, MAPVK_VK_TO_VSC);
+                    int n = ToUnicode(virtKey, scanCode, kb, uc, 4, 0);
+                    if (n > 0 && (uc[0] & !255) == 0)
+                        lKeyChar = uc[0] & 255;
+                    else
+                        lKeyChar = keyChar;
+                }
+
                 if (printable) {
                     if (lKeyChar >= 'A' && lKeyChar <= 'Z') {
                         lKeyChar += 32;
