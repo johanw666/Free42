@@ -1,25 +1,21 @@
-# Default key mapping table for Free42 (Windows version)
+# Default key mapping table for Free42
 #
 # Format: [Ctrl|Alt|Shift|CShift|NumPad|NumLock]* <Character> : <macro>
 # <Character> is either a printable character, or an ASCII character code
 # written in hexadecimal with a 0x prefix. So, for example, the character 0
 # (zero) can be written as "0" or "0x30" (without the quotes); the two
 # representations are equivalent.
-# Alternatively, instead of a character, a Windows virtual key code may be
-# specified. The following key codes are recognized:
+# Alternatively, instead of a character, a key name for one of the non-
+# character keys may be specified. The following key codes are recognized:
 #
-#  BACK TAB CLEAR RETURN ESCAPE SPACE PRIOR NEXT END HOME LEFT UP RIGHT
-#  DOWN SELECT PRINT EXECUTE SNAPSHOT INSERT DELETE HELP NUMPAD0 NUMPAD1
-#  NUMPAD2 NUMPAD3 NUMPAD4 NUMPAD5 NUMPAD6 NUMPAD7 NUMPAD8 NUMPAD9 MULTIPLY
-#  ADD SEPARATOR SUBTRACT DECIMAL DIVIDE F1 F2 F3 F4 F5 F6 F7 F8 F9 F10
-#  F11 F12 F13 F14 F15 F16 F17 F18 F19 F20 F21 F22 F23 F24 OEM_1 OEM_PLUS
-#  OEM_COMMA OEM_MINUS OEM_PERIOD OEM_2 OEM_3 OEM_4 OEM_5 OEM_6 OEM_7 OEM_8
-#  OEM_102 OEM_CLEAR
+#   BACK TAB RETURN ESCAPE SPACE
+#   HOME UP PRIOR LEFT CLEAR RIGHT END DOWN NEXT INSERT DELETE
+#   F1..F20
 #
-# <macro> is a sequence of zero or more HP-42S
-# key codes. The HP-42S key codes must be between 1 and 255; codes 1..37
-# correspond to actual keys on the calculator's keyboard, while codes 38..255
-# can be used to refer to extra keys defined by customized skins.
+# <macro> is a sequence of zero or more HP-42S key codes. The HP-42S key codes
+# must be between 1 and 255; codes 1..37 correspond to actual keys on the
+# calculator's keyboard, while codes 38..255 can be used to refer to extra keys
+# defined by customized skins.
 #
 # Ctrl, Alt, Shift, and NumLock refer to the corresponding modifier keys.
 # CShift refers to the state of the Calculator's Shift annunciator. This

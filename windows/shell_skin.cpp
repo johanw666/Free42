@@ -204,29 +204,8 @@ static const char *vk =
     "\x26" "UP"         "\0" // Up arrow key
     "\x27" "RIGHT"      "\0" // Right arrow key
     "\x28" "DOWN"       "\0" // Down arrow key
-    "\x29" "SELECT"     "\0" // Select key
-    "\x2A" "PRINT"      "\0" // Print key
-    "\x2B" "EXECUTE"    "\0" // Execute key
-    "\x2C" "SNAPSHOT"   "\0" // Print screen key
     "\x2D" "INSERT"     "\0" // Insert key
     "\x2E" "DELETE"     "\0" // Delete key
-    "\x2F" "HELP"       "\0" // Help key
-    "\x60" "NUMPAD0"    "\0" // Numeric keypad 0 key
-    "\x61" "NUMPAD1"    "\0" // Numeric keypad 1 key
-    "\x62" "NUMPAD2"    "\0" // Numeric keypad 2 key
-    "\x63" "NUMPAD3"    "\0" // Numeric keypad 3 key
-    "\x64" "NUMPAD4"    "\0" // Numeric keypad 4 key
-    "\x65" "NUMPAD5"    "\0" // Numeric keypad 5 key
-    "\x66" "NUMPAD6"    "\0" // Numeric keypad 6 key
-    "\x67" "NUMPAD7"    "\0" // Numeric keypad 7 key
-    "\x68" "NUMPAD8"    "\0" // Numeric keypad 8 key
-    "\x69" "NUMPAD9"    "\0" // Numeric keypad 9 key
-    "\x6A" "MULTIPLY"   "\0" // Multiply key
-    "\x6B" "ADD"        "\0" // Add key
-    "\x6C" "SEPARATOR"  "\0" // Separator key
-    "\x6D" "SUBTRACT"   "\0" // Subtract key
-    "\x6E" "DECIMAL"    "\0" // Decimal key
-    "\x6F" "DIVIDE"     "\0" // Divide key
     "\x70" "F1"         "\0" // F1 key
     "\x71" "F2"         "\0" // F2 key
     "\x72" "F3"         "\0" // F3 key
@@ -247,24 +226,6 @@ static const char *vk =
     "\x81" "F18"        "\0" // F18 key
     "\x82" "F19"        "\0" // F19 key
     "\x83" "F20"        "\0" // F20 key
-    "\x84" "F21"        "\0" // F21 key
-    "\x85" "F22"        "\0" // F22 key
-    "\x86" "F23"        "\0" // F23 key
-    "\x87" "F24"        "\0" // F24 key
-    "\xBA" "OEM_1"      "\0" // It can vary by keyboard. For the US ANSI keyboard , the Semiсolon and Colon key
-    "\xBB" "OEM_PLUS"   "\0" // For any country/region, the Equals and Plus key
-    "\xBC" "OEM_COMMA"  "\0" // For any country/region, the Comma and Less Than key
-    "\xBD" "OEM_MINUS"  "\0" // For any country/region, the Dash and Underscore key
-    "\xBE" "OEM_PERIOD" "\0" // For any country/region, the Period and Greater Than key
-    "\xBF" "OEM_2"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Forward Slash and Question Mark key
-    "\xC0" "OEM_3"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Grave Accent and Tilde key
-    "\xDB" "OEM_4"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Left Brace key
-    "\xDC" "OEM_5"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Backslash and Pipe key
-    "\xDD" "OEM_6"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Right Brace key
-    "\xDE" "OEM_7"      "\0" // It can vary by keyboard. For the US ANSI keyboard, the Apostrophe and Double Quotation Mark key
-    "\xDF" "OEM_8"      "\0" // It can vary by keyboard. For the Canadian CSA keyboard, the Right Ctrl key
-    "\xE2" "OEM_102"    "\0" // It can vary by keyboard. For the European ISO keyboard, the Backslash and Pipe key
-    "\xFE" "OEM_CLEAR"  "\0" // Clear key
     "\0";
 
 static int vk_parse(const char *code) {
@@ -721,8 +682,8 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
                     ann->src.y = act_y;
                 }
             }
-        } else if ((old_style = _strnicmp(line, "winkey:", 7) == 0) || _strnicmp(line, "winkeyx:", 8) == 0) {
-            keymap_entry *entry = parse_keymap_entry(old_style, line + (old_style ? 7 : 8), lineno);
+        } else if ((old_style = _strnicmp(line, "winkey:", 7) == 0) || _strnicmp(line, "mapkey:", 7) == 0) {
+            keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
             if (entry != NULL) {
                 if (keymap_length == kmcap) {
                     kmcap += 50;
