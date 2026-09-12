@@ -202,7 +202,7 @@ static void doNew(HWND hDlg) {
     path += name;
     path += L".f42";
     FILE *f = _wfopen(path.c_str(), L"wb");
-    fprintf(f, FREE42_MAGIC_STR);
+    fputs(FREE42_MAGIC_STR, f);
     fclose(f);
     updateUI(hDlg, true);
 }

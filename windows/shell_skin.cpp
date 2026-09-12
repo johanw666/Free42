@@ -328,7 +328,7 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
         tok = strtok(line, " \t");
         while (tok != NULL) {
             if (done) {
-                fprintf(stderr, "Keymap, line %d: Excess tokens in key spec.\n", lineno);
+                shell_logprintf("Keymap, line %d: Excess tokens in key spec.\n", lineno);
                 return NULL;
             }
             if (_stricmp(tok, "ctrl") == 0)
@@ -348,7 +348,7 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
                 long k = strtol(tok, &endptr, 10);
                 if (k < 1 || *endptr != 0) {
                     bad_keycode:
-                    fprintf(stderr, "Keymap, line %d: Bad keycode.\n", lineno);
+                    shell_logprintf("Keymap, line %d: Bad keycode.\n", lineno);
                     return NULL;
                 }
                 keycode = k;
@@ -373,7 +373,7 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
             tok = strtok(NULL, " \t");
         }
         if (!done) {
-            fprintf(stderr, "Keymap, line %d: Unrecognized keycode.\n", lineno);
+            shell_logprintf("Keymap, line %d: Unrecognized keycode.\n", lineno);
             return NULL;
         }
 
@@ -383,10 +383,10 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
             char *endptr;
             long k = strtol(tok, &endptr, 10);
             if (*endptr != 0 || k < 1 || k > 255) {
-                fprintf(stderr, "Keymap, line %d: Bad value (%s) in macro.\n", lineno, tok);
+                shell_logprintf("Keymap, line %d: Bad value (%s) in macro.\n", lineno, tok);
                 return NULL;
             } else if (macrolen == KEYMAP_MAX_MACRO_LENGTH) {
-                fprintf(stderr, "Keymap, line %d: Macro too long (max=%d).\n", lineno, KEYMAP_MAX_MACRO_LENGTH);
+                shell_logprintf("Keymap, line %d: Macro too long (max=%d).\n", lineno, KEYMAP_MAX_MACRO_LENGTH);
                 return NULL;
             } else
                 macro[macrolen++] = (unsigned char) k;

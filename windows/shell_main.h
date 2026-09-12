@@ -97,5 +97,7 @@ extern int ann_rad;
 
 void get_keymap(keymap_entry **map, int *length);
 
+int shell_logprintf(const char *fmt, ...);
+
 
 #endif

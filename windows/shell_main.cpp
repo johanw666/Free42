@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <direct.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <shlobj.h>
 
 #include <set>
@@ -3016,8 +3017,24 @@ static FILE *logfile = NULL;
 void shell_log(const char *message) {
     if (logfile == NULL)
         logfile = fopen("free42.log", "w");
-    fprintf(logfile, "%s\n", message);
+    if (logfile == NULL)
+        return;
+    fputs(message, logfile);
+    size_t len = strlen(message);
+    if (len > 0 && message[len - 1] != '\n')
+        fputc('\n', logfile);
     fflush(logfile);
+}
+
+int shell_logprintf(const char *fmt, ...) {
+    int c;
+    va_list ap;
+    char text[1024];
+    va_start(ap, fmt);
+    c = vsnprintf(text, 1024, fmt, ap);
+    shell_log(text);
+    va_end(ap);
+    return c;
 }
 
 ci_string GetDlgItemTextLong(HWND hWnd, int item) {
