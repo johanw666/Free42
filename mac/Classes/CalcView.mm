@@ -74,12 +74,19 @@
     if ([theEvent isARepeat])
         return;
     NSString *characters = [theEvent characters];
-    if ([characters length] == 0) {
-        if (@available(macOS 10.15, *)) {
-            characters = [theEvent charactersByApplyingModifiers:[theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask ^ NSEventModifierFlagShift];
-        }
+    NSString *shiftedCharacters = nil;
+    if (@available(macOS 10.15, *)) {
+        shiftedCharacters = [theEvent charactersByApplyingModifiers:[theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask ^ NSEventModifierFlagShift];
     }
-    calc_keydown(characters, [theEvent modifierFlags], [theEvent keyCode]);
+    bool shiftSignificant = false;
+    if (shiftedCharacters != nil) {
+        bool cz = [characters length] == 0;
+        bool scz = [shiftedCharacters length] == 0;
+        shiftSignificant = cz != scz || [characters isEqualToString:shiftedCharacters];
+        if (cz && !scz)
+            characters = shiftedCharacters;
+    }
+    calc_keydown(characters, [theEvent modifierFlags], [theEvent keyCode], shiftSignificant);
 }
 
 - (void)keyUp:(NSEvent *)theEvent {

@@ -1294,7 +1294,7 @@ void calc_mouseup() {
         shell_keyup();
 }
 
-void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode) {
+void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode, bool shiftSignificant) {
     if (ckey != 0 && mouse_key)
         return;
     
@@ -1310,17 +1310,7 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
     
     unsigned short c = [characters characterAtIndex:0];
     bool printable = !ctrl && len == 1 && (c >= 32 && c <= 126 || c >= 128 && c < 0xf700 || c >= 0xf900);
-    bool shift_mismatch_allowed = printable && !numpad && c != 32
-        // Characters with dead and non-dead versions. You get the dead version
-        // when Shift is not pressed, and the non-dead version when Shift is
-        // pressed. I don't know how to recognize such characters in general, so
-        // I'm just hard-coding the ones that exist in the U.S. English keyboard map.
-        && c != 0xb4  // ´
-        && c != 0x60  // `
-        && c != 0x2c6 // ˆ
-        && c != 0xa8  // ¨
-        && c != 0x2dc // ˜
-        ;
+    bool shift_mismatch_allowed = printable && !shiftSignificant && !numpad && c != 32;
 
     // TODO: If requiring 10.15 compatibility is not a problem, we
     // can use [NSEvent charactersByApplyingModifiers] to figure out
