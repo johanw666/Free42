@@ -53,11 +53,13 @@ del keymap.cpp
 del skins.cpp
 del raw2txt.cpp
 del txt2raw.cpp
-rmdir /s /q IntelRDFPMathLib20U1
-del readtest.c
-del readtest_lines.cpp
-del cl111libbid32.lib
-del cl111libbid64.lib
+if "%1"=="all" (
+  rmdir /s /q IntelRDFPMathLib20U1
+  del readtest.c
+  del readtest_lines.cpp
+  del cl111libbid32.lib
+  del cl111libbid64.lib
+)
 rmdir /s /q 32
 rmdir /s /q Debug
 rmdir /s /q Release
