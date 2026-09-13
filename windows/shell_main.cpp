@@ -969,9 +969,9 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     ckey = -10;
                     skey = -1;
                     bool skin_shift = cshift_down;
-                    if (cshift_down && (quality & 1) == 0 && key_macro[0] != 0 && key_macro[1] == 0
+                    if ((cshift_down != shift_down) && (quality & 1) == shift_down && key_macro[0] != 0 && key_macro[1] == 0
                             && !ke->shift && !ke->cshift) {
-                        // CShift active, but we ended up with an unshifted mapping.
+                        // Shift xor CShift active, but we ended up with an unshifted mapping.
                         // Check if this is one of an 'unshifted,shifted' macro pair,
                         // and if so, use the shifted partner as the fallback.
                         int alt_code = skin_find_shifted_code(key_macro[0]);
