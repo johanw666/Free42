@@ -74,12 +74,9 @@ Macro: 41 "1/X" ''
 
 PC Keyboard Mapping:
 
-It is also possible to define PC keyboard mappings in the *.layout file. The
-syntax is identical to that of the keymap file, preceded by a tag that
-indicates the target platform: WinKey for Windows, MacKey for Mac and iOS,
-DroidKey for Android, and GtkKey for Linux and other Unix-like environments. It
-is necessary to specify which platform each key mapping is for, since the key
-codes are platform-dependent.
+It is also possible to define PC keyboard mappings in the *.layout file. These
+mappings are introduced by the MapKey: tag, followed by the mapping itself; the
+syntax of the mapping itself is identical to that of the keymap file.
 If a layout file defines a mapping for a key that is also mapped in the keymap
 file, the skin-specific mapping takes precedence.
 Note that, while Macro definitions may only contain codes 1..37, a keyboard
