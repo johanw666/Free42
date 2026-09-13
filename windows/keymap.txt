@@ -33,106 +33,60 @@
 # ignored.
 
 F1             : 1       # menu key 1
-Shift F1       : 28 1    # menu key 1, shifted
 F2             : 2       # menu key 2
-Shift F2       : 28 2    # menu key 2, shifted
 F3             : 3       # menu key 3
-Shift F3       : 28 3    # menu key 3, shifted
 F4             : 4       # menu key 4
-Shift F4       : 28 4    # menu key 4, shifted
 F5             : 5       # menu key 5
-Shift F5       : 28 5    # menu key 5, shifted
 F6             : 6       # menu key 6
-Shift F6       : 28 6    # menu key 6, shifted
 a              : 1       # Sigma+ ("Accumulate")
-A              : 28 1    # Sigma-
 v              : 2       # 1/X ("inVerse")
-V              : 28 2    # Y^X
 q              : 3       # sqrt(X) ("sQuare root")
-Q              : 28 3    # X^2
 o              : 4       # LOG ("lOg, not Ln")
-O              : 28 4    # 10^X
 l              : 5       # LN ("Ln, not lOg")
-L              : 28 5    # E^X
 x              : 6       # XEQ
-X              : 28 6    # GTO
 m              : 7       # STO (m as in memory)
-M              : 28 7    # COMPLEX
 r              : 8       # RCL
-R              : 28 8    # %
 d              : 9       # RDN (d as in down)
-D              : 28 9    # PI
 s              : 10      # SIN
-S              : 28 10   # ASIN
 c              : 11      # COS
-C              : 28 11   # ACOS
 t              : 12      # TAN
-T              : 28 12   # ATAN
 RETURN         : 13      # ENTER
-Shift RETURN   : 28 13   # ALPHA
 w              : 14      # X<>Y ("sWap")
-W              : 28 14   # LASTX
 n              : 15      # +/- ("Negative")
-N              : 28 15   # MODES
 e              : 16      # E
-E              : 28 16   # DISP
 BACK           : 17      # <-
-Shift BACK     : 28 17   # CLEAR
 UP             : 18      # up
-Shift UP       : 28 18   # BST
 7              : 19      # 7
-&              : 28 19   # SOLVER
-Shift 7        : 28 19   # SOLVER
 8              : 20      # 8
-# * is used for multiply, so Integ f(x) needs CShift or NumPad
-Shift 8        : 28 20   # Integ f(x)
 9              : 21      # 9
-(              : 28 21   # MATRIX
-Shift 9        : 28 21   # MATRIX
 /              : 22      # divide
-?              : 28 22   # STAT
-Shift /        : 28 22   # STAT
 DOWN           : 23      # down
-Shift DOWN     : 28 23   # SST
 4              : 24      # 4
-$              : 28 24   # BASE
-Shift 4        : 28 24   # BASE
 5              : 25      # 5
-%              : 28 25   # CONVERT
-Shift 5        : 28 25   # CONVERT
 6              : 26      # 6
-^              : 28 26   # FLAGS
-Shift 6        : 28 26   # FLAGS
 *              : 27      # multiply
-NumPad Shift * : 28 27   # PROB
 1              : 29      # 1
-!              : 28 29   # ASSIGN
-Shift 1        : 28 29   # ASSIGN
 2              : 30      # 2
-@              : 28 30   # CUSTOM
-Shift 2        : 28 30   # CUSTOM
 3              : 31      # 3
-0x23           : 28 31   # PGM.FCN
-Shift 3        : 28 31   # PGM.FCN
 -              : 32      # -
-_              : 28 32   # PRINT
-Shift -        : 28 32   # PRINT
 ESCAPE         : 33      # EXIT
-Shift ESCAPE   : 28 33   # OFF
 0              : 34      # 0
-)              : 28 34   # TOP.FCN
-Shift 0        : 28 34   # TOP.FCN
 .              : 35      # .
 ,              : 35      # .
-<              : 28 35   # SHOW
->              : 28 35   # SHOW
-Shift .        : 28 35   # SHOW
-Shift ,        : 28 35   # SHOW
 \              : 36      # R/S
-|              : 28 36   # PRGM
 +              : 37      # +
-NumPad Shift + : 28 37   # CATALOG
-=              : 28 37   # CATALOG
+
+NumPad NumLock Shift HOME    : 28 19 # Shift 7
+NumPad NumLock Shift UP      : 28 20 # Shift 8
+NumPad NumLock Shift PRIOR   : 28 21 # Shift 9
+NumPad NumLock Shift LEFT    : 28 24 # Shift 4
+NumPad NumLock Shift CLEAR   : 28 25 # Shift 5
+NumPad NumLock Shift RIGHT   : 28 26 # Shift 6
+NumPad NumLock Shift END     : 28 29 # Shift 1
+NumPad NumLock Shift DOWN    : 28 30 # Shift 2
+NumPad NumLock Shift NEXT    : 28 31 # Shift 3
+NumPad NumLock Shift INSERT  : 28 34 # Shift 0
+NumPad NumLock Shift DELETE  : 28 35 # Shift .
 
 # Convenience key codes for GTO and PI
 g              : 28 6    # GTO

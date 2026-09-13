@@ -809,6 +809,9 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             if ((lParam & (1 << 30)) != 0)
                 // Auto-repeat event; ignore.
                 break;
+
+            // Handle Ctrl, Alt, and Shift
+
             just_pressed_shift = false;
             if (virtKey == 17) {
                 ctrl_down = true;
@@ -823,35 +826,30 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 goto do_default;
             }
 
-//            if (message == WM_KEYDOWN || message == WM_SYSKEYDOWN) {
-//                MSG cmsg;
-//                UINT cmsgtype = message == WM_KEYDOWN ? WM_CHAR : WM_SYSCHAR;
-//                if (PeekMessage(&cmsg, hWnd, cmsgtype, cmsgtype, PM_NOREMOVE)
-//                        && cmsg.lParam == lParam) {
-//                    // Keystrokes that are followed by a WM_CHAR or WM_SYSCHAR
-//                    // message; we defer handling them until then.
-//                    break;
-//                }
-//            }
+            // Figure out the typed character as if Ctrl and Alt had not been
+            // pressed. We need this for keymap matching. Also, getting the
+            // typed character this way, rather than relying on WM_CHAR, makes
+            // it easier to deal with non-ASCII Unicode characters.
 
             UINT scanCode = MapVirtualKey(virtKey, MAPVK_VK_TO_VSC);
 
             BYTE kb[256];
             GetKeyboardState(kb);
             kb[VK_CONTROL] = 0;
-            kb[VK_LCONTROL] = 0;
-            kb[VK_RCONTROL] = 0;
             kb[VK_MENU] = 0;
-            kb[VK_LMENU] = 0;
-            kb[VK_RMENU] = 0;
 
             wchar_t wbuf[5] = L"";
             int n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
             wchar_t keyChar = n > 0 ? wbuf[0] : 0;
+            bool printable = !(keyChar >= 0 && keyChar <= 31 || keyChar == 127);
+
+            kb[VK_SHIFT] = shift_down ? 0 : 128;
+
+            n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
+            wchar_t shiftedKeyChar = n > 0 ? wbuf[0] : 0;
 
             if (ckey == 0 || !mouse_key) {
                 int i;
-                bool printable = !(keyChar >= 0 && keyChar <= 31 || keyChar == 127);
                 if (ckey != 0) {
                     shell_keyup();
                     active_keycode = 0;
@@ -887,27 +885,19 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         break;
                 }
 
-                bool shift_mismatch_allowed = printable && !numpad && keyChar != ' ';
-
-                char lKeyChar = (keyChar & ~127) == 0 ? keyChar : 0;
-                if (lKeyChar >= 'A' && lKeyChar <= 'Z') {
-                    lKeyChar += 32;
-                    shift_mismatch_allowed = false;
-                } else if (lKeyChar >= 'a' && lKeyChar <= 'z')
-                    shift_mismatch_allowed = false;
-
                 int quality;
-                keymap_entry *ke = skin_keymap_lookup(lKeyChar, virtKey, ctrl_down, alt_down,
-                                                      shift_down || cshift_suppressed,
-                                                      shift_mismatch_allowed, numpad, numlock, cshift_down,
+                keymap_entry *ke = skin_keymap_lookup(keyChar, shiftedKeyChar, virtKey, ctrl_down, alt_down,
+                                                      shift_down || cshift_suppressed, numpad, numlock, cshift_down,
                                                       shift_down, extended, &quality);
                 if (ke == NULL || quality < MAX_MATCH_QUALITY) {
                     for (i = 0; i < keymap_length; i++) {
                         keymap_entry *entry = keymap + i;
-                        int qq = entry->match(lKeyChar, virtKey, ctrl_down, alt_down, shift_down || cshift_suppressed,
-                                              shift_mismatch_allowed, numpad, numlock, cshift_down, shift_down, extended);
+                        int qq = entry->match(keyChar, shiftedKeyChar, virtKey, ctrl_down, alt_down,
+                                              shift_down || cshift_suppressed, numpad, numlock, cshift_down,
+                                              shift_down, extended);
                         if (qq == MAX_MATCH_QUALITY) {
                             ke = entry;
+                            quality = qq;
                             break;
                         } else if (qq > quality) {
                             ke = entry;
@@ -917,8 +907,9 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 }
                 unsigned char *key_macro = ke == NULL ? NULL : ke->macro;
 
-                if (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
-                        && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0)) {
+                if (!ctrl_down && !alt_down
+                        && (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
+                        && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0))) {
                     // The test above is to make sure that whatever mapping is in
                     // effect for R/S will never be overridden by the special cases
                     // for the ALPHA and A..F menus.
@@ -946,27 +937,23 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         mouse_key = false;
                         active_keycode = virtKey;
                         break;
-                    } else if (virtKey == 37 || virtKey == 39 || virtKey == 46) {
+                    } else if (virtKey == VK_LEFT || virtKey == VK_RIGHT || virtKey == VK_DELETE) {
                         int which;
-                        if (virtKey == 37)
+                        if (virtKey == VK_LEFT)
                             which = shift_down ? 2 : 1;
-                        else if (virtKey == 39)
+                        else if (virtKey == VK_RIGHT)
                             which = shift_down ? 4 : 3;
-                        else if (virtKey == 46)
+                        else // virtKey == VK_DELETE
                             which = 5;
-                        else
-                            which = 0;
+                        which = core_special_menu_key(which);
                         if (which != 0) {
-                            which = core_special_menu_key(which);
-                            if (which != 0) {
-                                ckey = which;
-                                skey = -1;
-                                macro = NULL;
-                                shell_keydown(false, false);
-                                mouse_key = false;
-                                active_keycode = virtKey;
-                                break;
-                            }
+                            ckey = which;
+                            skey = -1;
+                            macro = NULL;
+                            shell_keydown(false, false);
+                            mouse_key = false;
+                            active_keycode = virtKey;
+                            break;
                         }
                     }
                 }

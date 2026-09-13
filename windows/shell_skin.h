@@ -44,7 +44,7 @@ struct keymap_entry {
     int keycode; // if zero, look at keychar instead (new style only)
     int keychar;
     unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
-    int match(int keychar, int keycode, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+    int match(int keychar, int shifted_keychar, int keycode, bool ctrl, bool alt, bool shift,
               bool numpad, bool numlock, bool cshift, bool old_shift, bool old_extended);
 };
 
@@ -62,9 +62,8 @@ void skin_invalidate_annunciator(int which);
 void skin_find_key(int x, int y, bool cshift, int *skey, int *ckey);
 int skin_find_skey(int ckey, bool cshift);
 unsigned char *skin_find_macro(int ckey, int *type);
-keymap_entry *skin_keymap_lookup(int keychar, int keycode, bool ctrl, bool alt, bool shift,
-                                 bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift,
-                                 bool old_shift, bool old_extended, int *quality);
+keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, int keycode, bool ctrl, bool alt, bool shift,
+                                 bool numpad, bool numlock, bool cshift, bool old_shift, bool old_extended, int *quality);
 int skin_find_shifted_code(int code);
 void skin_invalidate_key(int key);
 void skin_display_blitter(const char *bits, int bytesperline, int x, int y, int width, int height);

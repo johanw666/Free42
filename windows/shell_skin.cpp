@@ -133,7 +133,7 @@ extern const unsigned char * const skin_bitmap_data[];
 /* Keymap matcher */
 /******************/
 
-int keymap_entry::match(int keychar, int keycode, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+int keymap_entry::match(int keychar, int shifted_keychar, int keycode, bool ctrl, bool alt, bool shift,
               bool numpad, bool numlock, bool cshift, bool old_shift, bool old_extended) {
     int result;
     if (old_style) {
@@ -166,7 +166,7 @@ int keymap_entry::match(int keychar, int keycode, bool ctrl, bool alt, bool shif
         result = keychar == this->keychar
                 && ctrl == this->ctrl
                 && alt == this->alt
-                && (shift_mismatch_allowed || shift == this->shift)
+                && (keychar != shifted_keychar || shift == this->shift)
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
@@ -176,10 +176,26 @@ int keymap_entry::match(int keychar, int keycode, bool ctrl, bool alt, bool shif
                 + 2
             : 0;
     }
-    if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
+    if (result == MAX_MATCH_QUALITY) {
+        // Can't do better than this!
         return result;
-    int result2 = match(keychar, keycode, ctrl, alt, !shift, false, numpad, numlock, false, !old_shift, old_extended);
-    return result2 > result ? result2 - 1 : result;
+    } else if (shifted_keychar != keychar) {
+        if (shifted_keychar == 0)
+            return result;
+        // @ -> Shift 2 etc.
+        int result2 = match(shifted_keychar, 0, keycode, ctrl, alt, !shift, numpad, numlock, cshift, !old_shift, old_extended);
+        return result2 > result ? result2 - 1 : result;
+    } else if (cshift) {
+        // CShift-to-Shift fallback
+        int result2 = match(keychar, keychar, keycode, ctrl, alt, !shift, numpad, numlock, false, !old_shift, old_extended);
+        return result2 > result ? result2 - 1 : result;
+    } else if (shift) {
+        // Shift NumPad 8 -> NumPad 8
+        int result2 = match(keychar, keychar, keycode, ctrl, alt, false, numpad, numlock, cshift, false, old_extended);
+        return result2 > result ? result2 - 1 : result;
+    } else {
+        return result;
+    }
 }
 
 
@@ -254,6 +270,46 @@ const char *vk_text(int key) {
     }
 }
 
+static int utf8_length(const char *s) {
+    int len = 0;
+    char c;
+    while ((c = *s++) != 0) {
+        int n;
+        if (c == 0)
+            break;
+        if ((c & 0x80) == 0x00)
+            n = 1;
+        else if ((c & 0xc0) == 0x80)
+            continue;
+        else if ((c & 0xe0) == 0xc0)
+            n = 2;
+        else if ((c & 0xf0) == 0xe0)
+            n = 3;
+        else
+            continue;
+        while (--n) {
+            if (*s++ == 0)
+                break;
+        }
+        len++;
+    }
+    return len;
+}
+
+static int get_first_utf8_char(const char *s) {
+    int c = *s & 255;
+    if ((c & 0x80) == 0)
+        return c;
+    else if ((c & 0xc0) == 0x80)
+        return -1;
+    else if ((c & 0xe0) == 0xc0)
+        return ((c & 0x1f) << 6) | (s[1] & 0x3f);
+    else if ((c & 0xf0) == 0xe0)
+        return ((c & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f);
+    else
+        return -1;
+}
+
 keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
     char *p;
     static keymap_entry entry;
@@ -315,8 +371,8 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
                 keycode = k;
                 done = 1;
             } else {
-                if (strlen(tok) == 1) {
-                    keychar = tok[0];
+                if (utf8_length(tok) == 1) {
+                    keychar = get_first_utf8_char(tok);
                 } else if (_strnicmp(tok, "0x", 2) == 0) {
                     char *endptr;
                     long k = strtol(tok + 2, &endptr, 16);
@@ -354,12 +410,6 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
             tok = strtok(NULL, " \t");
         }
         macro[macrolen] = 0;
-
-        if (keychar >= 'A' && keychar <= 'Z') {
-            keychar += 32;
-            shift = true;
-        } else if (keychar >= 'a' && keychar <= 'z')
-            shift = false;
 
         entry.old_style = old_style;
         entry.ctrl = ctrl;
@@ -1235,14 +1285,13 @@ int skin_find_shifted_code(int code) {
     return 0;
 }
 
-keymap_entry *skin_keymap_lookup(int keychar, int keycode, bool ctrl, bool alt, bool shift,
-                                 bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift,
-                                 bool old_shift, bool old_extended, int *quality) {
+keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, int keycode, bool ctrl, bool alt, bool shift,
+                                 bool numpad, bool numlock, bool cshift, bool old_shift, bool old_extended, int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        int qq = entry->match(keychar, keycode, ctrl, alt, shift, shift_mismatch_allowed,
+        int qq = entry->match(keychar, shifted_keychar, keycode, ctrl, alt, shift,
                               numpad, numlock, cshift, old_shift, old_extended);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
