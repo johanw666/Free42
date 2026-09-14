@@ -999,6 +999,7 @@ static wstring keycode_to_text(int code) {
         case VK_CLEAR: return L"Clr";
         case VK_RETURN: return L"Enter";
         case VK_ESCAPE: return L"Esc";
+        case VK_SPACE: return L"Space";
         case VK_PRIOR: return L"PgUp";
         case VK_NEXT: return L"PgDn";
         case VK_END: return L"End";
@@ -1057,6 +1058,8 @@ static wstring entry_to_text(keymap_entry *e) {
         mods += L"\x21e7";
     if (e->old_style || e->keycode != 0)
         return mods + keycode_to_text(e->keycode);
+    else if (e->keychar == ' ')
+        return mods + "Space";
     else
         return mods + (wchar_t) e->keychar;
 }
