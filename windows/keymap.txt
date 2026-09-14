@@ -76,18 +76,6 @@ ESCAPE         : 33      # EXIT
 \              : 36      # R/S
 +              : 37      # +
 
-NumPad NumLock Shift HOME    : 28 19 # Shift 7
-NumPad NumLock Shift UP      : 28 20 # Shift 8
-NumPad NumLock Shift PRIOR   : 28 21 # Shift 9
-NumPad NumLock Shift LEFT    : 28 24 # Shift 4
-NumPad NumLock Shift CLEAR   : 28 25 # Shift 5
-NumPad NumLock Shift RIGHT   : 28 26 # Shift 6
-NumPad NumLock Shift END     : 28 29 # Shift 1
-NumPad NumLock Shift DOWN    : 28 30 # Shift 2
-NumPad NumLock Shift NEXT    : 28 31 # Shift 3
-NumPad NumLock Shift INSERT  : 28 34 # Shift 0
-NumPad NumLock Shift DELETE  : 28 35 # Shift .
-
 # Convenience key codes for GTO and PI
 g              : 28 6    # GTO
 p              : 28 9    # PI

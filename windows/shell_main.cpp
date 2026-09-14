@@ -865,6 +865,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     && (GetKeyState(VK_NUMLOCK) & 1) != 0;
 
                 bool numpad = false;
+                bool numpad_cursor_key = false;
 
                 switch (virtKey) {
                     case VK_HOME: case VK_UP: case VK_PRIOR:
@@ -872,6 +873,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     case VK_END: case VK_DOWN: case VK_NEXT:
                     case VK_INSERT: case VK_DELETE:
                         numpad = !extended;
+                        numpad_cursor_key = numpad;
                         break;
                     case VK_NUMPAD0: case VK_NUMPAD1: case VK_NUMPAD2:
                     case VK_NUMPAD3: case VK_NUMPAD4: case VK_NUMPAD5:
@@ -885,16 +887,41 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         break;
                 }
 
+                // Pretend the number keys and period on the numeric keypad always
+                // act as number keys, never as cursor keys. This deviates from
+                // classic PC behavior, but makes a lot more sense in a calculator app.
+
+                int nVirtKey = virtKey;
+                if (numpad_cursor_key) {
+                    switch (virtKey) {
+                        case VK_HOME:   nVirtKey = VK_NUMPAD7; break;
+                        case VK_UP:     nVirtKey = VK_NUMPAD8; break;
+                        case VK_PRIOR:  nVirtKey = VK_NUMPAD9; break;
+                        case VK_LEFT:   nVirtKey = VK_NUMPAD4; break;
+                        case VK_CLEAR:  nVirtKey = VK_NUMPAD5; break;
+                        case VK_RIGHT:  nVirtKey = VK_NUMPAD6; break;
+                        case VK_END:    nVirtKey = VK_NUMPAD1; break;
+                        case VK_DOWN:   nVirtKey = VK_NUMPAD2; break;
+                        case VK_NEXT:   nVirtKey = VK_NUMPAD3; break;
+                        case VK_INSERT: nVirtKey = VK_NUMPAD0; break;
+                        case VK_DELETE: nVirtKey = VK_DECIMAL; break;
+                    }
+                    if (nVirtKey == VK_DECIMAL)
+                        keyChar = shiftedKeyChar = '.';
+                    else
+                        keyChar = shiftedKeyChar = '0' + nVirtKey - VK_NUMPAD0;
+                }
+
                 int quality;
-                keymap_entry *ke = skin_keymap_lookup(keyChar, shiftedKeyChar, virtKey, ctrl_down, alt_down,
+                keymap_entry *ke = skin_keymap_lookup(keyChar, shiftedKeyChar, nVirtKey, ctrl_down, alt_down,
                                                       shift_down || cshift_suppressed, numpad, numlock, cshift_down,
-                                                      shift_down, extended, &quality);
+                                                      virtKey, shift_down, extended, &quality);
                 if (ke == NULL || quality < MAX_MATCH_QUALITY) {
                     for (i = 0; i < keymap_length; i++) {
                         keymap_entry *entry = keymap + i;
-                        int qq = entry->match(keyChar, shiftedKeyChar, virtKey, ctrl_down, alt_down,
+                        int qq = entry->match(keyChar, shiftedKeyChar, nVirtKey, ctrl_down, alt_down,
                                               shift_down || cshift_suppressed, numpad, numlock, cshift_down,
-                                              shift_down, extended);
+                                              virtKey, shift_down, extended);
                         if (qq == MAX_MATCH_QUALITY) {
                             ke = entry;
                             quality = qq;
@@ -937,13 +964,13 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         mouse_key = false;
                         active_keycode = virtKey;
                         break;
-                    } else if (virtKey == VK_LEFT || virtKey == VK_RIGHT || virtKey == VK_DELETE) {
+                    } else if (nVirtKey == VK_LEFT || nVirtKey == VK_RIGHT || nVirtKey == VK_DELETE) {
                         int which;
-                        if (virtKey == VK_LEFT)
+                        if (nVirtKey == VK_LEFT)
                             which = shift_down ? 2 : 1;
-                        else if (virtKey == VK_RIGHT)
+                        else if (nVirtKey == VK_RIGHT)
                             which = shift_down ? 4 : 3;
-                        else // virtKey == VK_DELETE
+                        else // nVirtKey == VK_DELETE
                             which = 5;
                         which = core_special_menu_key(which);
                         if (which != 0) {

@@ -133,11 +133,12 @@ extern const unsigned char * const skin_bitmap_data[];
 /* Keymap matcher */
 /******************/
 
-int keymap_entry::match(int keychar, int shifted_keychar, int keycode, bool ctrl, bool alt, bool shift,
-              bool numpad, bool numlock, bool cshift, bool old_shift, bool old_extended) {
+int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
+                        bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
+                        int old_keycode, bool old_shift, bool old_extended) {
     int result;
     if (old_style) {
-        result = keycode == this->keycode
+        result = old_keycode == this->keycode
                 && ctrl == this->ctrl
                 && alt == this->alt
                 && old_shift == this->shift
@@ -183,15 +184,18 @@ int keymap_entry::match(int keychar, int shifted_keychar, int keycode, bool ctrl
         if (shifted_keychar == 0)
             return result;
         // @ -> Shift 2 etc.
-        int result2 = match(shifted_keychar, 0, keycode, ctrl, alt, !shift, numpad, numlock, cshift, !old_shift, old_extended);
+        int result2 = match(shifted_keychar, 0, keycode, ctrl, alt, !shift, numpad, numlock, cshift,
+                            old_keycode, !old_shift, old_extended);
         return result2 > result ? result2 - 1 : result;
     } else if (cshift) {
         // CShift-to-Shift fallback
-        int result2 = match(keychar, keychar, keycode, ctrl, alt, !shift, numpad, numlock, false, !old_shift, old_extended);
+        int result2 = match(keychar, keychar, keycode, ctrl, alt, !shift, numpad, numlock, false,
+                            old_keycode, !old_shift, old_extended);
         return result2 > result ? result2 - 1 : result;
     } else if (shift) {
         // Shift NumPad 8 -> NumPad 8
-        int result2 = match(keychar, keychar, keycode, ctrl, alt, false, numpad, numlock, cshift, false, old_extended);
+        int result2 = match(keychar, keychar, keycode, ctrl, alt, false, numpad, numlock, cshift,
+                            old_keycode, false, old_extended);
         return result2 > result ? result2 - 1 : result;
     } else {
         return result;
@@ -1285,14 +1289,16 @@ int skin_find_shifted_code(int code) {
     return 0;
 }
 
-keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, int keycode, bool ctrl, bool alt, bool shift,
-                                 bool numpad, bool numlock, bool cshift, bool old_shift, bool old_extended, int *quality) {
+keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, int keycode,
+                                 bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
+                                 int old_keycode, bool old_shift, bool old_extended, int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        int qq = entry->match(keychar, shifted_keychar, keycode, ctrl, alt, shift,
-                              numpad, numlock, cshift, old_shift, old_extended);
+        int qq = entry->match(keychar, shifted_keychar, keycode,
+                              ctrl, alt, shift, numpad, numlock, cshift,
+                              old_keycode, old_shift, old_extended);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
             return entry;
