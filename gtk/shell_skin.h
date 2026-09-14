@@ -32,6 +32,24 @@ struct SkinColor {
 #define IMGTYPE_COLORMAPPED 3
 #define IMGTYPE_TRUECOLOR 4
 
+#define KEYMAP_MAX_MACRO_LENGTH 31
+#define MAX_MATCH_QUALITY 16
+struct keymap_entry {
+    bool ctrl;
+    bool alt;
+    bool shift;
+    bool numpad;
+    bool numlock;
+    bool cshift;
+    guint keyval;
+    unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
+    int match(guint keyval, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift);
+};
+
+keymap_entry *parse_keymap_entry(char *line, int lineno);
+void kp_normalize(guint *keyval, bool *numpad);
+int utf8_length(const char *s);
+
 int skin_getchar();
 void skin_rewind();
 bool skin_init_image(int type, int ncolors, const SkinColor *colors,

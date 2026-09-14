@@ -55,22 +55,6 @@ extern state_type state;
 extern char free42dirname[FILENAMELEN];
 
 
-#define KEYMAP_MAX_MACRO_LENGTH 31
-#define MAX_MATCH_QUALITY 16
-struct keymap_entry {
-    bool ctrl;
-    bool alt;
-    bool shift;
-    bool numpad;
-    bool numlock;
-    bool cshift;
-    guint keyval;
-    unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
-    int match(guint keyval, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift);
-};
-    
-keymap_entry *parse_keymap_entry(char *line, int lineno);
-
 extern int ckey;
 extern int skey;
 
@@ -84,6 +68,7 @@ extern int ann_rad;
 
 extern int menu_bar_height;
 
+class keymap_entry;
 void get_keymap(keymap_entry **map, int *length);
 
 
