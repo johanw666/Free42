@@ -129,24 +129,56 @@ extern const unsigned char * const skin_bitmap_data[];
 /* Keymap matcher */
 /******************/
 
-int keymap_entry::match(guint keyval, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
-                        bool numpad, bool numlock, bool cshift) {
-    int result = keyval == this->keyval
-            && ctrl == this->ctrl
-            && alt == this->alt
-            && (shift_mismatch_allowed || shift == this->shift)
-            && (numpad || !this->numpad)
-            && (numlock || !this->numlock)
-            && (cshift || !this->cshift)
-        ? (numpad == this->numpad ? 8 : 0)
-            + (numlock == this->numlock ? 4 : 0)
-            + (cshift == this->cshift ? 2 : 0)
-            + 2
-        : 0;
-    if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
+int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
+                        bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift) {
+    int result;
+    if (this->keychar == 0) {
+        result = keyval == this->keyval
+                && ctrl == this->ctrl
+                && alt == this->alt
+                && shift == this->shift
+                && (numpad || !this->numpad)
+                && (numlock || !this->numlock)
+                && (cshift || !this->cshift)
+            ? (numpad == this->numpad ? 8 : 0)
+                + (numlock == this->numlock ? 4 : 0)
+                + (cshift == this->cshift ? 2 : 0)
+                + 2
+            : 0;
+    } else {
+        result = keychar == this->keychar
+                && ctrl == this->ctrl
+                && alt == this->alt
+                && (keychar != shifted_keychar || shift == this->shift)
+                && (numpad || !this->numpad)
+                && (numlock || !this->numlock)
+                && (cshift || !this->cshift)
+            ? (numpad == this->numpad ? 8 : 0)
+                + (numlock == this->numlock ? 4 : 0)
+                + (cshift == this->cshift ? 2 : 0)
+                + 2
+            : 0;
+    }
+    if (result == MAX_MATCH_QUALITY) {
+        // Can't do better than this!
         return result;
-    int result2 = match(keyval, ctrl, alt, !shift, false, numpad, numlock, false);
-    return result2 > result ? result2 - 1 : result;
+    } else if (shifted_keychar != keychar) {
+        if (shifted_keychar == 0)
+            return result;
+        // @ -> Shift 2 etc.
+        int result2 = match(shifted_keychar, 0, keyval, ctrl, alt, !shift, numpad, numlock, cshift);
+        return result2 > result ? result2 - 1 : result;
+    } else if (cshift) {
+        // CShift-to-Shift fallback
+        int result2 = match(keychar, keychar, keyval, ctrl, alt, !shift, numpad, numlock, false);
+        return result2 > result ? result2 - 1 : result;
+    } else if (shift) {
+        // Shift NumPad 8 -> NumPad 8
+        int result2 = match(keychar, keychar, keyval, ctrl, alt, false, numpad, numlock, cshift);
+        return result2 > result ? result2 - 1 : result;
+    } else {
+        return result;
+    }
 }
 
 /*****************/
@@ -199,6 +231,58 @@ void kp_normalize(guint *keyval, bool *numpad) {
     *numpad = true;
 }
 
+struct key_name {
+    guint keyval;
+    const char *name;
+};
+
+static key_name vk[] = {
+    GDK_KEY_BackSpace, "BACK",      // Backspace key
+    GDK_KEY_Tab,       "TAB",       // Tab key
+    GDK_KEY_Clear,     "CLEAR",     // Clear key
+    GDK_KEY_Return,    "RETURN",    // Enter key
+    GDK_KEY_Escape,    "ESCAPE",    // Esc key
+    GDK_KEY_space,     "SPACE",     // Spacebar key
+    GDK_KEY_Page_Up,   "PRIOR",     // Page up key
+    GDK_KEY_Page_Down, "NEXT",      // Page down key
+    GDK_KEY_End,       "END",       // End key
+    GDK_KEY_Home,      "HOME",      // Home key
+    GDK_KEY_Left,      "LEFT",      // Left arrow key
+    GDK_KEY_Up,        "UP",        // Up arrow key
+    GDK_KEY_Right,     "RIGHT",     // Right arrow key
+    GDK_KEY_Down,      "DOWN",      // Down arrow key
+    GDK_KEY_Insert,    "INSERT",    // Insert key
+    GDK_KEY_Delete,    "DELETE",    // Delete key
+    GDK_KEY_F1,        "F1",        // F1 key
+    GDK_KEY_F2,        "F2",        // F2 key
+    GDK_KEY_F3,        "F3",        // F3 key
+    GDK_KEY_F4,        "F4",        // F4 key
+    GDK_KEY_F5,        "F5",        // F5 key
+    GDK_KEY_F6,        "F6",        // F6 key
+    GDK_KEY_F7,        "F7",        // F7 key
+    GDK_KEY_F8,        "F8",        // F8 key
+    GDK_KEY_F9,        "F9",        // F9 key
+    GDK_KEY_F10,       "F10",       // F10 key
+    GDK_KEY_F11,       "F11",       // F11 key
+    GDK_KEY_F12,       "F12",       // F12 key
+    GDK_KEY_F13,       "F13",       // F13 key
+    GDK_KEY_F14,       "F14",       // F14 key
+    GDK_KEY_F15,       "F15",       // F15 key
+    GDK_KEY_F16,       "F16",       // F16 key
+    GDK_KEY_F17,       "F17",       // F17 key
+    GDK_KEY_F18,       "F18",       // F18 key
+    GDK_KEY_F19,       "F19",       // F19 key
+    GDK_KEY_F20,       "F20",       // F20 key
+    GDK_KEY_VoidSymbol, NULL
+};
+
+static int vk_parse(const char *code) {
+    for (int i = 0; vk[i].keyval != GDK_KEY_VoidSymbol; i++)
+        if (strcmp(code, vk[i].name) == 0)
+            return vk[i].keyval;
+    return GDK_KEY_VoidSymbol;
+}
+
 int utf8_length(const char *s) {
     int len = 0;
     char c;
@@ -225,7 +309,21 @@ int utf8_length(const char *s) {
     return len;
 }
 
-keymap_entry *parse_keymap_entry(char *line, int lineno) {
+static int get_first_utf8_char(const char *s) {
+    int c = *s & 255;
+    if ((c & 0x80) == 0)
+        return c;
+    else if ((c & 0xc0) == 0x80)
+        return -1;
+    else if ((c & 0xe0) == 0xc0)
+        return ((c & 0x1f) << 6) | (s[1] & 0x3f);
+    else if ((c & 0xf0) == 0xe0)
+        return ((c & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f);
+    else
+        return -1;
+}
+
+keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
     char *p;
     static keymap_entry entry;
 
@@ -250,6 +348,7 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
         bool numpad = false;
         bool numlock = false;
         guint keyval = GDK_KEY_VoidSymbol;
+        int keychar = 0;
         bool done = false;
         unsigned char macrobuf[KEYMAP_MAX_MACRO_LENGTH + 1];
         int macrolen = 0;
@@ -274,13 +373,34 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
                 numpad = true;
             else if (strcasecmp(tok, "numlock") == 0)
                 numlock = true;
-            else {
+            else if (old_style) {
                 keyval = gdk_keyval_from_name(tok);
                 if (keyval == GDK_KEY_VoidSymbol) {
+                    bad_keycode:
                     fprintf(stderr, "Keymap, line %d: Unrecognized KeyName.\n", lineno);
                     return NULL;
                 }
                 kp_normalize(&keyval, &numpad);
+                if (keyval == GDK_KEY_space)
+                    keychar = ' ';
+                done = true;
+            } else {
+                if (utf8_length(tok) == 1) {
+                    keychar = get_first_utf8_char(tok);
+                } else if (strncasecmp(tok, "0x", 2) == 0) {
+                    char *endptr;
+                    long k = strtol(tok + 2, &endptr, 16);
+                    if (*endptr != 0)
+                        goto bad_keycode;
+                    keychar = k;
+                } else {
+                    keyval = vk_parse(tok);
+                    if (keyval == GDK_KEY_VoidSymbol)
+                        goto bad_keycode;
+                    kp_normalize(&keyval, &numpad);
+                    if (keyval == GDK_KEY_space)
+                        keychar = ' ';
+                }
                 done = true;
             }
             tok = strtok(NULL, " \t");
@@ -609,6 +729,7 @@ void skin_load(int *width, int *height) {
     int kmcap = 0;
 
     int lineno = 0;
+    bool old_style;
 
     while (skin_gets(line, 1024)) {
         lineno++;
@@ -771,8 +892,8 @@ void skin_load(int *width, int *height) {
                     ann->src.y = act_y;
                 }
             }
-        } else if (strncasecmp(line, "gtkkey:", 7) == 0) {
-            keymap_entry *entry = parse_keymap_entry(line + 7, lineno);
+        } else if ((old_style = strncasecmp(line, "gtkkey:", 7) == 0) || strncasecmp(line, "mapkey:", 7) == 0) {
+            keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
             if (entry != NULL) {
                 if (keymap_length == kmcap) {
                     kmcap += 50;
@@ -940,32 +1061,50 @@ struct KeyShortcutInfo {
 
 static string entry_to_text(keymap_entry *e) {
     string c;
-    if (e->keyval >= 33 && e->keyval <= 126) {
-        /* Corresponds to the printable ASCII range */
-        char s[2] = { (char) e->keyval, 0 };
-        c = s;
+    if (e->keychar == ' ') {
+        c = "Space";
+    } else if (e->keychar != 0) {
+        unsigned int ch = e->keychar & 65535;
+        if (ch < 128) {
+            c.append((char) ch);
+        } else if (ch < 2048) {
+            c.append((char) (ch >> 6 | 0xc0));
+            c.append((char) (ch & 63 | 0x80));
+        } else {
+            c.append((char) (ch >> 12 | 0xe0));
+            c.append((char) (ch >> 6 & 63 | 0x80));
+            c.append((char) (ch & 63 | 0x80));
+        }
     } else {
         switch (e->keyval) {
-            case GDK_KEY_Escape: c = "Esc"; break;
             case GDK_KEY_BackSpace: c = "\342\214\253"; break;
-            case GDK_KEY_Up: c = "\342\206\221"; break;
-            case GDK_KEY_Down: c = "\342\206\223"; break;
-            case GDK_KEY_Left: c = "\342\206\220"; break;
-            case GDK_KEY_Right: c = "\342\206\222"; break;
-            case GDK_KEY_Insert: c = "Ins"; break;
-            case GDK_KEY_Delete: c = "\342\214\246"; break;
+            case GDK_KEY_Tab: c = "Tab"; break;
+            case GDK_KEY_Clear: c = "Clr"; break;
+            case GDK_KEY_Return: c = "Enter"; break;
+            case GDK_KEY_Escape: c = "Esc"; break;
             case GDK_KEY_Page_Up: c = "PgUp"; break;
             case GDK_KEY_Page_Down: c = "PgDn"; break;
+            case GDK_KEY_End: c = "End"; break;
+            case GDK_KEY_Home: c = "Home"; break;
+            case GDK_KEY_Left: c = "\342\206\220"; break;
+            case GDK_KEY_Up: c = "\342\206\221"; break;
+            case GDK_KEY_Right: c = "\342\206\222"; break;
+            case GDK_KEY_Down: c = "\342\206\223"; break;
+            case GDK_KEY_Insert: c = "Ins"; break;
+            case GDK_KEY_Delete: c = "\342\214\246"; break;
             default: c = string(gdk_keyval_name(e->keyval));
         }
     }
     string mods = "";
-    bool printable = !e->ctrl && c.size() == 1 && c[0] >= 33 && c[0] <= 126;
+    if (e->numpad)
+        mods += L"{N}";
+    if (e->numlock)
+        mods += L"{L}";
     if (e->ctrl)
         mods += "^";
     if (e->alt)
         mods += "\342\214\245";
-    if (e->shift && !printable)
+    if (e->shift)
         mods += "\342\207\247";
     return mods + c;
 }
@@ -1191,14 +1330,14 @@ int skin_find_shifted_code(int code) {
     return 0;
 }
 
-keymap_entry *skin_keymap_lookup(guint keyval,
-                                 bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
-                                 bool numpad, bool numlock, bool cshift, int *quality) {
+keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, guint keyval,
+                                 bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
+                                 int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        int qq = entry->match(keyval, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
+        int qq = entry->match(keychar, shifted_keychar, keyval, ctrl, alt, shift, numpad, numlock, cshift);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
             return entry;

@@ -42,11 +42,13 @@ struct keymap_entry {
     bool numlock;
     bool cshift;
     guint keyval;
+    int keychar;
     unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
-    int match(guint keyval, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed, bool numpad, bool numlock, bool cshift);
+    int match(int keychar, int shifted_keychar, guint keyval,
+              bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift);
 };
 
-keymap_entry *parse_keymap_entry(char *line, int lineno);
+keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno);
 void kp_normalize(guint *keyval, bool *numpad);
 int utf8_length(const char *s);
 
@@ -66,9 +68,9 @@ void skin_find_key(int x, int y, bool cshift, int *key, int *code);
 int skin_find_skey(int ckey, bool cshift);
 unsigned char *skin_find_macro(int ckey, int *type);
 class keymap_entry;
-keymap_entry *skin_keymap_lookup(guint keyval,
-                                 bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
-                                 bool numpad, bool numlock, bool cshift, int *quality);
+keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, guint keyval,
+                                 bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
+                                 int *quality) {
 int skin_find_shifted_code(int code);
 void skin_repaint_key(cairo_t *cr, int key, bool state);
 void skin_invalidate_key(GdkWindow *win, int key);

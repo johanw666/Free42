@@ -57,8 +57,11 @@ GtkWidget *mainwindow;
 bool allow_paint = false;
 int menu_bar_height = -1;
 
+#define SHELL_VERSION 12
+
 state_type state;
 char free42dirname[FILENAMELEN];
+static bool keymap_obsolete = false;
 
 
 /* PRINT_LINES is limited to an even lower value than in the Motif version.
@@ -608,13 +611,6 @@ static void activate(GtkApplication *theApp, gpointer userData) {
     }
 
     
-    /****************************/
-    /***** Read the key map *****/
-    /****************************/
-
-    read_key_map(keymapfilename);
-
-
     /***********************************************************/
     /***** Open the state file and read the shell settings *****/
     /***********************************************************/
@@ -660,6 +656,22 @@ static void activate(GtkApplication *theApp, gpointer userData) {
             version = 26;
         }
     }
+
+    /****************************/
+    /***** Read the key map *****/
+    /****************************/
+
+    if (keymap_obsolete) {
+        size_t len = strlen(keymapfilename);
+        if (len > 4 && strcasecmp(keymapfilename + len - 4, ".txt") == 0) {
+            char keymapbackup[FILENAMELEN];
+            strcpy(keymapbackup, keymapfilename);
+            strcpy(keymapbackup + len - 4, ".old");
+            rename(keymapfilename, keymapbackup);
+        }
+    }
+    read_key_map(keymapfilename);
+
 
     /*********************************/
     /***** Build the main window *****/
@@ -1000,7 +1012,7 @@ static void read_key_map(const char *keymapfilename) {
     }
 
     while (fgets(line, 1024, keymapfile) != NULL) {
-        keymap_entry *entry = parse_keymap_entry(line, ++lineno);
+        keymap_entry *entry = parse_keymap_entry(false, line, ++lineno);
         if (entry == NULL)
             continue;
         /* Create new keymap entry */
@@ -1059,9 +1071,12 @@ static void init_shell_state(int4 version) {
         case 10:
             state.mainWindowWidth = 0;
             state.mainWindowHeight = 0;
-            // fall through
+            /* fall through */
         case 11:
-            /* current version (SHELL_VERSION = 11),
+            keymap_obsolete = true;
+            /* fall through */
+        case 12:
+            /* current version (SHELL_VERSION = 12),
              * so nothing to do here since everything
              * was initialized from the state file.
              */
@@ -2880,6 +2895,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                     int qq = entry->match(kv, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
                     if (qq == MAX_MATCH_QUALITY) {
                         ke = entry;
+                        quality = qq;
                         break;
                     } else if (qq > quality) {
                         ke = entry;
@@ -2889,8 +2905,9 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
             }
             unsigned char *key_macro = ke == NULL ? NULL : ke->macro;
 
-            if (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
-                    && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0)) {
+            if (!ctrl && !alt
+                    && (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
+                    && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0))) {
                 // The test above is to make sure that whatever mapping is in
                 // effect for R/S will never be overridden by the special cases
                 // for the ALPHA and A..F menus.
@@ -2899,7 +2916,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                         c = c + 'A' - 'a';
                     else if (c >= 'A' && c <= 'Z')
                         c = c + 'a' - 'A';
-                    ckey = 1024 + c;
+                    ckey = 1024 + (c & 65535);
                     skey = -1;
                     macro = NULL;
                     shell_keydown(false, false);
@@ -2927,21 +2944,17 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                             which = shift ? 2 : 1;
                         else if (event->keyval == GDK_KEY_Right)
                             which = shift ? 4 : 3;
-                        else if (event->keyval == GDK_KEY_Delete)
+                        else // event->keyval == GDK_KEY_Delete
                             which = 5;
-                        else
-                            which = 0;
+                        which = core_special_menu_key(which);
                         if (which != 0) {
-                            which = core_special_menu_key(which);
-                            if (which != 0) {
-                                ckey = which;
-                                skey = -1;
-                                macro = NULL;
-                                shell_keydown(false, false);
-                                mouse_key = false;
-                                active_keycode = event->hardware_keycode;
-                                return TRUE;
-                            }
+                            ckey = which;
+                            skey = -1;
+                            macro = NULL;
+                            shell_keydown(false, false);
+                            mouse_key = false;
+                            active_keycode = event->hardware_keycode;
+                            return TRUE;
                         }
                     }
                 }
@@ -2958,9 +2971,9 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                 ckey = -10;
                 skey = -1;
                 bool skin_shift = cshift;
-                if (cshift && (quality & 1) == 0 && key_macro[0] != 0 && key_macro[1] == 0
+                if ((cshift != shift) && (quality & 1) == shift && key_macro[0] != 0 && key_macro[1] == 0
                         && !ke->shift && !ke->cshift) {
-                    // CShift active, but we ended up with an unshifted mapping.
+                    // Shift xor CShift active, but we ended up with an unshifted mapping.
                     // Check if this is one of an 'unshifted,shifted' macro pair,
                     // and if so, use the shifted partner as the fallback.
                     int alt_code = skin_find_shifted_code(key_macro[0]);

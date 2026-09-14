@@ -26,8 +26,6 @@ extern GtkWidget *calc_widget;
 extern GtkWidget *mainwindow;
 extern bool allow_paint;
 
-#define SHELL_VERSION 11
-
 struct state_type {
     int extras;
     int printerToTxtFile;
@@ -53,7 +51,6 @@ struct state_type {
 extern state_type state;
 
 extern char free42dirname[FILENAMELEN];
-
 
 extern int ckey;
 extern int skey;
