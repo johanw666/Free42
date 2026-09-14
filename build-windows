@@ -7,7 +7,6 @@ mkdir -p packages
 
 cd windows
 sh ./build-intel-lib.sh 32
-rm -rf IntelRDFPMathLib20U1
 sh ./build-intel-lib.sh 64
 cmd /c build-all.bat
 cd ..
