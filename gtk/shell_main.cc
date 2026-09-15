@@ -2824,6 +2824,52 @@ static gboolean button_cb(GtkWidget *w, GdkEventButton *event, gpointer cd) {
     return TRUE;
 }
 
+static void kp_normalize(guint *keyval, bool *numpad) {
+    switch (*keyval) {
+        // Note:
+        // GDK_KEY_KP_Prior == GDK_KEY_KP_Page_Up
+        // GDK_KEY_KP_Next == GDK_KEY_KP_Page_Down
+        case GDK_KEY_KP_Space: *keyval = GDK_KEY_space; break;
+        case GDK_KEY_KP_Tab: *keyval = GDK_KEY_Tab; break;
+        case GDK_KEY_KP_Enter: *keyval = GDK_KEY_Return; break;
+        case GDK_KEY_KP_F1: *keyval = GDK_KEY_F1; break;
+        case GDK_KEY_KP_F2: *keyval = GDK_KEY_F2; break;
+        case GDK_KEY_KP_F3: *keyval = GDK_KEY_F3; break;
+        case GDK_KEY_KP_F4: *keyval = GDK_KEY_F4; break;
+        case GDK_KEY_KP_Home: *keyval = GDK_KEY_Home; break;
+        case GDK_KEY_KP_Left: *keyval = GDK_KEY_Left; break;
+        case GDK_KEY_KP_Up: *keyval = GDK_KEY_Up; break;
+        case GDK_KEY_KP_Right: *keyval = GDK_KEY_Right; break;
+        case GDK_KEY_KP_Down: *keyval = GDK_KEY_Down; break;
+        case GDK_KEY_KP_Page_Up: *keyval = GDK_KEY_Page_Up; break;
+        case GDK_KEY_KP_Page_Down: *keyval = GDK_KEY_Page_Down; break;
+        case GDK_KEY_KP_End: *keyval = GDK_KEY_End; break;
+        case GDK_KEY_KP_Begin: *keyval = GDK_KEY_Begin; break;
+        case GDK_KEY_KP_Insert: *keyval = GDK_KEY_Insert; break;
+        case GDK_KEY_KP_Delete: *keyval = GDK_KEY_Delete; break;
+        case GDK_KEY_KP_Equal: *keyval = GDK_KEY_equal; break;
+        case GDK_KEY_KP_Multiply: *keyval = GDK_KEY_asterisk; break;
+        case GDK_KEY_KP_Add: *keyval = GDK_KEY_plus; break;
+        case GDK_KEY_KP_Separator: *keyval = GDK_KEY_comma; break;
+        case GDK_KEY_KP_Subtract: *keyval = GDK_KEY_minus; break;
+        case GDK_KEY_KP_Decimal: *keyval = GDK_KEY_period; break;
+        case GDK_KEY_KP_Divide: *keyval = GDK_KEY_slash; break;
+        case GDK_KEY_KP_0: *keyval = GDK_KEY_0; break;
+        case GDK_KEY_KP_1: *keyval = GDK_KEY_1; break;
+        case GDK_KEY_KP_2: *keyval = GDK_KEY_2; break;
+        case GDK_KEY_KP_3: *keyval = GDK_KEY_3; break;
+        case GDK_KEY_KP_4: *keyval = GDK_KEY_4; break;
+        case GDK_KEY_KP_5: *keyval = GDK_KEY_5; break;
+        case GDK_KEY_KP_6: *keyval = GDK_KEY_6; break;
+        case GDK_KEY_KP_7: *keyval = GDK_KEY_7; break;
+        case GDK_KEY_KP_8: *keyval = GDK_KEY_8; break;
+        case GDK_KEY_KP_9: *keyval = GDK_KEY_9; break;
+        default:
+            return;
+    }
+    *numpad = true;
+}
+
 static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
     if (event->type == GDK_KEY_PRESS) {
         if (event->hardware_keycode == active_keycode)
@@ -2866,14 +2912,34 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                 state ^= GDK_SHIFT_MASK;
             }
 
+            // Pretend the number keys and period on the numeric keypad always
+            // act as number keys, never as cursor keys. This deviates from
+            // classic PC behavior, but makes a lot more sense in a calculator app.
+
             bool numpad = false;
             bool numlock = false;
             guint nKeyval = event->keyval;
             kp_normalize(&nKeyval, &numpad);
-            if (numpad && ((nKeyval >= GDK_KEY_0 && nKeyval <= GDK_KEY_9)
-                        || nKeyval == GDK_KEY_period
-                        || nKeyval == GDK_KEY_comma))
+            if (numpad) {
                 numlock = gdk_keymap_get_num_lock_state(kmap);
+                switch (nKeyval) {
+                    case GDK_KEY_Home:      c = '7'; nKeyval = GDK_KEY_7; break;
+                    case GDK_KEY_Up:        c = '8'; nKeyval = GDK_KEY_8; break;
+                    case GDK_KEY_Page_Up:   c = '9'; nKeyval = GDK_KEY_9; break;
+                    case GDK_KEY_Left:      c = '4'; nKeyval = GDK_KEY_4; break;
+                    case GDK_KEY_Begin:     c = '5'; nKeyval = GDK_KEY_5; break;
+                    case GDK_KEY_Right:     c = '6'; nKeyval = GDK_KEY_6; break;
+                    case GDK_KEY_End:       c = '1'; nKeyval = GDK_KEY_1; break;
+                    case GDK_KEY_Down:      c = '2'; nKeyval = GDK_KEY_2; break;
+                    case GDK_KEY_Page_Down: c = '3'; nKeyval = GDK_KEY_3; break;
+                    case GDK_KEY_Insert:    c = '0'; nKeyval = GDK_KEY_0; break;
+                    case GDK_KEY_Delete:    c = '.'; nKeyval = GDK_KEY_period; break;
+                }
+                if (c >= '0' && c <= '9' || c == '.' || c == ',')
+                    shifted_c = c;
+                else
+                    numlock = false;
+            }
 
             bool printable = !(c >= 0 && c <= 31 || c == 127);
 

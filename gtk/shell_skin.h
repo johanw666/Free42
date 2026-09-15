@@ -51,7 +51,6 @@ struct keymap_entry {
 };
 
 keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno);
-void kp_normalize(guint *keyval, bool *numpad);
 int utf8_length(const char *s);
 
 int skin_getchar();

@@ -199,52 +199,6 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
 /* Keymap parser */
 /*****************/
 
-void kp_normalize(guint *keyval, bool *numpad) {
-    switch (*keyval) {
-        // Note:
-        // GDK_KEY_KP_Prior == GDK_KEY_KP_Page_Up
-        // GDK_KEY_KP_Next == GDK_KEY_KP_Page_Down
-        case GDK_KEY_KP_Space: *keyval = GDK_KEY_space; break;
-        case GDK_KEY_KP_Tab: *keyval = GDK_KEY_Tab; break;
-        case GDK_KEY_KP_Enter: *keyval = GDK_KEY_Return; break;
-        case GDK_KEY_KP_F1: *keyval = GDK_KEY_F1; break;
-        case GDK_KEY_KP_F2: *keyval = GDK_KEY_F2; break;
-        case GDK_KEY_KP_F3: *keyval = GDK_KEY_F3; break;
-        case GDK_KEY_KP_F4: *keyval = GDK_KEY_F4; break;
-        case GDK_KEY_KP_Home: *keyval = GDK_KEY_Home; break;
-        case GDK_KEY_KP_Left: *keyval = GDK_KEY_Left; break;
-        case GDK_KEY_KP_Up: *keyval = GDK_KEY_Up; break;
-        case GDK_KEY_KP_Right: *keyval = GDK_KEY_Right; break;
-        case GDK_KEY_KP_Down: *keyval = GDK_KEY_Down; break;
-        case GDK_KEY_KP_Page_Up: *keyval = GDK_KEY_Page_Up; break;
-        case GDK_KEY_KP_Page_Down: *keyval = GDK_KEY_Page_Down; break;
-        case GDK_KEY_KP_End: *keyval = GDK_KEY_End; break;
-        case GDK_KEY_KP_Begin: *keyval = GDK_KEY_Begin; break;
-        case GDK_KEY_KP_Insert: *keyval = GDK_KEY_Insert; break;
-        case GDK_KEY_KP_Delete: *keyval = GDK_KEY_Delete; break;
-        case GDK_KEY_KP_Equal: *keyval = GDK_KEY_equal; break;
-        case GDK_KEY_KP_Multiply: *keyval = GDK_KEY_asterisk; break;
-        case GDK_KEY_KP_Add: *keyval = GDK_KEY_plus; break;
-        case GDK_KEY_KP_Separator: *keyval = GDK_KEY_comma; break;
-        case GDK_KEY_KP_Subtract: *keyval = GDK_KEY_minus; break;
-        case GDK_KEY_KP_Decimal: *keyval = GDK_KEY_period; break;
-        case GDK_KEY_KP_Divide: *keyval = GDK_KEY_slash; break;
-        case GDK_KEY_KP_0: *keyval = GDK_KEY_0; break;
-        case GDK_KEY_KP_1: *keyval = GDK_KEY_1; break;
-        case GDK_KEY_KP_2: *keyval = GDK_KEY_2; break;
-        case GDK_KEY_KP_3: *keyval = GDK_KEY_3; break;
-        case GDK_KEY_KP_4: *keyval = GDK_KEY_4; break;
-        case GDK_KEY_KP_5: *keyval = GDK_KEY_5; break;
-        case GDK_KEY_KP_6: *keyval = GDK_KEY_6; break;
-        case GDK_KEY_KP_7: *keyval = GDK_KEY_7; break;
-        case GDK_KEY_KP_8: *keyval = GDK_KEY_8; break;
-        case GDK_KEY_KP_9: *keyval = GDK_KEY_9; break;
-        default:
-            return;
-    }
-    *numpad = true;
-}
-
 struct key_name {
     guint keyval;
     const char *name;
@@ -412,9 +366,6 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
                     fprintf(stderr, "Keymap, line %d: Unrecognized KeyName.\n", lineno);
                     return NULL;
                 }
-                kp_normalize(&keyval, &numpad);
-                if (keyval == GDK_KEY_space)
-                    keychar = ' ';
                 done = true;
             } else {
                 if (utf8_length(tok) == 1) {
@@ -429,9 +380,6 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
                     keyval = vk_parse(tok);
                     if (keyval == GDK_KEY_VoidSymbol)
                         goto bad_keycode;
-                    kp_normalize(&keyval, &numpad);
-                    if (keyval == GDK_KEY_space)
-                        keychar = ' ';
                 }
                 done = true;
             }
