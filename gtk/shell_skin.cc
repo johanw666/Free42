@@ -130,9 +130,23 @@ extern const unsigned char * const skin_bitmap_data[];
 /******************/
 
 int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
-                        bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift) {
+                        bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
+                        guint old_keyval) {
     int result;
-    if (this->keychar == 0) {
+    if (old_style) {
+        result = old_keyval == this->keyval
+                && ctrl == this->ctrl
+                && alt == this->alt
+                && shift == this->shift
+                && (numpad || !this->numpad)
+                && (numlock || !this->numlock)
+                && (cshift || !this->cshift)
+            ? (numpad == this->numpad ? 8 : 0)
+                + (numlock == this->numlock ? 4 : 0)
+                + (cshift == this->cshift ? 2 : 0)
+                + 2
+            : 0;
+    } else if (this->keychar == 0) {
         result = keyval == this->keyval
                 && ctrl == this->ctrl
                 && alt == this->alt
@@ -166,15 +180,15 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
         if (shifted_keychar == 0)
             return result;
         // @ -> Shift 2 etc.
-        int result2 = match(shifted_keychar, 0, keyval, ctrl, alt, !shift, numpad, numlock, cshift);
+        int result2 = match(shifted_keychar, 0, keyval, ctrl, alt, !shift, numpad, numlock, cshift, old_keyval);
         return result2 > result ? result2 - 1 : result;
     } else if (cshift) {
         // CShift-to-Shift fallback
-        int result2 = match(keychar, keychar, keyval, ctrl, alt, !shift, numpad, numlock, false);
+        int result2 = match(keychar, keychar, keyval, ctrl, alt, !shift, numpad, numlock, false, old_keyval);
         return result2 > result ? result2 - 1 : result;
     } else if (shift) {
         // Shift NumPad 8 -> NumPad 8
-        int result2 = match(keychar, keychar, keyval, ctrl, alt, false, numpad, numlock, cshift);
+        int result2 = match(keychar, keychar, keyval, ctrl, alt, false, numpad, numlock, cshift, old_keyval);
         return result2 > result ? result2 - 1 : result;
     } else {
         return result;
@@ -323,6 +337,24 @@ static int get_first_utf8_char(const char *s) {
         return -1;
 }
 
+static const char *char_to_utf8(int c) {
+    static char s[4];
+    int u = c & 65535;
+    int p = 0;
+    if (u < 128) {
+        s[p++] = u;
+    } else if (u < 2048) {
+        s[p++] = u >> 6 | 0xc0;
+        s[p++] = u & 63 | 0x80;
+    } else {
+        s[p++] = u >> 12 | 0xe0;
+        s[p++] = u >> 6 & 63 | 0x80;
+        s[p++] = u & 63 | 0x80;
+    }
+    s[p] = 0;
+    return s;
+}
+
 keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
     char *p;
     static keymap_entry entry;
@@ -436,6 +468,7 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
                 shift = false;
         }
 
+        entry.old_style = old_style;
         entry.ctrl = ctrl;
         entry.alt = alt;
         entry.shift = shift;
@@ -443,6 +476,7 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
         entry.numpad = numpad;
         entry.numlock = numlock;
         entry.keyval = keyval;
+        entry.keychar = keychar;
         strcpy((char *) entry.macro, (const char *) macrobuf);
         return &entry;
     } else
@@ -1048,11 +1082,11 @@ struct KeyShortcutInfo {
     string text() {
         string u, s;
         if (unshifted.size() == 0)
-            u = "n/a";
+            u = "\302\240"; // non-breaking space
         else
             u = unshifted.substr(0, unshifted.size() - 1);
         if (shifted.size() == 0)
-            s = "n/a";
+            s = "\302\240"; // non-breaking space
         else
             s = shifted.substr(0, shifted.size() - 1);
         return s + "\n" + u;
@@ -1064,17 +1098,7 @@ static string entry_to_text(keymap_entry *e) {
     if (e->keychar == ' ') {
         c = "Space";
     } else if (e->keychar != 0) {
-        unsigned int ch = e->keychar & 65535;
-        if (ch < 128) {
-            c.append((char) ch);
-        } else if (ch < 2048) {
-            c.append((char) (ch >> 6 | 0xc0));
-            c.append((char) (ch & 63 | 0x80));
-        } else {
-            c.append((char) (ch >> 12 | 0xe0));
-            c.append((char) (ch >> 6 & 63 | 0x80));
-            c.append((char) (ch & 63 | 0x80));
-        }
+        c.append(char_to_utf8(e->keychar));
     } else {
         switch (e->keyval) {
             case GDK_KEY_BackSpace: c = "\342\214\253"; break;
@@ -1097,9 +1121,9 @@ static string entry_to_text(keymap_entry *e) {
     }
     string mods = "";
     if (e->numpad)
-        mods += L"{N}";
+        mods += "{N}";
     if (e->numlock)
-        mods += L"{L}";
+        mods += "{L}";
     if (e->ctrl)
         mods += "^";
     if (e->alt)
@@ -1332,12 +1356,12 @@ int skin_find_shifted_code(int code) {
 
 keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, guint keyval,
                                  bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
-                                 int *quality) {
+                                 guint old_keyval, int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        int qq = entry->match(keychar, shifted_keychar, keyval, ctrl, alt, shift, numpad, numlock, cshift);
+        int qq = entry->match(keychar, shifted_keychar, keyval, ctrl, alt, shift, numpad, numlock, cshift, old_keyval);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
             return entry;

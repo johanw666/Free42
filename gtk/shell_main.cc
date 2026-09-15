@@ -468,20 +468,6 @@ static void copy_one_utf8_char(char *dst, const char *src) {
     strncat(dst, src, n);
 }
 
-static int get_first_utf8_char(const char *s) {
-    int c = *s & 255;
-    if ((c & 0x80) == 0)
-        return c;
-    else if ((c & 0xc0) == 0x80)
-        return -1;
-    else if ((c & 0xe0) == 0xc0)
-        return ((c & 0x1f) << 6) | (s[1] & 0x3f);
-    else if ((c & 0xf0) == 0xe0)
-        return ((c & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f);
-    else
-        return -1;
-}
-
 static void activate(GtkApplication *theApp, gpointer userData) {
 
     if (app != NULL) {
@@ -2861,38 +2847,43 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
             bool shift = (event->state & GDK_SHIFT_MASK) != 0;
             bool cshift = ann_shift != 0;
 
+            int c = 0, shifted_c = 0;
+            GdkDisplay *disp = gdk_window_get_display(event->window);
+            GdkKeymap *kmap = gdk_keymap_get_for_display(disp);
+            int state = event->state & ~(GDK_CONTROL_MASK | GDK_MOD1_MASK);
+            for (int i = 0; i < 2; i++) {
+                guint keyval;
+                gint effective_group;
+                gint level;
+                GdkModifierType consumed_modifiers;
+                int *cp = i == 0 ? &c : &shifted_c;
+                if (gdk_keymap_translate_keyboard_state(kmap, event->hardware_keycode, (GdkModifierType) state, event->group, 
+                            &keyval, &effective_group, &level, &consumed_modifiers)) {
+                    guint32 uc = gdk_keyval_to_unicode(keyval);
+                    if (uc >= 32 && uc != 127)
+                        *cp = uc;
+                }
+                state ^= GDK_SHIFT_MASK;
+            }
+
             bool numpad = false;
             bool numlock = false;
-            kp_normalize(&event->keyval, &numpad);
-            if (numpad && ((event->keyval >= GDK_KEY_0 && event->keyval <= GDK_KEY_9)
-                        || event->keyval == GDK_KEY_period
-                        || event->keyval == GDK_KEY_comma)) {
-                GdkDisplay *disp = gtk_widget_get_display(calc_widget);
-                GdkKeymap *kmap = gdk_keymap_get_for_display(disp);
+            guint nKeyval = event->keyval;
+            kp_normalize(&nKeyval, &numpad);
+            if (numpad && ((nKeyval >= GDK_KEY_0 && nKeyval <= GDK_KEY_9)
+                        || nKeyval == GDK_KEY_period
+                        || nKeyval == GDK_KEY_comma))
                 numlock = gdk_keymap_get_num_lock_state(kmap);
-            }
 
-            int c = get_first_utf8_char(event->string);
-            bool printable = utf8_length(event->string) == 1 && (c >= 32 && c <= 126 || c >= 128);
-            bool shift_mismatch_allowed = printable && !numpad && c != 32;
-
-            guint kv = event->keyval;
-            if (!ctrl && !alt) {
-                // GDK_KEY_[A-Za-z] == '[A-Za-z]'
-                if (kv >= 'A' && kv <= 'Z') {
-                    kv += 32;
-                    shift_mismatch_allowed = false;
-                } else if (kv >= 'a' && kv <= 'z')
-                    shift_mismatch_allowed = false;
-            }
+            bool printable = !(c >= 0 && c <= 31 || c == 127);
 
             int quality;
-            keymap_entry *ke = skin_keymap_lookup(kv, ctrl, alt, shift,
-                                            shift_mismatch_allowed, numpad, numlock, cshift, &quality);
+            keymap_entry *ke = skin_keymap_lookup(c, shifted_c, nKeyval, ctrl, alt, shift,
+                                                  numpad, numlock, cshift, event->keyval, &quality);
             if (ke == NULL || quality < MAX_MATCH_QUALITY) {
                 for (int i = 0; i < keymap_length; i++) {
                     keymap_entry *entry = keymap + i;
-                    int qq = entry->match(kv, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
+                    int qq = entry->match(c, shifted_c, nKeyval, ctrl, alt, shift, numpad, numlock, cshift, event->keyval);
                     if (qq == MAX_MATCH_QUALITY) {
                         ke = entry;
                         quality = qq;

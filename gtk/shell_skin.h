@@ -35,6 +35,7 @@ struct SkinColor {
 #define KEYMAP_MAX_MACRO_LENGTH 31
 #define MAX_MATCH_QUALITY 16
 struct keymap_entry {
+    bool old_style;
     bool ctrl;
     bool alt;
     bool shift;
@@ -45,7 +46,8 @@ struct keymap_entry {
     int keychar;
     unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
     int match(int keychar, int shifted_keychar, guint keyval,
-              bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift);
+              bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
+              guint old_keyval);
 };
 
 keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno);
@@ -70,7 +72,7 @@ unsigned char *skin_find_macro(int ckey, int *type);
 class keymap_entry;
 keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, guint keyval,
                                  bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
-                                 int *quality) {
+                                 guint old_keyval, int *quality);
 int skin_find_shifted_code(int code);
 void skin_repaint_key(cairo_t *cr, int key, bool state);
 void skin_invalidate_key(GdkWindow *win, int key);
