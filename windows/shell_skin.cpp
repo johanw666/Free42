@@ -1059,7 +1059,7 @@ static wstring entry_to_text(keymap_entry *e) {
     if (e->old_style || e->keycode != 0)
         return mods + keycode_to_text(e->keycode);
     else if (e->keychar == ' ')
-        return mods + "Space";
+        return mods + L"Space";
     else
         return mods + (wchar_t) e->keychar;
 }

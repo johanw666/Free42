@@ -913,14 +913,15 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 }
 
                 int quality;
+                bool nShift = shift_down || cshift_suppressed;
                 keymap_entry *ke = skin_keymap_lookup(keyChar, shiftedKeyChar, nVirtKey, ctrl_down, alt_down,
-                                                      shift_down || cshift_suppressed, numpad, numlock, cshift_down,
+                                                      nShift, numpad, numlock, cshift_down,
                                                       virtKey, shift_down, extended, &quality);
                 if (ke == NULL || quality < MAX_MATCH_QUALITY) {
                     for (i = 0; i < keymap_length; i++) {
                         keymap_entry *entry = keymap + i;
                         int qq = entry->match(keyChar, shiftedKeyChar, nVirtKey, ctrl_down, alt_down,
-                                              shift_down || cshift_suppressed, numpad, numlock, cshift_down,
+                                              nShift, numpad, numlock, cshift_down,
                                               virtKey, shift_down, extended);
                         if (qq == MAX_MATCH_QUALITY) {
                             ke = entry;
@@ -967,9 +968,9 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     } else if (nVirtKey == VK_LEFT || nVirtKey == VK_RIGHT || nVirtKey == VK_DELETE) {
                         int which;
                         if (nVirtKey == VK_LEFT)
-                            which = shift_down ? 2 : 1;
+                            which = nShift ? 2 : 1;
                         else if (nVirtKey == VK_RIGHT)
-                            which = shift_down ? 4 : 3;
+                            which = nShift ? 4 : 3;
                         else // nVirtKey == VK_DELETE
                             which = 5;
                         which = core_special_menu_key(which);
@@ -996,7 +997,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     ckey = -10;
                     skey = -1;
                     bool skin_shift = cshift_down;
-                    if ((cshift_down != shift_down) && (quality & 1) == shift_down && key_macro[0] != 0 && key_macro[1] == 0
+                    if ((cshift_down != nShift) && (quality & 1) == nShift && key_macro[0] != 0 && key_macro[1] == 0
                             && !ke->shift && !ke->cshift) {
                         // Shift xor CShift active, but we ended up with an unshifted mapping.
                         // Check if this is one of an 'unshifted,shifted' macro pair,
