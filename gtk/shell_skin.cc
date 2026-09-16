@@ -132,66 +132,44 @@ extern const unsigned char * const skin_bitmap_data[];
 int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
                         bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
                         guint old_keyval) {
-    int result;
     if (old_style) {
-        result = old_keyval == this->keyval
+        return old_keyval == this->keyval
                 && ctrl == this->ctrl
                 && alt == this->alt
-                && shift == this->shift
-                && (numpad || !this->numpad)
-                && (numlock || !this->numlock)
+                && (this->keyval >= 32 && this->keyval <= 126 || shift == this->shift)
                 && (cshift || !this->cshift)
-            ? (numpad == this->numpad ? 8 : 0)
-                + (numlock == this->numlock ? 4 : 0)
-                + (cshift == this->cshift ? 2 : 0)
-                + 2
+            // Note: returning low scores, so MapKey mappings will beat GtkKey mappings.
+            // Also: always returning even scores, since odd scores trigger shift toggling
+            // before playing back the selected macro, and the shift-toggle feature is
+            // specific to MapKey.
+            ? (shift == this->shift && cshift == this->cshift ? 4 : 2)
             : 0;
     } else if (this->keychar == 0) {
-        result = keyval == this->keyval
+        return keyval == this->keyval
                 && ctrl == this->ctrl
                 && alt == this->alt
-                && shift == this->shift
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
             ? (numpad == this->numpad ? 8 : 0)
                 + (numlock == this->numlock ? 4 : 0)
                 + (cshift == this->cshift ? 2 : 0)
-                + 2
+                + (shift != this->shift != this->cshift ? -1 : 0)
+                + 6
             : 0;
     } else {
-        result = keychar == this->keychar
+        return (keychar == this->keychar || shifted_keychar == this->keychar)
                 && ctrl == this->ctrl
                 && alt == this->alt
-                && (keychar != shifted_keychar || shift == this->shift)
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
             ? (numpad == this->numpad ? 8 : 0)
                 + (numlock == this->numlock ? 4 : 0)
                 + (cshift == this->cshift ? 2 : 0)
-                + 2
+                + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != this->shift != this->cshift ? -1 : 0)
+                + 6
             : 0;
-    }
-    if (result == MAX_MATCH_QUALITY) {
-        // Can't do better than this!
-        return result;
-    } else if (shifted_keychar != keychar) {
-        if (shifted_keychar == 0)
-            return result;
-        // @ -> Shift 2 etc.
-        int result2 = match(shifted_keychar, 0, keyval, ctrl, alt, !shift, numpad, numlock, cshift, old_keyval);
-        return result2 > result ? result2 - 1 : result;
-    } else if (cshift) {
-        // CShift-to-Shift fallback
-        int result2 = match(keychar, keychar, keyval, ctrl, alt, !shift, numpad, numlock, false, old_keyval);
-        return result2 > result ? result2 - 1 : result;
-    } else if (shift) {
-        // Shift NumPad 8 -> NumPad 8
-        int result2 = match(keychar, keychar, keyval, ctrl, alt, false, numpad, numlock, cshift, old_keyval);
-        return result2 > result ? result2 - 1 : result;
-    } else {
-        return result;
     }
 }
 
@@ -1294,11 +1272,16 @@ unsigned char *skin_find_macro(int ckey, int *type) {
 }
 
 int skin_find_shifted_code(int code) {
-    for (int i = 0; i < nkeys; i++)
-        if (keylist[i].code == code) {
-            int r = keylist[i].shifted_code;
-            return r == code ? 0 : r;
+    for (int i = 0; i < nkeys; i++) {
+        int c = keylist[i].code;
+        int sc = keylist[i].shifted_code;
+        if (c != sc) {
+            if (code == c)
+                return sc;
+            else if (code == sc)
+                return c;
         }
+    }
     return 0;
 }
 

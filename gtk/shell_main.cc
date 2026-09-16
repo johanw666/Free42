@@ -3028,8 +3028,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                 ckey = -10;
                 skey = -1;
                 bool skin_shift = cshift;
-                if ((cshift != shift) && (quality & 1) == shift && key_macro[0] != 0 && key_macro[1] == 0
-                        && !ke->shift && !ke->cshift) {
+                if ((quality & 1) != 0 && key_macro[0] != 0 && key_macro[1] == 0) {
                     // Shift xor CShift active, but we ended up with an unshifted mapping.
                     // Check if this is one of an 'unshifted,shifted' macro pair,
                     // and if so, use the shifted partner as the fallback.
@@ -3039,6 +3038,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                         m[0] = alt_code;
                         m[1] = 0;
                         key_macro = m;
+                        quality++;
                     }
                 }
                 if (key_macro[0] != 0)
