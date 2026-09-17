@@ -20,7 +20,7 @@
 #import "shell_skin.h"
 
 #define FILENAMELEN 256
-#define SHELL_VERSION 6
+#define SHELL_VERSION 7
 
 struct state_type {
     int printerToTxtFile;
@@ -55,8 +55,8 @@ extern int printout_bottom;
 
 void calc_mousedown(int x, int y);
 void calc_mouseup();
-void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode, bool shiftSignificant);
-void calc_keyup(NSString *characters, NSUInteger flags, unsigned short keycode);
+void calc_keydown(NSString *characters, NSString *shiftedCharacters, NSUInteger flags, unsigned short keycode);
+void calc_keyup(unsigned short keycode);
 void calc_keymodifierschanged(NSUInteger flags);
 
 void get_keymap(keymap_entry **map, int *length);

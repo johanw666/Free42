@@ -32,18 +32,18 @@ struct keymap_entry {
     bool cshift; 
     unsigned short keychar;
     unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
-    int match(unsigned short keychar, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed, bool numpad, bool cshift);
+    int match(unsigned short keychar, unsigned short shifted_keychar,
+              bool ctrl, bool alt, bool shift, bool numpad, bool cshift);
 };
-keymap_entry *parse_keymap_entry(char *line, int lineno);
+keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno);
 
 void skin_repaint(NSRect *rect, bool shortcuts);
 void skin_update_annunciator(int which, int state);
 void skin_find_key(int x, int y, bool cshift, int *key, int *code);
 int skin_find_skey(int ckey, bool cshift);
 unsigned char *skin_find_macro(int ckey, int *type);
-keymap_entry *skin_keymap_lookup(unsigned short keychar,
-                  bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
-                  bool numpad, bool cshift, int *quality);
+keymap_entry *skin_keymap_lookup(unsigned short keychar, unsigned short shifted_keychar,
+                                 bool ctrl, bool alt, bool shift, bool numpad, bool cshift, int *quality);
 int skin_find_shifted_code(int code);
 void skin_set_pressed_key(int skey);
 void skin_display_blitter(const char *bits, int bytesperline, int x, int y,

@@ -44,6 +44,7 @@ static bool loadSkinsWindowMapped = false;
 
 state_type state;
 char free42dirname[FILENAMELEN];
+static bool keymap_obsolete = false;
 
 static bool quit_flag = false;
 static bool enqueued;
@@ -52,6 +53,7 @@ static bool we_want_cpu = false;
 
 static char statefilename[FILENAMELEN];
 static char printfilename[FILENAMELEN];
+static char keymapfilename[FILENAMELEN];
 static FILE *statefile = NULL;
 
 static int ckey = 0;
@@ -182,7 +184,6 @@ static struct timeval runner_end_time;
     int free42dir_exists = 0;
     char *home = getenv("HOME");
     struct stat st;
-    char keymapfilename[FILENAMELEN];
     char oldfree42dirname[FILENAMELEN];
     
     snprintf(free42dirname, FILENAMELEN, "%s/Library/Application Support/Free42", home);
@@ -210,12 +211,6 @@ static struct timeval runner_end_time;
         keymapfilename[0] = 0;
     }
     
-    
-    /****************************/
-    /***** Read the key map *****/
-    /****************************/
-    
-    read_key_map(keymapfilename);
     
     /******************************/
     /***** Read the print-out *****/
@@ -319,6 +314,21 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
             version = 26;
         }
     }
+
+    /****************************/
+    /***** Read the key map *****/
+    /****************************/
+
+    if (keymap_obsolete) {
+        size_t len = strlen(keymapfilename);
+        if (len > 4 && strcasecmp(keymapfilename + len - 4, ".txt") == 0) {
+            char keymapbackup[FILENAMELEN];
+            strcpy(keymapbackup, keymapfilename);
+            strcpy(keymapbackup + len - 4, ".old");
+            rename(keymapfilename, keymapbackup);
+        }
+    }
+    read_key_map(keymapfilename);
 
 #ifdef BCD_MATH
     [mainWindow setTitle:@"Free42 Decimal"];
@@ -688,7 +698,7 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
 
 - (IBAction) copy:(id)sender {
     NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    NSArray *types = [NSArray arrayWithObjects: NSStringPboardType, nil];
+    NSArray *types = [NSArray arrayWithObjects: NSPasteboardTypeString, nil];
     [pb declareTypes:types owner:self];
     NSString *txt;
     if ([loadSkinsWindow isKeyWindow]) {
@@ -698,15 +708,15 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
         txt = [NSString stringWithUTF8String:buf];
         free(buf);
     }
-    [pb setString:txt forType:NSStringPboardType];
+    [pb setString:txt forType:NSPasteboardTypeString];
 }
 
 - (IBAction) paste:(id)sender {
     NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    NSArray *types = [NSArray arrayWithObjects: NSStringPboardType, nil];
+    NSArray *types = [NSArray arrayWithObjects: NSPasteboardTypeString, nil];
     NSString *bestType = [pb availableTypeFromArray:types];
     if (bestType != nil) {
-        NSString *txt = [pb stringForType:NSStringPboardType];
+        NSString *txt = [pb stringForType:NSPasteboardTypeString];
         if ([loadSkinsWindow isKeyWindow]) {
             [loadSkinsURL setStringValue:txt];
         } else {
@@ -740,7 +750,7 @@ static void tbnonewliner() {
 
 - (IBAction) doCopyPrintOutAsText:(id)sender {
     NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    NSArray *types = [NSArray arrayWithObjects: NSStringPboardType, nil];
+    NSArray *types = [NSArray arrayWithObjects: NSPasteboardTypeString, nil];
     [pb declareTypes:types owner:self];
 
     tb = NULL;
@@ -800,12 +810,12 @@ static void tbnonewliner() {
         free(tb);
     }
 
-    [pb setString:txt forType:NSStringPboardType];
+    [pb setString:txt forType:NSPasteboardTypeString];
 }
 
 - (IBAction) doCopyPrintOutAsImage:(id)sender {
     NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    NSArray *types = [NSArray arrayWithObjects: NSTIFFPboardType, nil];
+    NSArray *types = [NSArray arrayWithObjects: NSPasteboardTypeTIFF, nil];
     [pb declareTypes:types owner:self];
     
     int height = printout_bottom - printout_top;
@@ -840,7 +850,7 @@ static void tbnonewliner() {
     }
     
     NSData *tiff = [img TIFFRepresentation];
-    [pb setData:tiff forType:NSTIFFPboardType];
+    [pb setData:tiff forType:NSPasteboardTypeTIFF];
 }
 
 - (IBAction) paperAdvance:(id)sender {
@@ -1294,7 +1304,7 @@ void calc_mouseup() {
         shell_keyup();
 }
 
-void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode, bool shiftSignificant) {
+void calc_keydown(NSString *characters, NSString *shiftedCharacters, NSUInteger flags, unsigned short keycode) {
     if (ckey != 0 && mouse_key)
         return;
     
@@ -1309,30 +1319,19 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
     bool cshift = ann_shift != 0;
     
     unsigned short c = [characters characterAtIndex:0];
-    bool printable = !ctrl && len == 1 && (c >= 32 && c <= 126 || c >= 128 && c < 0xf700 || c >= 0xf900);
-    bool shift_mismatch_allowed = printable && !shiftSignificant && !numpad && c != 32;
+    unsigned short shifted_c = [shiftedCharacters characterAtIndex:0];
 
-    // TODO: If requiring 10.15 compatibility is not a problem, we
-    // can use [NSEvent charactersByApplyingModifiers] to figure out
-    // exactly which key is being pressed, and we can start properly
-    // supporting mappings like Shift-2 where we don't have to know
-    // what the shifted character of the 2 key is, or * where we don't
-    // have to know whether the * character is in a shifted and
-    // unshifted position, etc. This will allow really clean keyboard
-    // maps.
-    // Whether the other OSes support this kind of thing as well
-    // remains to be seen. Last I checked, there was no
-    // charactersByApplyingModifiers in UIEvent, so we're off to a bad
-    // start on iOS...
-    // Until those mythical better days arrive, here's a hack to make
-    // Ctrl-Shift-2, Ctrl-Shift-6, and Ctrl-Shift-Minus work.
-    
-    if (ctrl && shift)
-        switch (c) {
-            case  0: c = '2'; break; // Ctrl-@
-            case 30: c = '6'; break; // Ctrl-^
-            case 31: c = '-'; break; // Ctrl-_
-        }
+    // Handle Shift-Tab and NumPad-Enter
+    if (c == 25)
+        c = 9;
+    else if (c == 3)
+        c = 13;
+    if (shifted_c == 25)
+        shifted_c = 9;
+    else if (shifted_c == 3)
+        shifted_c = 13;
+
+    bool printable = c >= 32 && c != 127 && c < 0xf700 || c > 0xf8ff;
 
     just_pressed_shift = false;
     
@@ -1341,30 +1340,15 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
         active_keycode = -1;
     }
     
-    unsigned short lc = c;
-    if (printable && !alt) {
-        if (lc >= 'A' && lc <= 'Z') {
-            lc += 32;
-            shift_mismatch_allowed = false;
-        } else if (lc >= 'a' && lc <= 'z')
-            shift_mismatch_allowed = false;
-    } else if (lc == 9) {
-        // Tab
-        shift_mismatch_allowed = false;
-    } else if (lc == 25) {
-        // Shift-Tab
-        lc = 9;
-        shift_mismatch_allowed = false;
-    }
-
     int quality;
-    keymap_entry *ke = skin_keymap_lookup(lc, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift, &quality);
+    keymap_entry *ke = skin_keymap_lookup(c, shifted_c, ctrl, alt, shift, numpad, cshift, &quality);
     if (ke == NULL || quality < MAX_MATCH_QUALITY) {
         for (int i = 0; i < keymap_length; i++) {
             keymap_entry *entry = keymap + i;
-            int qq = entry->match(lc, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift);
+            int qq = entry->match(c, shifted_c, ctrl, alt, shift, numpad, cshift);
             if (qq == MAX_MATCH_QUALITY) {
                 ke = entry;
+                quality = qq;
                 break;
             } else if (qq > quality) {
                 ke = entry;
@@ -1374,8 +1358,9 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
     }
     unsigned char *key_macro = ke == NULL ? NULL : ke->macro;
 
-    if (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
-            && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0)) {
+    if (!ctrl && !alt
+            && (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
+            && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0))) {
         // The test above is to make sure that whatever mapping is in
         // effect for R/S will never be overridden by the special cases
         // for the ALPHA and A..F menus.
@@ -1404,27 +1389,23 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
                 mouse_key = 0;
                 active_keycode = keycode;
                 return;
-            } else if (c == 0xf702 || c == 0xf703 || c == 0xf728) {
+            } else if (c == NSLeftArrowFunctionKey || c == NSRightArrowFunctionKey || c == NSDeleteFunctionKey) {
                 int which;
-               if (c == 0xf702)
+               if (c == NSLeftArrowFunctionKey)
                     which = shift ? 2 : 1;
-                else if (c == 0xf703)
+                else if (c == NSRightArrowFunctionKey)
                     which = shift ? 4 : 3;
-                else if (c == 0xf728)
+                else // c == NSDeleteFunctionKey
                     which = 5;
-                else
-                    which = 0;
+                which = core_special_menu_key(which);
                 if (which != 0) {
-                    which = core_special_menu_key(which);
-                    if (which != 0) {
-                        ckey = which;
-                        skey = -1;
-                        macro = NULL;
-                        shell_keydown(false, false);
-                        mouse_key = 0;
-                        active_keycode = keycode;
-                        return;
-                    }
+                    ckey = which;
+                    skey = -1;
+                    macro = NULL;
+                    shell_keydown(false, false);
+                    mouse_key = 0;
+                    active_keycode = keycode;
+                    return;
                 }
             }
         }
@@ -1441,9 +1422,8 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
         ckey = -10;
         skey = -1;
         bool skin_shift = cshift;
-        if (cshift && (quality & 1) == 0 && key_macro[0] != 0 && key_macro[1] == 0
-                && !ke->shift && !ke->cshift) {
-            // CShift active, but we ended up with an unshifted mapping.
+        if ((quality & 1) != 0 && key_macro[0] != 0 && key_macro[1] == 0) {
+            // Shift xor CShift active, but we ended up with an unshifted mapping.
             // Check if this is one of an 'unshifted,shifted' macro pair,
             // and if so, use the shifted partner as the fallback.
             int alt_code = skin_find_shifted_code(key_macro[0]);
@@ -1452,6 +1432,7 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
                 m[0] = alt_code;
                 m[1] = 0;
                 key_macro = m;
+                quality++;
             }
         }
         if (key_macro[0] != 0)
@@ -1487,13 +1468,13 @@ void calc_keydown(NSString *characters, NSUInteger flags, unsigned short keycode
             macro = key_macro;
             macro_type = 0;
         }
-        shell_keydown(skin_shift, (quality & 1) != 0);
+        shell_keydown(skin_shift, (quality & 1) != cshift);
         mouse_key = 0;
         active_keycode = keycode;
     }
 }
 
-void calc_keyup(NSString *characters, NSUInteger flags, unsigned short keycode) {
+void calc_keyup(unsigned short keycode) {
     if (ckey != 0) {
         if (!mouse_key && keycode == active_keycode) {
             shell_keyup();
@@ -1875,7 +1856,7 @@ static void read_key_map(const char *keymapfilename) {
     }
 
     while (fgets(line, 1024, keymapfile) != NULL) {
-        keymap_entry *entry = parse_keymap_entry(line, ++lineno);
+        keymap_entry *entry = parse_keymap_entry(false, line, ++lineno);
         if (entry == NULL)
             continue;
         /* Create new keymap entry */
@@ -1923,7 +1904,10 @@ static void init_shell_state(int4 version) {
             state.mainWindowHeight = 0;
             /* fall through */
         case 6:
-            /* current version (SHELL_VERSION = 6),
+            keymap_obsolete = true;
+            /* fall through */
+        case 7:
+            /* current version (SHELL_VERSION = 7),
              * so nothing to do here since everything
              * was initialized from the state file.
              */

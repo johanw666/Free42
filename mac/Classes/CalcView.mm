@@ -73,32 +73,30 @@
 - (void)keyDown:(NSEvent *)theEvent {
     if ([theEvent isARepeat])
         return;
-    NSString *characters = [theEvent characters];
-    NSString *shiftedCharacters = nil;
-    if (@available(macOS 10.15, *)) {
-        shiftedCharacters = [theEvent charactersByApplyingModifiers:[theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask ^ NSEventModifierFlagShift];
+
+    NSString *c = [theEvent characters];
+    if ([c length] == 0)
+        return;
+
+    unsigned short ch = [c characterAtIndex:0];
+    if (ch == 127 || ch >= 0xf700 && ch <= 0xf8ff) {
+        if (ch == NSHelpFunctionKey)
+            ch = NSInsertFunctionKey;
+        calc_keydown(c, c, [theEvent modifierFlags], [theEvent keyCode]);
+    } else {
+        NSUInteger flags = [theEvent modifierFlags]
+                    & NSEventModifierFlagDeviceIndependentFlagsMask
+                    & ~(NSEventModifierFlagControl | NSEventModifierFlagOption);
+        calc_keydown([theEvent charactersByApplyingModifiers:flags],
+                     [theEvent charactersByApplyingModifiers:flags ^ NSEventModifierFlagShift],
+                     [theEvent modifierFlags], [theEvent keyCode]);
     }
-    bool shiftSignificant = false;
-    if (shiftedCharacters != nil) {
-        bool cz = [characters length] == 0;
-        bool scz = [shiftedCharacters length] == 0;
-        shiftSignificant = cz != scz || [characters isEqualToString:shiftedCharacters];
-        if (cz && !scz)
-            characters = shiftedCharacters;
-    }
-    calc_keydown(characters, [theEvent modifierFlags], [theEvent keyCode], shiftSignificant);
 }
 
 - (void)keyUp:(NSEvent *)theEvent {
     if ([theEvent isARepeat])
         return;
-    NSString *characters = [theEvent characters];
-    if ([characters length] == 0) {
-        if (@available(macOS 10.15, *)) {
-            characters = [theEvent charactersByApplyingModifiers:[theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask ^ NSEventModifierFlagShift];
-        }
-    }
-    calc_keyup(characters, [theEvent modifierFlags], [theEvent keyCode]);
+    calc_keyup([theEvent keyCode]);
 }
 
 - (void)flagsChanged:(NSEvent *)theEvent {
@@ -107,7 +105,7 @@
 
 - (IBAction) toggleKeyboardShortcuts:(id)sender {
     keyboardShortcutsShowing = !keyboardShortcutsShowing;
-    [keyboardShortcutsMenuItem setState:keyboardShortcutsShowing ? NSOnState : NSOffState];
+    [keyboardShortcutsMenuItem setState:keyboardShortcutsShowing ? NSControlStateValueOn : NSControlStateValueOff];
     [self setNeedsDisplay:YES];
 }
 

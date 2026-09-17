@@ -101,11 +101,9 @@
 
 - (void)drawRect:(NSRect)rect {
     bool dark = false;
-    if (@available(*, macOS 10.14)) {
-        NSAppearance *currentAppearance = [NSAppearance  currentAppearance];
-        if (currentAppearance.name == NSAppearanceNameDarkAqua)
-            dark = true;
-    }
+    NSAppearance *currentAppearance = [NSAppearance  currentAppearance];
+    if (currentAppearance.name == NSAppearanceNameDarkAqua)
+        dark = true;
 
     int length = printout_bottom - printout_top;
     if (length < 0)
@@ -114,7 +112,7 @@
         rect.origin.y = 0;
     if (rect.origin.y + rect.size.height > length)
         rect.size.height = length - rect.origin.y;
-    CGContextRef myContext = (CGContextRef) [[NSGraphicsContext currentContext] graphicsPort];
+    CGContextRef myContext = (CGContextRef) [[NSGraphicsContext currentContext] CGContext];
     double bg = dark ? 0.071 : 1.0;
     double fg = dark ? 0.859 : 0.0;
     CGContextSetRGBFillColor(myContext, bg, bg, bg, 1.0);

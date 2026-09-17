@@ -291,7 +291,7 @@
 		E9E059D522FEF1E6009DDC40 /* StatesWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StatesWindow.h; path = Classes/StatesWindow.h; sourceTree = "<group>"; };
 		E9E059D722FEF866009DDC40 /* StateListDataSource.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = StateListDataSource.mm; path = Classes/StateListDataSource.mm; sourceTree = "<group>"; };
 		E9E059D922FEF91B009DDC40 /* StateListDataSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StateListDataSource.h; path = Classes/StateListDataSource.h; sourceTree = "<group>"; };
-		E9E335DD0FF67A1D006A40AD /* keymap.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = keymap.txt; sourceTree = "<group>"; };
+		E9E335DD0FF67A1D006A40AD /* keymap.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = keymap.txt; path = ../common/keymap.txt; sourceTree = "<group>"; };
 		E9E394C325A953050001FDC9 /* DisabledMenuItem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = DisabledMenuItem.mm; path = Classes/DisabledMenuItem.mm; sourceTree = "<group>"; };
 		E9E394C425A953050001FDC9 /* DisabledMenuItem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DisabledMenuItem.h; path = Classes/DisabledMenuItem.h; sourceTree = "<group>"; };
 		E9EB0E3A2B3D9FB600F70E61 /* raw2txt */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = raw2txt; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -980,7 +980,7 @@
 					"$(inherited)",
 					"\"$(SRCROOT)\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				"OTHER_CFLAGS[arch=*]" = "-DFREE42_FPTEST";
 				"OTHER_CFLAGS[arch=arm64]" = (
 					"-DFREE42_FPTEST",
@@ -1024,7 +1024,7 @@
 					"$(inherited)",
 					"\"$(SRCROOT)\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				"OTHER_CFLAGS[arch=arm64]" = (
 					"-fsigned-char",
 					"-DBID_SIZE_LONG=8",
@@ -1054,7 +1054,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_MISSING_PARENTHESES = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = "";
 			};
@@ -1082,7 +1082,7 @@
 					"$(inherited)",
 					"\"$(SRCROOT)\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				"OTHER_CFLAGS[arch=*]" = "-DFREE42_FPTEST";
 				"OTHER_CFLAGS[arch=arm64]" = (
 					"-DFREE42_FPTEST",
@@ -1114,7 +1114,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_MISSING_PARENTHESES = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				SDKROOT = "";
 			};
 			name = Release;
@@ -1142,7 +1142,7 @@
 					"$(inherited)",
 					"\"$(SRCROOT)\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				"OTHER_CFLAGS[arch=arm64]" = (
 					"-fsigned-char",
 					"-DBID_SIZE_LONG=8",
@@ -1215,7 +1215,7 @@
 					"$(PROJECT_DIR)",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				"OTHER_CFLAGS[arch=arm64]" = (
@@ -1288,7 +1288,7 @@
 					"$(PROJECT_DIR)",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				"OTHER_CFLAGS[arch=arm64]" = (
@@ -1362,7 +1362,7 @@
 					"$(PROJECT_DIR)",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				"OTHER_CFLAGS[arch=arm64]" = (
@@ -1435,7 +1435,7 @@
 					"$(PROJECT_DIR)",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				"OTHER_CFLAGS[arch=arm64]" = (

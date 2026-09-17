@@ -100,29 +100,117 @@ static int keymap_length = 0;
 /* Keymap matcher */
 /******************/
 
-int keymap_entry::match(unsigned short keychar, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
-                        bool numpad, bool cshift) {
-    int result = keychar == this->keychar
+int keymap_entry::match(unsigned short keychar, unsigned short shifted_keychar,
+                        bool ctrl, bool alt, bool shift, bool numpad, bool cshift) {
+    return (keychar == this->keychar || shifted_keychar == this->keychar)
             && ctrl == this->ctrl
             && alt == this->alt
-            && (shift_mismatch_allowed || shift == this->shift)
             && (numpad || !this->numpad)
             && (cshift || !this->cshift)
         ? (numpad == this->numpad ? 4 : 0)
             + (cshift == this->cshift ? 2 : 0)
+            + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? -1 : 0)
             + 2
         : 0;
-    if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
-        return result;
-    int result2 = match(keychar, ctrl, alt, !shift, false, numpad, false);
-    return result2 > result ? result2 - 1 : result;
 }
 
 /*****************/
 /* Keymap parser */
 /*****************/
 
-keymap_entry *parse_keymap_entry(char *line, int lineno) {
+struct key_name {
+    unsigned short keychar;
+    const char *name;
+};
+
+static key_name vk[] = {
+    0x007f,                  "BACK",      // Backspace key
+    0x0009,                  "TAB",       // Tab key
+    NSClearLineFunctionKey,  "CLEAR",     // Clear key
+    0x000d,                  "RETURN",    // Enter key
+    0x001b,                  "ESCAPE",    // Esc key
+    0x0020,                  "SPACE",     // Spacebar key
+    NSPageUpFunctionKey,     "PRIOR",     // Page up key
+    NSPageDownFunctionKey,   "NEXT",      // Page down key
+    NSEndFunctionKey,        "END",       // End key
+    NSHomeFunctionKey,       "HOME",      // Home key
+    NSLeftArrowFunctionKey,  "LEFT",      // Left arrow key
+    NSUpArrowFunctionKey,    "UP",        // Up arrow key
+    NSRightArrowFunctionKey, "RIGHT",     // Right arrow key
+    NSDownArrowFunctionKey,  "DOWN",      // Down arrow key
+    NSInsertFunctionKey,     "INSERT",    // Insert key
+    NSDeleteFunctionKey,     "DELETE",    // Delete key
+    NSF1FunctionKey,         "F1",        // F1 key
+    NSF2FunctionKey,         "F2",        // F2 key
+    NSF3FunctionKey,         "F3",        // F3 key
+    NSF4FunctionKey,         "F4",        // F4 key
+    NSF5FunctionKey,         "F5",        // F5 key
+    NSF6FunctionKey,         "F6",        // F6 key
+    NSF7FunctionKey,         "F7",        // F7 key
+    NSF8FunctionKey,         "F8",        // F8 key
+    NSF9FunctionKey,         "F9",        // F9 key
+    NSF10FunctionKey,        "F10",       // F10 key
+    NSF11FunctionKey,        "F11",       // F11 key
+    NSF12FunctionKey,        "F12",       // F12 key
+    NSF13FunctionKey,        "F13",       // F13 key
+    NSF14FunctionKey,        "F14",       // F14 key
+    NSF15FunctionKey,        "F15",       // F15 key
+    NSF16FunctionKey,        "F16",       // F16 key
+    NSF17FunctionKey,        "F17",       // F17 key
+    NSF18FunctionKey,        "F18",       // F18 key
+    NSF19FunctionKey,        "F19",       // F19 key
+    NSF20FunctionKey,        "F20",       // F20 key
+    0x0000,                  NULL
+};
+
+static unsigned short vk_parse(const char *code) {
+    for (int i = 0; vk[i].keychar != 0; i++)
+        if (strcmp(code, vk[i].name) == 0)
+            return vk[i].keychar;
+    return 0;
+}
+
+int utf8_length(const char *s) {
+    int len = 0;
+    char c;
+    while ((c = *s++) != 0) {
+        int n;
+        if (c == 0)
+            break;
+        if ((c & 0x80) == 0x00)
+            n = 1;
+        else if ((c & 0xc0) == 0x80)
+            continue;
+        else if ((c & 0xe0) == 0xc0)
+            n = 2;
+        else if ((c & 0xf0) == 0xe0)
+            n = 3;
+        else
+            continue;
+        while (--n) {
+            if (*s++ == 0)
+                break;
+        }
+        len++;
+    }
+    return len;
+}
+
+static int get_first_utf8_char(const char *s) {
+    int c = *s & 255;
+    if ((c & 0x80) == 0)
+        return c;
+    else if ((c & 0xc0) == 0x80)
+        return -1;
+    else if ((c & 0xe0) == 0xc0)
+        return ((c & 0x1f) << 6) | (s[1] & 0x3f);
+    else if ((c & 0xf0) == 0xe0)
+        return ((c & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f);
+    else
+        return -1;
+}
+
+keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
     char *p;
     static keymap_entry entry;
     
@@ -168,12 +256,28 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
                 shift = true;
             else if (strcasecmp(tok, "cshift") == 0)
                 cshift = true;
-            else {
+            else if (old_style) {
                 if (strlen(tok) == 1)
                     keychar = (unsigned char) *tok;
                 else if (sscanf(tok, "0x%hx", &keychar) != 1) {
+                    bad_keycode:
                     NSLog(@"Keymap, line %d: Bad keycode.", lineno);
                     return NULL;
+                }
+                done = 1;
+            } else {
+                if (utf8_length(tok) == 1) {
+                    keychar = get_first_utf8_char(tok);
+                } else if (strncasecmp(tok, "0x", 2) == 0) {
+                    char *endptr;
+                    long k = strtol(tok + 2, &endptr, 16);
+                    if (*endptr != 0)
+                        goto bad_keycode;
+                    keychar = k;
+                } else {
+                    keychar = vk_parse(tok);
+                    if (keychar == 0)
+                        goto bad_keycode;
                 }
                 done = 1;
             }
@@ -201,24 +305,20 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
         }
         macro[macrolen] = 0;
 
-        if (!ctrl && !alt) {
-            if (keychar >= 'A' && keychar <= 'Z') {
-                keychar += 32;
-                shift = true;
-            } else if (keychar >= 'a' && keychar <= 'z')
-                shift = false;
-        } else if (keychar == 25) {
-            // Shift-Tab
+        // Handle Shift-Tab and NumPad-Enter
+        if (keychar == 25) {
             keychar = 9;
-            shift = true;
+        } else if (keychar == 3) {
+            numpad = true;
+            keychar = 13;
         }
-        
+
         entry.ctrl = ctrl;
         entry.alt = alt;
         entry.numpad = numpad;
         entry.shift = shift;
         entry.cshift = cshift;
-        entry.keychar = keychar;
+        entry.keychar = keychar;;
         strcpy((char *) entry.macro, (const char *) macro);
         return &entry;
     } else
@@ -283,7 +383,7 @@ void skin_menu_update(NSMenu *skinMenu) {
         }
         item.target = [NSApp delegate];
         if (!overridden && strcasecmp(cname, state.skinName) == 0)
-            [item setState:NSOnState];
+            [item setState:NSControlStateValueOn];
     }
     fclose(builtins);
 
@@ -296,7 +396,7 @@ void skin_menu_update(NSMenu *skinMenu) {
         NSMenuItem *item = [skinMenu addItemWithTitle:name action: @selector(selectSkin:) keyEquivalent: @""];
         item.target = [NSApp delegate];
         if (strcasecmp(skinname[i], state.skinName) == 0)
-            [item setState:NSOnState];
+            [item setState:NSControlStateValueOn];
         free(skinname[i]);
     }
 }
@@ -421,6 +521,7 @@ void skin_load(long *width, long *height) {
     int kmcap = 0;
 
     int lineno = 0;
+    bool old_style;
 
     while (skin_gets(line, 1024)) {
         lineno++;
@@ -585,8 +686,8 @@ void skin_load(long *width, long *height) {
                     ann->src.y = act_y;
                 }
             }
-        } else if (strncasecmp(line, "mackey:", 7) == 0) {
-            keymap_entry *entry = parse_keymap_entry(line + 7, lineno);
+        } else if ((old_style = strncasecmp(line, "mackey:", 7) == 0) || strncasecmp(line, "mapkey:", 7) == 0) {
+            keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
             if (entry != NULL) {
                 if (keymap_length == kmcap) {
                     kmcap += 50;
@@ -769,11 +870,11 @@ struct KeyShortcutInfo {
     NSString *text() {
         NSString *u, *s;
         if ([unshifted length] == 0)
-            u = @"n/a";
+            u = @"\u00a0"; // non-breaking space
         else
             u = [unshifted substringToIndex:[unshifted length] - 1];
         if ([shifted length] == 0)
-            s = @"n/a";
+            s = @"\u00a0"; // non-breaking space
         else
             s = [shifted substringToIndex:[shifted length] - 1];
         return [NSString stringWithFormat:@"%@\n%@", s, u];
@@ -782,21 +883,22 @@ struct KeyShortcutInfo {
 
 static NSString *entry_to_text(keymap_entry *e) {
     NSString *mods = @"";
-    bool printable = !e->ctrl && e->keychar >= 33 && e->keychar <= 126;
     if (e->numpad)
         mods = [mods stringByAppendingString:@"{n}"];
     if (e->ctrl)
         mods = [mods stringByAppendingString:@"^"];
     if (e->alt)
         mods = [mods stringByAppendingString:@"\u2325"];
-    if (e->shift && !printable)
+    if (e->shift)
         mods = [mods stringByAppendingString:@"\u21e7"];
     NSString *c;
     switch (e->keychar) {
-        case 3: c = @"KpEnter"; break;
+        case 9: c = @"Tab"; break;
         case 13: c = @"Enter"; break;
         case 27: c = @"Esc"; break;
+        case 32: c = @"Space"; break;
         case 127: c = @"\u232B"; break;
+        case NSClearLineFunctionKey: c = @"Clr"; break;
         case NSUpArrowFunctionKey: c = @"\u2191"; break;
         case NSDownArrowFunctionKey: c = @"\u2193"; break;
         case NSLeftArrowFunctionKey: c = @"\u2190"; break;
@@ -811,10 +913,12 @@ static NSString *entry_to_text(keymap_entry *e) {
         case NSPrevFunctionKey: c = @"Prev"; break;
         case NSNextFunctionKey: c = @"Next"; break;
         default:
-            if (e->keychar >= NSF1FunctionKey && e->keychar <= NSF35FunctionKey)
+            if (e->keychar > 32 && e->keychar < 0xf700 || e->keychar > 0xf8ff)
+                c = [NSString stringWithFormat:@"%C", e->keychar];
+            else if (e->keychar >= NSF1FunctionKey && e->keychar <= NSF35FunctionKey)
                 c = [NSString stringWithFormat:@"F%d", e->keychar - NSF1FunctionKey + 1];
             else
-                c = [NSString stringWithFormat:@"%C", e->keychar];
+                c = [NSString stringWithFormat:@"0x%x", e->keychar];
     }
     return [mods stringByAppendingString:c];
 }
@@ -879,7 +983,7 @@ static KeyShortcutInfo *get_shortcut_info() {
 }
 
 void skin_repaint(NSRect *rect, bool shortcuts) {
-    CGContextRef myContext = (CGContextRef) [[NSGraphicsContext currentContext] graphicsPort];
+    CGContextRef myContext = (CGContextRef) [[NSGraphicsContext currentContext] CGContext];
     
     // Optimize for the common case that *only* the display needs painting
     bool paintOnlyDisplay = rect->origin.x >= display_loc.x && rect->origin.y >= display_loc.y
@@ -984,12 +1088,10 @@ void skin_repaint(NSRect *rect, bool shortcuts) {
         }
     }
 
-    if (@available(*, macOS 10.14)) {
-        NSAppearance *currentAppearance = [NSAppearance  currentAppearance];
-        if (currentAppearance.name == NSAppearanceNameDarkAqua) {
-            CGContextSetRGBFillColor(myContext, 0.0, 0.0, 0.0, 0.15);
-            CGContextFillRect(myContext, NSRectToCGRect(*rect));
-        }
+    NSAppearance *currentAppearance = [NSAppearance  currentAppearance];
+    if (currentAppearance.name == NSAppearanceNameDarkAqua) {
+        CGContextSetRGBFillColor(myContext, 0.0, 0.0, 0.0, 0.15);
+        CGContextFillRect(myContext, NSRectToCGRect(*rect));
     }
 }
 
@@ -1061,22 +1163,26 @@ unsigned char *skin_find_macro(int ckey, int *type) {
 }
 
 int skin_find_shifted_code(int code) {
-    for (int i = 0; i < nkeys; i++)
-        if (keylist[i].code == code) {
-            int r = keylist[i].shifted_code;
-            return r == code ? 0 : r;
+    for (int i = 0; i < nkeys; i++) {
+        int c = keylist[i].code;
+        int sc = keylist[i].shifted_code;
+        if (c != sc) {
+            if (code == c)
+                return sc;
+            else if (code == sc)
+                return c;
         }
+    }
     return 0;
 }
 
-keymap_entry *skin_keymap_lookup(unsigned short keychar,
-                                 bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
-                                 bool numpad, bool cshift, int *quality) {
+keymap_entry *skin_keymap_lookup(unsigned short keychar, unsigned short shifted_keychar,
+                                 bool ctrl, bool alt, bool shift, bool numpad, bool cshift, int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        int qq = entry->match(keychar, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift);
+        int qq = entry->match(keychar, shifted_keychar, ctrl, alt, shift, numpad, cshift);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
             return entry;
