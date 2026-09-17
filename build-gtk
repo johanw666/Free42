@@ -21,7 +21,7 @@ export MK
 
 unset BCD_MATH
 cd gtk
-$MK cleaner
+$MK clean
 $MK $ALSA
 $MK clean
 $MK BCD_MATH=1 $ALSA
