@@ -2919,6 +2919,10 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
             bool numpad = false;
             bool numlock = false;
             guint nKeyval = event->keyval;
+
+            if (nKeyval == GDK_KEY_ISO_Left_Tab)
+                nKeyval = GDK_KEY_Tab;
+
             kp_normalize(&nKeyval, &numpad);
             if (numpad) {
                 numlock = gdk_keymap_get_num_lock_state(kmap);
