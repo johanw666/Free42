@@ -137,6 +137,7 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
                 && ctrl == this->ctrl
                 && alt == this->alt
                 && (this->keyval >= 32 && this->keyval <= 126 || shift == this->shift)
+                && (shift || !this->shift)
                 && (cshift || !this->cshift)
             // Note: returning low scores, so MapKey mappings will beat GtkKey mappings.
             // Also: always returning even scores, since odd scores trigger shift toggling
