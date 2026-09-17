@@ -997,8 +997,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                     ckey = -10;
                     skey = -1;
                     bool skin_shift = cshift_down;
-                    if ((cshift_down != nShift) && (quality & 1) == nShift && key_macro[0] != 0 && key_macro[1] == 0
-                            && !ke->shift && !ke->cshift) {
+                    if ((quality & 1) != 0 && key_macro[0] != 0 && key_macro[1] == 0) {
                         // Shift xor CShift active, but we ended up with an unshifted mapping.
                         // Check if this is one of an 'unshifted,shifted' macro pair,
                         // and if so, use the shifted partner as the fallback.
@@ -1008,6 +1007,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                             m[0] = alt_code;
                             m[1] = 0;
                             key_macro = m;
+                            quality++;
                         }
                     }
                     if (key_macro[0] != 0)
@@ -1043,7 +1043,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         macro = key_macro;
                         macro_type = 0;
                     }
-                    shell_keydown(skin_shift, (quality & 1) != 0);
+                    shell_keydown(skin_shift, (quality & 1) != cshift_down);
                     mouse_key = false;
                     active_keycode = virtKey;
                     break;

@@ -136,69 +136,45 @@ extern const unsigned char * const skin_bitmap_data[];
 int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
                         bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
                         int old_keycode, bool old_shift, bool old_extended) {
-    int result;
     if (old_style) {
-        result = old_keycode == this->keycode
+        return old_keycode == this->keycode
                 && ctrl == this->ctrl
                 && alt == this->alt
                 && old_shift == this->shift
                 && (old_extended || !this->numpad)
-                && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
-            ? (old_extended == this->numpad ? 8 : 0)
-                + (numlock == this->numlock ? 4 : 0)
-                + (cshift == this->cshift ? 2 : 0)
-                + 2
+            // Note: returning low scores, so MapKey mappings will beat WinKey mappings.
+            // Also: always returning even scores, since odd scores trigger shift toggling
+            // before playing back the selected macro, and the shift-toggle feature is
+            // specific to MapKey.
+            ? (old_extended == this->numpad && cshift == this->cshift ? 4 : 2)
             : 0;
     } else if (this->keycode != 0) {
-        result = keycode == this->keycode
+        return keycode == this->keycode
                 && ctrl == this->ctrl
                 && alt == this->alt
-                && shift == this->shift
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
             ? (numpad == this->numpad ? 8 : 0)
                 + (numlock == this->numlock ? 4 : 0)
                 + (cshift == this->cshift ? 2 : 0)
-                + 2
+                + (shift != cshift != this->shift != this->cshift ? -1 : 0)
+                + 6
             : 0;
     } else {
-        result = keychar == this->keychar
+        return (keychar == this->keychar || shifted_keychar == this->keychar)
                 && ctrl == this->ctrl
                 && alt == this->alt
-                && (keychar != shifted_keychar || shift == this->shift)
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
             ? (numpad == this->numpad ? 8 : 0)
                 + (numlock == this->numlock ? 4 : 0)
                 + (cshift == this->cshift ? 2 : 0)
-                + 2
+                + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? -1 : 0)
+                + 6
             : 0;
-    }
-    if (result == MAX_MATCH_QUALITY) {
-        // Can't do better than this!
-        return result;
-    } else if (shifted_keychar != keychar) {
-        if (shifted_keychar == 0)
-            return result;
-        // @ -> Shift 2 etc.
-        int result2 = match(shifted_keychar, 0, keycode, ctrl, alt, !shift, numpad, numlock, cshift,
-                            old_keycode, !old_shift, old_extended);
-        return result2 > result ? result2 - 1 : result;
-    } else if (cshift) {
-        // CShift-to-Shift fallback
-        int result2 = match(keychar, keychar, keycode, ctrl, alt, !shift, numpad, numlock, false,
-                            old_keycode, !old_shift, old_extended);
-        return result2 > result ? result2 - 1 : result;
-    } else if (shift) {
-        // Shift NumPad 8 -> NumPad 8
-        int result2 = match(keychar, keychar, keycode, ctrl, alt, false, numpad, numlock, cshift,
-                            old_keycode, false, old_extended);
-        return result2 > result ? result2 - 1 : result;
-    } else {
-        return result;
     }
 }
 
@@ -1284,11 +1260,16 @@ unsigned char *skin_find_macro(int ckey, int *type) {
 }
 
 int skin_find_shifted_code(int code) {
-    for (int i = 0; i < nkeys; i++)
-        if (keylist[i].code == code) {
-            int r = keylist[i].shifted_code;
-            return r == code ? 0 : r;
+    for (int i = 0; i < nkeys; i++) {
+        int c = keylist[i].code;
+        int sc = keylist[i].shifted_code;
+        if (c != sc) {
+            if (code == c)
+                return sc;
+            else if (code == sc)
+                return c;
         }
+    }
     return 0;
 }
 
