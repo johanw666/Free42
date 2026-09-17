@@ -47,6 +47,7 @@ copy shell_spool.h ..\common
 copy skin2cpp.cpp ..\common\skin2cc.cc
 copy skin2cpp.conf ..\common\skin2cc.conf
 copy keymap2cpp.cpp ..\common\keymap2cc.cc
+copy keymap.txt ..\common
 copy bid_conf.h ..\common
 copy bid_functions.h ..\common
 copy raw2txt.cpp ..\common\raw2txt.cc

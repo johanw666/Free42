@@ -47,6 +47,7 @@ del shell_spool.h
 del skin2cpp.cpp
 del skin2cpp.conf
 del keymap2cpp.cpp
+del keymap.txt
 del bid_conf.h
 del bid_functions.h
 del keymap.cpp

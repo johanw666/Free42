@@ -109,7 +109,7 @@ txt2raw: symlinks txt2raw.o $(CORE_OBJS) gcc111libbid.a
 raw2txt: symlinks raw2txt.o $(CORE_OBJS) gcc111libbid.a
 	$(CXX) -o raw2txt $(LDFLAGS) raw2txt.o $(CORE_OBJS) $(LIBS)
 
-$(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf: symlinks
+$(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf keymap.txt: symlinks
 
 .cc.o:
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
