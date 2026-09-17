@@ -154,7 +154,7 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
             ? (numpad == this->numpad ? 8 : 0)
                 + (numlock == this->numlock ? 4 : 0)
                 + (cshift == this->cshift ? 2 : 0)
-                + (shift != this->shift != this->cshift ? -1 : 0)
+                + (shift != cshift != this->shift != this->cshift ? -1 : 0)
                 + 6
             : 0;
     } else {
@@ -167,7 +167,7 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
             ? (numpad == this->numpad ? 8 : 0)
                 + (numlock == this->numlock ? 4 : 0)
                 + (cshift == this->cshift ? 2 : 0)
-                + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != this->shift != this->cshift ? -1 : 0)
+                + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? -1 : 0)
                 + 6
             : 0;
     }

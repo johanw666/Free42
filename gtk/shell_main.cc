@@ -3074,7 +3074,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                     macro = key_macro;
                     macro_type = 0;
                 }
-                shell_keydown(skin_shift, (quality & 1) != 0);
+                shell_keydown(skin_shift, (quality & 1) != cshift);
                 mouse_key = false;
                 active_keycode = event->hardware_keycode;
             }
