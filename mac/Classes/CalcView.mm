@@ -84,13 +84,18 @@ static unsigned short keychar_normalize(unsigned char c) {
     if ([theEvent isARepeat])
         return;
 
+    NSUInteger flags = [theEvent modifierFlags];
+    NSUInteger flags2 = flags
+                & NSEventModifierFlagDeviceIndependentFlagsMask
+                & ~(NSEventModifierFlagControl | NSEventModifierFlagOption);
     NSString *c = [theEvent characters];
-    if ([c length] == 0)
+    NSString *s = [theEvent charactersByApplyingModifiers:flags2];
+    NSString *ss = [theEvent charactersByApplyingModifiers:flags2 ^ NSEventModifierFlagShift];
+    if ([c length] == 0 && [s length] == 0 && [ss length] == 0)
         return;
 
-    unsigned short ch = [c characterAtIndex:0];
+    unsigned short ch = [c length] == 0 ? 0 : [c characterAtIndex:0];
     unsigned short keyCode = [theEvent keyCode];
-    NSUInteger flags = [theEvent modifierFlags];
 
     if (ch == 127 || ch >= 0xf700 && ch <= 0xf8ff) {
         if (ch == NSHelpFunctionKey)
@@ -100,11 +105,6 @@ static unsigned short keychar_normalize(unsigned char c) {
             flags &= ~NSEventModifierFlagNumericPad;
         calc_keydown(ch, ch, flags, keyCode);
     } else {
-        NSUInteger flags2 = flags
-                    & NSEventModifierFlagDeviceIndependentFlagsMask
-                    & ~(NSEventModifierFlagControl | NSEventModifierFlagOption);
-        NSString *s = [theEvent charactersByApplyingModifiers:flags2];
-        NSString *ss = [theEvent charactersByApplyingModifiers:flags2 ^ NSEventModifierFlagShift];
         unsigned short cs = [s length] == 0 ? 0 : keychar_normalize([s characterAtIndex:0]);
         unsigned short css = [ss length] == 0 ? 0 : keychar_normalize([ss characterAtIndex:0]);
         calc_keydown(cs, css, flags, keyCode);
