@@ -184,14 +184,14 @@ struct key_name {
 };
 
 static key_name vk[] = {
-    GDK_KEY_BackSpace, "BACK",      // Backspace key
+    GDK_KEY_BackSpace, "BACKSPACE", // Backspace key
     GDK_KEY_Tab,       "TAB",       // Tab key
     GDK_KEY_Clear,     "CLEAR",     // Clear key
-    GDK_KEY_Return,    "RETURN",    // Enter key
+    GDK_KEY_Return,    "ENTER",     // Enter key
     GDK_KEY_Escape,    "ESCAPE",    // Esc key
     GDK_KEY_space,     "SPACE",     // Spacebar key
-    GDK_KEY_Page_Up,   "PRIOR",     // Page up key
-    GDK_KEY_Page_Down, "NEXT",      // Page down key
+    GDK_KEY_Page_Up,   "PAGE_UP",   // Page up key
+    GDK_KEY_Page_Down, "PAGE_DOWN", // Page down key
     GDK_KEY_End,       "END",       // End key
     GDK_KEY_Home,      "HOME",      // Home key
     GDK_KEY_Left,      "LEFT",      // Left arrow key

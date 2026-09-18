@@ -42,6 +42,8 @@ static bool launchingWithPrintoutVisible;
 static bool scrollPrintoutToBottomInitially = true;
 static bool loadSkinsWindowMapped = false;
 
+#define SHELL_VERSION 8
+
 state_type state;
 char free42dirname[FILENAMELEN];
 static bool keymap_obsolete = false;
@@ -1887,10 +1889,12 @@ static void init_shell_state(int4 version) {
             state.mainWindowHeight = 0;
             /* fall through */
         case 6:
-            keymap_obsolete = true;
             /* fall through */
         case 7:
-            /* current version (SHELL_VERSION = 7),
+            keymap_obsolete = true;
+            /* fall through */
+        case 8:
+            /* current version (SHELL_VERSION = 8),
              * so nothing to do here since everything
              * was initialized from the state file.
              */

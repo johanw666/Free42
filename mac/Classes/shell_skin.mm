@@ -124,14 +124,14 @@ struct key_name {
 };
 
 static key_name vk[] = {
-    0x007f,                  "BACK",      // Backspace key
+    0x007f,                  "BACKSPACE", // Backspace key
     0x0009,                  "TAB",       // Tab key
     NSClearLineFunctionKey,  "CLEAR",     // Clear key
-    0x000d,                  "RETURN",    // Enter key
+    0x000d,                  "ENTER",     // Enter key
     0x001b,                  "ESCAPE",    // Esc key
     0x0020,                  "SPACE",     // Spacebar key
-    NSPageUpFunctionKey,     "PRIOR",     // Page up key
-    NSPageDownFunctionKey,   "NEXT",      // Page down key
+    NSPageUpFunctionKey,     "PAGE_UP",   // Page up key
+    NSPageDownFunctionKey,   "PAGE_DOWN", // Page down key
     NSEndFunctionKey,        "END",       // End key
     NSHomeFunctionKey,       "HOME",      // Home key
     NSLeftArrowFunctionKey,  "LEFT",      // Left arrow key

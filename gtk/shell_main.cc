@@ -57,7 +57,7 @@ GtkWidget *mainwindow;
 bool allow_paint = false;
 int menu_bar_height = -1;
 
-#define SHELL_VERSION 12
+#define SHELL_VERSION 13
 
 state_type state;
 char free42dirname[FILENAMELEN];
@@ -1059,10 +1059,12 @@ static void init_shell_state(int4 version) {
             state.mainWindowHeight = 0;
             /* fall through */
         case 11:
-            keymap_obsolete = true;
             /* fall through */
         case 12:
-            /* current version (SHELL_VERSION = 12),
+            keymap_obsolete = true;
+            /* fall through */
+        case 13:
+            /* current version (SHELL_VERSION = 13),
              * so nothing to do here since everything
              * was initialized from the state file.
              */

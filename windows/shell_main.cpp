@@ -115,7 +115,7 @@ static int keymap_length = 0;
 static keymap_entry *keymap = NULL;
 
 
-#define SHELL_VERSION 15
+#define SHELL_VERSION 16
 
 state_type state;
 static int placement_saved = 0;
@@ -2852,10 +2852,12 @@ static void init_shell_state(int4 version) {
             state.mainWindowHeight = 0;
             // fall through
         case 14:
-            keymap_obsolete = true;
             // fall through
         case 15:
-            // current version (SHELL_VERSION = 15),
+            keymap_obsolete = true;
+            // fall through
+        case 16:
+            // current version (SHELL_VERSION = 16),
             // so nothing to do here since everything
             // was initialized from the state file.
             ;

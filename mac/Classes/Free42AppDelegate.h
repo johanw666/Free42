@@ -20,7 +20,6 @@
 #import "shell_skin.h"
 
 #define FILENAMELEN 256
-#define SHELL_VERSION 7
 
 struct state_type {
     int printerToTxtFile;

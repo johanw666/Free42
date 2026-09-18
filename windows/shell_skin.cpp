@@ -186,14 +186,14 @@ int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
 static const char *vk =
     // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
     // Note: I removed modifiers and non-keyboard codes
-    "\x08" "BACK"       "\0" // Backspace key
+    "\x08" "BACKSPACE"  "\0" // Backspace key
     "\x09" "TAB"        "\0" // Tab key
     "\x0C" "CLEAR"      "\0" // Clear key
-    "\x0D" "RETURN"     "\0" // Enter key
+    "\x0D" "ENTER"      "\0" // Enter key
     "\x1B" "ESCAPE"     "\0" // Esc key
     "\x20" "SPACE"      "\0" // Spacebar key
-    "\x21" "PRIOR"      "\0" // Page up key
-    "\x22" "NEXT"       "\0" // Page down key
+    "\x21" "PAGE_UP"    "\0" // Page up key
+    "\x22" "PAGE_DOWN"  "\0" // Page down key
     "\x23" "END"        "\0" // End key
     "\x24" "HOME"       "\0" // Home key
     "\x25" "LEFT"       "\0" // Left arrow key

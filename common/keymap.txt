@@ -8,8 +8,8 @@
 # Alternatively, instead of a character, a key name for one of the non-
 # character keys may be specified. The following key codes are recognized:
 #
-#   BACK TAB RETURN ESCAPE SPACE
-#   HOME UP PRIOR LEFT CLEAR RIGHT END DOWN NEXT INSERT DELETE
+#   ESCAPE TAB BACKSPACE ENTER SPACE
+#   UP DOWN LEFT RIGHT INSERT DELETE HOME END PAGE_UP PAGE_DOWN CLEAR
 #   F1..F20
 #
 # <macro> is a sequence of zero or more HP-42S key codes. The HP-42S key codes
@@ -50,11 +50,11 @@ d              : 9       # RDN (d as in down)
 s              : 10      # SIN
 c              : 11      # COS
 t              : 12      # TAN
-RETURN         : 13      # ENTER
+ENTER          : 13      # ENTER
 w              : 14      # X<>Y ("sWap")
 n              : 15      # +/- ("Negative")
 e              : 16      # E
-BACK           : 17      # <-
+BACKSPACE      : 17      # <-
 UP             : 18      # up
 7              : 19      # 7
 8              : 20      # 8
