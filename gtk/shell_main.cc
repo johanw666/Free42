@@ -3044,7 +3044,6 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                         m[0] = alt_code;
                         m[1] = 0;
                         key_macro = m;
-                        quality++;
                     }
                 }
                 if (key_macro[0] != 0)

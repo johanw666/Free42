@@ -1417,7 +1417,6 @@ void calc_keydown(unsigned short c, unsigned short shifted_c, NSUInteger flags, 
                 m[0] = alt_code;
                 m[1] = 0;
                 key_macro = m;
-                quality++;
             }
         }
         if (key_macro[0] != 0)

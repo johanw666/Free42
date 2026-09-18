@@ -1007,7 +1007,6 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                             m[0] = alt_code;
                             m[1] = 0;
                             key_macro = m;
-                            quality++;
                         }
                     }
                     if (key_macro[0] != 0)
