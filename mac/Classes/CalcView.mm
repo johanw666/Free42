@@ -70,6 +70,16 @@
     calc_mouseup();
 }
 
+// Handle Shift-Tab and NumPad-Enter
+static unsigned short keychar_normalize(unsigned char c) {
+    if (c == 25)
+        return 9;
+    else if (c == 3)
+        return 13;
+    else
+        return c;
+}
+
 - (void)keyDown:(NSEvent *)theEvent {
     if ([theEvent isARepeat])
         return;
@@ -79,17 +89,25 @@
         return;
 
     unsigned short ch = [c characterAtIndex:0];
+    unsigned short keyCode = [theEvent keyCode];
+    NSUInteger flags = [theEvent modifierFlags];
+
     if (ch == 127 || ch >= 0xf700 && ch <= 0xf8ff) {
         if (ch == NSHelpFunctionKey)
             ch = NSInsertFunctionKey;
-        calc_keydown(c, c, [theEvent modifierFlags], [theEvent keyCode]);
+        else if (ch == NSUpArrowFunctionKey || ch == NSDownArrowFunctionKey
+                || ch == NSLeftArrowFunctionKey || ch == NSRightArrowFunctionKey)
+            flags &= ~NSEventModifierFlagNumericPad;
+        calc_keydown(ch, ch, flags, keyCode);
     } else {
-        NSUInteger flags = [theEvent modifierFlags]
+        NSUInteger flags2 = flags
                     & NSEventModifierFlagDeviceIndependentFlagsMask
                     & ~(NSEventModifierFlagControl | NSEventModifierFlagOption);
-        calc_keydown([theEvent charactersByApplyingModifiers:flags],
-                     [theEvent charactersByApplyingModifiers:flags ^ NSEventModifierFlagShift],
-                     [theEvent modifierFlags], [theEvent keyCode]);
+        NSString *s = [theEvent charactersByApplyingModifiers:flags2];
+        NSString *ss = [theEvent charactersByApplyingModifiers:flags2 ^ NSEventModifierFlagShift];
+        unsigned short cs = [s length] == 0 ? 0 : keychar_normalize([s characterAtIndex:0]);
+        unsigned short css = [ss length] == 0 ? 0 : keychar_normalize([ss characterAtIndex:0]);
+        calc_keydown(cs, css, flags, keyCode);
     }
 }
 

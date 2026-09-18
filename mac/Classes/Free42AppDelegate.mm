@@ -1304,12 +1304,8 @@ void calc_mouseup() {
         shell_keyup();
 }
 
-void calc_keydown(NSString *characters, NSString *shiftedCharacters, NSUInteger flags, unsigned short keycode) {
+void calc_keydown(unsigned short c, unsigned short shifted_c, NSUInteger flags, unsigned short keycode) {
     if (ckey != 0 && mouse_key)
-        return;
-    
-    int len = [characters length];
-    if (len == 0)
         return;
     
     bool ctrl = (flags & NSEventModifierFlagControl) != 0;
@@ -1318,19 +1314,6 @@ void calc_keydown(NSString *characters, NSString *shiftedCharacters, NSUInteger 
     bool shift = (flags & NSEventModifierFlagShift) != 0;
     bool cshift = ann_shift != 0;
     
-    unsigned short c = [characters characterAtIndex:0];
-    unsigned short shifted_c = [shiftedCharacters characterAtIndex:0];
-
-    // Handle Shift-Tab and NumPad-Enter
-    if (c == 25)
-        c = 9;
-    else if (c == 3)
-        c = 13;
-    if (shifted_c == 25)
-        shifted_c = 9;
-    else if (shifted_c == 3)
-        shifted_c = 13;
-
     bool printable = c >= 32 && c != 127 && c < 0xf700 || c > 0xf8ff;
 
     just_pressed_shift = false;

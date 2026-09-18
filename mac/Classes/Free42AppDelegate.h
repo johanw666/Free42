@@ -55,7 +55,7 @@ extern int printout_bottom;
 
 void calc_mousedown(int x, int y);
 void calc_mouseup();
-void calc_keydown(NSString *characters, NSString *shiftedCharacters, NSUInteger flags, unsigned short keycode);
+void calc_keydown(unsigned short c, unsigned short shifted_c, NSUInteger flags, unsigned short keycode);
 void calc_keyup(unsigned short keycode);
 void calc_keymodifierschanged(NSUInteger flags);
 
