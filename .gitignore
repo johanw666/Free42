@@ -141,6 +141,7 @@
 /gtk/core_variables.h
 /gtk/free42.h
 /gtk/keymap2cc.cc
+/gtk/keymap.txt
 /gtk/shell.h
 /gtk/shell_loadimage.cc
 /gtk/shell_loadimage.h
@@ -265,6 +266,7 @@
 /windows/core_variables.h
 /windows/free42.h
 /windows/keymap2cpp.cpp
+/windows/keymap.txt
 /windows/shell.h
 /windows/shell_loadimage.cpp
 /windows/shell_loadimage.h
