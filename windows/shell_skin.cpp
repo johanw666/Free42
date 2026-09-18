@@ -949,11 +949,11 @@ struct KeyShortcutInfo {
     wstring text() {
         wstring u, s;
         if (unshifted.size() == 0)
-            u = L"n/a";
+            u = L"\xa0";
         else
             u = unshifted.substr(0, unshifted.size() - 1);
         if (shifted.size() == 0)
-            s = L"n/a";
+            s = L"\xa0";
         else
             s = shifted.substr(0, shifted.size() - 1);
         return s + L"\n" + u;
