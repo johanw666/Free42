@@ -1260,16 +1260,12 @@ unsigned char *skin_find_macro(int ckey, int *type) {
 }
 
 int skin_find_shifted_code(int code) {
-    for (int i = 0; i < nkeys; i++) {
-        int c = keylist[i].code;
-        int sc = keylist[i].shifted_code;
-        if (c != sc) {
-            if (code == c)
-                return sc;
-            else if (code == sc)
-                return c;
+    for (int i = 0; i < nkeys; i++)
+        if (keylist[i].code == code) {
+            int r = keylist[i].shifted_code;
+            if (r != code)
+                return r;
         }
-    }
     return 0;
 }
 
