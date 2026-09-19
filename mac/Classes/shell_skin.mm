@@ -37,6 +37,7 @@ struct SkinRect {
 
 struct SkinKey {
     int code, shifted_code;
+    bool single_code;
     SkinRect sens_rect;
     SkinRect disp_rect;
     SkinPoint src;
@@ -582,6 +583,7 @@ void skin_load(long *width, long *height) {
                     key = keylist + nkeys;
                     key->code = keynum;
                     key->shifted_code = shifted_keynum;
+                    key->single_code = n == 1;
                     key->sens_rect.x = sens_x;
                     key->sens_rect.y = sens_y;
                     key->sens_rect.width = sens_width;
@@ -1164,11 +1166,8 @@ unsigned char *skin_find_macro(int ckey, int *type) {
 
 int skin_find_shifted_code(int code) {
     for (int i = 0; i < nkeys; i++)
-        if (keylist[i].code == code) {
-            int r = keylist[i].shifted_code;
-            if (r != code)
-                return r;
-        }
+        if (keylist[i].code == code && !keylist[i].single_code)
+            return keylist[i].shifted_code;
     return 0;
 }
 
