@@ -343,7 +343,7 @@ public class SkinLayout {
                     } catch (NumberFormatException e) {
                         // ignore
                     }
-                } else if ((old_style = lcline.startsWith("droidkey:")) || lcline.startsWith("mapKey:")) {
+                } else if ((old_style = lcline.startsWith("droidkey:")) || lcline.startsWith("mapkey:")) {
                     KeymapEntry entry = KeymapEntry.parse(old_style, line.substring(old_style ? 9 : 7), lineno);
                     if (entry != null)
                         keymapList.add(entry);
