@@ -2986,39 +2986,37 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                     mouse_key = false;
                     active_keycode = event->hardware_keycode;
                     return TRUE;
-                } else if (!ctrl && !alt) {
-                    if (core_hex_menu() && ((c >= 'a' && c <= 'f')
-                                                || (c >= 'A' && c <= 'F'))) {
-                        if (c >= 'a' && c <= 'f')
-                            ckey = c - 'a' + 1;
-                        else
-                            ckey = c - 'A' + 1;
+                } else if (core_hex_menu() && ((c >= 'a' && c <= 'f')
+                                            || (c >= 'A' && c <= 'F'))) {
+                    if (c >= 'a' && c <= 'f')
+                        ckey = c - 'a' + 1;
+                    else
+                        ckey = c - 'A' + 1;
+                    skey = -1;
+                    macro = NULL;
+                    shell_keydown(false, false);
+                    mouse_key = false;
+                    active_keycode = event->hardware_keycode;
+                    return TRUE;
+                } else if (event->keyval == GDK_KEY_Left
+                        || event->keyval == GDK_KEY_Right
+                        || event->keyval == GDK_KEY_Delete) {
+                    int which;
+                    if (event->keyval == GDK_KEY_Left)
+                        which = shift ? 2 : 1;
+                    else if (event->keyval == GDK_KEY_Right)
+                        which = shift ? 4 : 3;
+                    else // event->keyval == GDK_KEY_Delete
+                        which = 5;
+                    which = core_special_menu_key(which);
+                    if (which != 0) {
+                        ckey = which;
                         skey = -1;
                         macro = NULL;
                         shell_keydown(false, false);
                         mouse_key = false;
                         active_keycode = event->hardware_keycode;
                         return TRUE;
-                    } else if (event->keyval == GDK_KEY_Left
-                            || event->keyval == GDK_KEY_Right
-                            || event->keyval == GDK_KEY_Delete) {
-                        int which;
-                        if (event->keyval == GDK_KEY_Left)
-                            which = shift ? 2 : 1;
-                        else if (event->keyval == GDK_KEY_Right)
-                            which = shift ? 4 : 3;
-                        else // event->keyval == GDK_KEY_Delete
-                            which = 5;
-                        which = core_special_menu_key(which);
-                        if (which != 0) {
-                            ckey = which;
-                            skey = -1;
-                            macro = NULL;
-                            shell_keydown(false, false);
-                            mouse_key = false;
-                            active_keycode = event->hardware_keycode;
-                            return TRUE;
-                        }
                     }
                 }
             }
