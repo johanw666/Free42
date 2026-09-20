@@ -148,7 +148,7 @@ int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
             // Also: always returning even scores, since odd scores trigger shift toggling
             // before playing back the selected macro, and the shift-toggle feature is
             // specific to MapKey.
-            ? (old_extended == this->numpad && cshift == this->cshift ? 4 : 2)
+            ? (old_extended == this->numpad && cshift == this->cshift ? MAX_MATCH_QUALITY : MAX_MATCH_QUALITY - 2)
             : 0;
     } else if (this->keycode != 0) {
         return keycode == this->keycode
@@ -161,7 +161,7 @@ int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
                 + (numlock == this->numlock ? 4 : 0)
                 + (cshift == this->cshift ? 2 : 0)
                 + (shift != cshift != this->shift != this->cshift ? -1 : 0)
-                + 6
+                + 2
             : 0;
     } else {
         return (keychar == this->keychar || shifted_keychar == this->keychar)
@@ -174,7 +174,7 @@ int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
                 + (numlock == this->numlock ? 4 : 0)
                 + (cshift == this->cshift ? 2 : 0)
                 + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? -1 : 0)
-                + 6
+                + 2
             : 0;
     }
 }
