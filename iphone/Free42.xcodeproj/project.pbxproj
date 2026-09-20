@@ -49,8 +49,6 @@
 		E9200DF81699E1EC001BC4B5 /* PrintView.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9200DF51699E1EC001BC4B5 /* PrintView.mm */; };
 		E9200DFB169A0004001BC4B5 /* PrintTileView.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9200DFA169A0004001BC4B5 /* PrintTileView.mm */; };
 		E92BCF39114C420900832FAD /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E92BCF38114C420900832FAD /* CoreLocation.framework */; };
-		E92EADB12D0987860019F001 /* GrayButton.mm in Sources */ = {isa = PBXBuildFile; fileRef = E92EADB02D0987860019F001 /* GrayButton.mm */; };
-		E92EADB22D0987860019F001 /* GrayButton.mm in Sources */ = {isa = PBXBuildFile; fileRef = E92EADB02D0987860019F001 /* GrayButton.mm */; };
 		E92FA6D42BB00C22004424EA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E92FA6D32BB00C22004424EA /* PrivacyInfo.xcprivacy */; };
 		E92FA6D52BB00C22004424EA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E92FA6D32BB00C22004424EA /* PrivacyInfo.xcprivacy */; };
 		E935A89C22B542F9007C41DF /* DeleteSkinView.mm in Sources */ = {isa = PBXBuildFile; fileRef = E935A89A22B542F9007C41DF /* DeleteSkinView.mm */; };
@@ -213,7 +211,7 @@
 		E9031C8E0FF68FB10023F9EC /* builtin_skins.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = builtin_skins.txt; sourceTree = "<group>"; };
 		E9031C900FF68FCD0023F9EC /* Ehrling42sm.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; name = Ehrling42sm.gif; path = skins/Ehrling42sm.gif; sourceTree = SOURCE_ROOT; };
 		E9031C910FF68FCD0023F9EC /* Ehrling42sm.layout */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Ehrling42sm.layout; path = skins/Ehrling42sm.layout; sourceTree = SOURCE_ROOT; };
-		E904A3222B571F8400C0D6F3 /* keymap.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = keymap.txt; path = ../mac/keymap.txt; sourceTree = "<group>"; };
+		E904A3222B571F8400C0D6F3 /* keymap.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = keymap.txt; path = ../common/keymap.txt; sourceTree = "<group>"; };
 		E908D3EB16D04D92000710EB /* SelectProgramsView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SelectProgramsView.h; sourceTree = "<group>"; };
 		E908D3EC16D04D92000710EB /* SelectProgramsView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SelectProgramsView.mm; sourceTree = "<group>"; };
 		E90B374B23116467000189D3 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
@@ -272,8 +270,6 @@
 		E9200DF9169A0004001BC4B5 /* PrintTileView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PrintTileView.h; sourceTree = "<group>"; };
 		E9200DFA169A0004001BC4B5 /* PrintTileView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PrintTileView.mm; sourceTree = "<group>"; };
 		E92BCF38114C420900832FAD /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = /System/Library/Frameworks/CoreLocation.framework; sourceTree = "<absolute>"; };
-		E92EADAF2D0987860019F001 /* GrayButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GrayButton.h; sourceTree = "<group>"; };
-		E92EADB02D0987860019F001 /* GrayButton.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GrayButton.mm; sourceTree = "<group>"; };
 		E92FA6D32BB00C22004424EA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E935A89A22B542F9007C41DF /* DeleteSkinView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DeleteSkinView.mm; sourceTree = "<group>"; };
 		E935A89B22B542F9007C41DF /* DeleteSkinView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DeleteSkinView.h; sourceTree = "<group>"; };
@@ -402,8 +398,6 @@
 				E935A89A22B542F9007C41DF /* DeleteSkinView.mm */,
 				E9200DF21699E1EC001BC4B5 /* Free42AppDelegate.h */,
 				E9200DF31699E1EC001BC4B5 /* Free42AppDelegate.mm */,
-				E92EADAF2D0987860019F001 /* GrayButton.h */,
-				E92EADB02D0987860019F001 /* GrayButton.mm */,
 				E9BA0E7B0F92245E0087EBFB /* HTTPServerView.h */,
 				E977D0791698FB4E00AA3FD9 /* HTTPServerView.mm */,
 				E935A89E22B54ED4007C41DF /* LoadSkinView.h */,
@@ -842,7 +836,6 @@
 				E9B16DFA0F88EE46002BB9B2 /* shell_loadimage.cc in Sources */,
 				E91005D10F893F8900B68C27 /* core_commands1.cc in Sources */,
 				E91005D20F893F8900B68C27 /* core_commands2.cc in Sources */,
-				E92EADB22D0987860019F001 /* GrayButton.mm in Sources */,
 				E91005D30F893F8900B68C27 /* core_commands3.cc in Sources */,
 				E91005D40F893F8900B68C27 /* core_commands4.cc in Sources */,
 				E91005D50F893F8900B68C27 /* core_commands5.cc in Sources */,
@@ -899,7 +892,6 @@
 				E9FC40DA260707AF00E52296 /* shell_loadimage.cc in Sources */,
 				E9FC40DB260707AF00E52296 /* core_commands1.cc in Sources */,
 				E9FC40DC260707AF00E52296 /* core_commands2.cc in Sources */,
-				E92EADB12D0987860019F001 /* GrayButton.mm in Sources */,
 				E9FC40DD260707AF00E52296 /* core_commands3.cc in Sources */,
 				E9FC40DE260707AF00E52296 /* core_commands4.cc in Sources */,
 				E9FC40DF260707AF00E52296 /* core_commands5.cc in Sources */,
@@ -966,7 +958,7 @@
 				GCC_THUMB_SUPPORT = NO;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -1004,7 +996,7 @@
 				GCC_THUMB_SUPPORT = NO;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -1053,7 +1045,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_MISSING_PARENTHESES = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
@@ -1084,7 +1076,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_MISSING_PARENTHESES = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				SDKROOT = iphoneos;
 			};
 			name = Release;
@@ -1113,7 +1105,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_MISSING_PARENTHESES = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				SDKROOT = iphoneos;
 			};
 			name = Distribution;
@@ -1132,7 +1124,7 @@
 				GCC_THUMB_SUPPORT = NO;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -1180,7 +1172,7 @@
 				GCC_THUMB_SUPPORT = NO;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -1229,7 +1221,7 @@
 				GCC_THUMB_SUPPORT = NO;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -1276,7 +1268,7 @@
 				GCC_THUMB_SUPPORT = NO;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",

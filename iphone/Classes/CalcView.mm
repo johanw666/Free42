@@ -759,31 +759,16 @@ static void read_key_map(const char *keymapfilename);
     bool handled = false;
     for (int i = 0; i < [p count]; i++) {
         UIPress *pr = [p objectAtIndex:i];
-        NSObject *k = [pr key];
+        UIKey *k = [pr key];
         if (k != nil) {
-            @try {
-                NSString *characters = [k valueForKey:@"characters"];
-                NSString *nonModCharacters = [k valueForKey:@"charactersIgnoringModifiers"];
-                if ([characters length] == 0 || [nonModCharacters hasPrefix:@"UIKeyInput"])
-                    characters = nonModCharacters;
-                long flags = [[k valueForKey:@"modifierFlags"] longValue];
-                int keycode = [[k valueForKey:@"keyCode"] intValue];
-                calc_keydown(characters, flags, keycode);
-                handled = true;
-            }
-            @catch (id ex) {
-                // [pr key] not an NSKey?
-                // The situation is a bit weird; the docs say UIPress.key is defined in
-                // iOS 9.0+, and is of type UIKey*, but the UIKey type is only defined
-                // in iOS 13.4+. I'm assuming that in iOS 9, UIKey is the same as in
-                // 13.4+, and that it just wasn't public, so that I should be able to
-                // use valueForKey to get at its fields in iOS [9.0, 13.4). If we get
-                // into this catch block, then that assumption would appear to be wrong.
-                // I don't have anything with sufficiently old iOS versions to find out,
-                // so at least for now, if there is an exception here, then the device
-                // will simply not respond to the keyboard in CalcView, which is a
-                // graceful failure mode at least.
-            }
+            NSString *characters = [k characters];
+            NSString *nonModCharacters = [k charactersIgnoringModifiers];
+            if ([characters length] == 0 || [nonModCharacters hasPrefix:@"UIKeyInput"])
+                characters = nonModCharacters;
+            long flags = [k modifierFlags];
+            int keycode = [k keyCode];
+            calc_keydown(characters, flags, keycode);
+            handled = true;
         }
     }
     if (!handled)
@@ -796,30 +781,15 @@ static void read_key_map(const char *keymapfilename);
     bool handled = false;
     for (int i = 0; i < [p count]; i++) {
         UIPress *pr = [p objectAtIndex:i];
-        NSObject *k = [pr key];
+        UIKey *k = [pr key];
         if (k != nil) {
-            @try {
-                NSString *characters = [k valueForKey:@"characters"];
-                if ([characters length] == 0)
-                    characters = [k valueForKey:@"charactersIgnoringModifiers"];
-                long flags = [[k valueForKey:@"modifierFlags"] longValue];
-                int keycode = [[k valueForKey:@"keyCode"] intValue];
-                calc_keyup(characters, flags, keycode);
-                handled = true;
-            }
-            @catch (id ex) {
-                // [pr key] not an NSKey?
-                // The situation is a bit weird; the docs say UIPress.key is defined in
-                // iOS 9.0+, and is of type UIKey*, but the UIKey type is only defined
-                // in iOS 13.4+. I'm assuming that in iOS 9, UIKey is the same as in
-                // 13.4+, and that it just wasn't public, so that I should be able to
-                // use valueForKey to get at its fields in iOS [9.0, 13.4). If we get
-                // into this catch block, then that assumption would appear to be wrong.
-                // I don't have anything with sufficiently old iOS versions to find out,
-                // so at least for now, if there is an exception here, then the device
-                // will simply not respond to the keyboard in CalcView, which is a
-                // graceful failure mode at least.
-            }
+            NSString *characters = [k characters];
+            if ([characters length] == 0)
+                characters = [k charactersIgnoringModifiers];
+            long flags = [k modifierFlags];
+            int keycode = [k keyCode];
+            calc_keyup(characters, flags, keycode);
+            handled = true;
         }
     }
     if (!handled)
