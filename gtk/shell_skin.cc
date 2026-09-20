@@ -1180,7 +1180,7 @@ void skin_draw_keyboard_shortcuts(cairo_t *cr) {
     cairo_rectangle(cr, 0, 0, skin.width, skin.height);
     cairo_fill(cr);
     KeyShortcutInfo *ksinfo = get_shortcut_info();
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(cr, "DejaVu Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, sqrt(((double) skin.width) * skin.height) / 42);
     while (ksinfo != NULL) {
         cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.5);
