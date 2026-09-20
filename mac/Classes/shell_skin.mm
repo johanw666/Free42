@@ -319,7 +319,7 @@ keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
         entry.numpad = numpad;
         entry.shift = shift;
         entry.cshift = cshift;
-        entry.keychar = keychar;;
+        entry.keychar = keychar;
         strcpy((char *) entry.macro, (const char *) macro);
         return &entry;
     } else
