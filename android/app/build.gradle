@@ -70,3 +70,12 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
+
+tasks.register('copyKeymap', Copy) {
+    from '../../common/keymap.txt'
+    into 'src/main/assets'
+}
+
+project.afterEvaluate {
+    preBuild.dependsOn copyKeymap
+}

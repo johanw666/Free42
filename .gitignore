@@ -19,6 +19,9 @@
 /android/app/.externalNativeBuild
 /android/app/.cxx
 
+# /android/app/src/main/assets/
+/android/app/src/main/assets/keymap.txt
+
 # /android/app/src/main/cpp/
 /android/app/src/main/cpp/bid_conf.h
 /android/app/src/main/cpp/bid_functions.h

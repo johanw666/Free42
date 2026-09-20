@@ -34,7 +34,7 @@ public class KeymapEntry {
     public String keychar;
     public byte[] macro;
 
-    public static KeymapEntry parse(String line, int lineno) {
+    public static KeymapEntry parse(boolean old_style, String line, int lineno) {
         int p = line.indexOf('#');
         if (p != -1)
             line = line.substring(0, p);
@@ -81,25 +81,42 @@ public class KeymapEntry {
                 else if (tok.equalsIgnoreCase("cshift"))
                     cshift = true;
                 else {
-                    boolean success = false;
                     try {
                         if (tok.length() > 2 && tok.substring(0, 2).equalsIgnoreCase("0x")) {
                             keychar = "" + (char) Integer.parseInt(tok.substring(2), 16);
-                            success = true;
+                            done = true;
                         }
                     } catch (NumberFormatException e) {}
-                    if (!success) {
-                        keychar = tok;
-                        int keycode = KeyEvent.keyCodeFromString(keychar);
-                        if (keycode != KeyEvent.KEYCODE_UNKNOWN) {
-                            int kc = numpad_normalize(keycode);
-                            if (kc != 0) {
-                                keychar = "" + (char) kc;
+                    if (!done) {
+                        if (old_style) {
+                            int ch = 0;
+                            int code = KeyEvent.keyCodeFromString("KEYCODE_" + tok);
+                            if (code != KeyEvent.KEYCODE_UNKNOWN)
+                                ch = numpad_normalize(code);
+                            if (ch != 0) {
+                                keychar = "" + (char) ch;
                                 numpad = true;
+                            } else if (tok.equals("ENTER")) {
+                                keychar = "\n";
+                            } else if (tok.equals("TAB")) {
+                                keychar = "\t";
+                            } else if (tok.equals("SPACE")) {
+                                keychar = " ";
+                            } else {
+                                keychar = tok;
+                            }
+                            done = true;
+                        } else {
+                            if (tok.length() == 1) {
+                                keychar = tok;
+                                done = true;
+                            } else {
+                                keychar = mapkeyToAndroid(tok);
+                                if (keychar != null)
+                                    done = true;
                             }
                         }
                     }
-                    done = true;
                 }
             }
             if (!done) {
@@ -128,15 +145,6 @@ public class KeymapEntry {
                     macro.write(k);
             }
 
-            if (!ctrl && !alt && keychar.length() == 1) {
-                char kc = keychar.charAt(0);
-                if (kc >= 'A' && kc <= 'Z') {
-                    keychar = "" + (char) (kc + 32);
-                    shift = true;
-                } else if (kc >= 'a' && kc <= 'z')
-                    shift = false;
-            }
-
             KeymapEntry entry = new KeymapEntry();
             entry.ctrl = ctrl;
             entry.alt = alt;
@@ -151,24 +159,66 @@ public class KeymapEntry {
             return null;
     }
 
-    public int match(String keychar, boolean ctrl, boolean alt, boolean shift, boolean shift_mismatch_allowed,
+    private static String VK[][] = new String[][] {
+        { "DEL",         "BACKSPACE", }, // Backspace key
+        { "\t",          "TAB",       }, // Tab key
+        { "CLEAR",       "CLEAR",     }, // Clear key
+        { "\n",          "ENTER",     }, // Enter key
+        { "ESCAPE",      "ESCAPE",    }, // Esc key
+        { " ",           "SPACE",     }, // Spacebar key
+        { "PAGE_UP",     "PAGE_UP",   }, // Page up key
+        { "PAGE_DOWN",   "PAGE_DOWN", }, // Page down key
+        { "MOVE_END",    "END",       }, // End key
+        { "MOVE_HOME",   "HOME",      }, // Home key
+        { "DPAD_LEFT",   "LEFT",      }, // Left arrow key
+        { "DPAD_UP",     "UP",        }, // Up arrow key
+        { "DPAD_RIGHT",  "RIGHT",     }, // Right arrow key
+        { "DPAD_DOWN",   "DOWN",      }, // Down arrow key
+        { "INSERT",      "INSERT",    }, // Insert key
+        { "FORWARD_DEL", "DELETE",    }, // Delete key
+        { "F1",          "F1",        }, // F1 key
+        { "F2",          "F2",        }, // F2 key
+        { "F3",          "F3",        }, // F3 key
+        { "F4",          "F4",        }, // F4 key
+        { "F5",          "F5",        }, // F5 key
+        { "F6",          "F6",        }, // F6 key
+        { "F7",          "F7",        }, // F7 key
+        { "F8",          "F8",        }, // F8 key
+        { "F9",          "F9",        }, // F9 key
+        { "F10",         "F10",       }, // F10 key
+        { "F11",         "F11",       }, // F11 key
+        { "F12",         "F12",       }, // F12 key
+        { "F13",         "F13",       }, // F13 key
+        { "F14",         "F14",       }, // F14 key
+        { "F15",         "F15",       }, // F15 key
+        { "F16",         "F16",       }, // F16 key
+        { "F17",         "F17",       }, // F17 key
+        { "F18",         "F18",       }, // F18 key
+        { "F19",         "F19",       }, // F19 key
+        { "F20",         "F20",       }, // F20 key
+    };
+
+    private static String mapkeyToAndroid(String keycode) {
+        for (int i = 0; i < VK.length; i++)
+            if (VK[i][1].equals(keycode))
+                return VK[i][0];
+        return null;
+    }
+
+    public int match(String code, String shifted_code, boolean ctrl, boolean alt, boolean shift,
                      boolean numpad, boolean numlock, boolean cshift) {
-        int result = keychar.equals(this.keychar)
+        return (code.equals(this.keychar) || shifted_code.equals(this.keychar))
                 && ctrl == this.ctrl
                 && alt == this.alt
-                && (shift_mismatch_allowed || shift == this.shift)
                 && (numpad || !this.numpad)
                 && (numlock || !this.numlock)
                 && (cshift || !this.cshift)
             ? (numpad == this.numpad ? 8 : 0)
                 + (numlock == this.numlock ? 4 : 0)
                 + (cshift == this.cshift ? 2 : 0)
+                + (!this.keychar.equals(shift ? shifted_code : code) != shift != cshift != this.shift != this.cshift ? -1 : 0)
                 + 2
             : 0;
-        if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
-            return result;
-        int result2 = match(keychar, ctrl, alt, !shift, false, numpad, numlock, false);
-        return result2 > result ? result2 - 1 : result;
     }
 
     public static final int MAX_MATCH_QUALITY = 16;

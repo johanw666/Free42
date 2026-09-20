@@ -60,6 +60,7 @@ public class SkinLayout {
 
     private static class SkinKey {
         int code, shifted_code;
+        boolean single_code;
         SkinRect sens_rect = new SkinRect();
         SkinRect disp_rect = new SkinRect();
         SkinPoint src = new SkinPoint();
@@ -159,6 +160,7 @@ public class SkinLayout {
             BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
             String line;
             int lineno = 0;
+            boolean old_style;
             List<SkinKey> tempkeylist = new ArrayList<SkinKey>();
             List<SkinMacro> tempmacrolist = new ArrayList<SkinMacro>();
             List<KeymapEntry> keymapList = new ArrayList<KeymapEntry>();
@@ -244,6 +246,7 @@ public class SkinLayout {
                         SkinKey key = new SkinKey();
                         key.code = keynum;
                         key.shifted_code = shifted_keynum;
+                        key.single_code = comma == -1;
                         key.sens_rect.x = sens_x;
                         key.sens_rect.y = sens_y;
                         key.sens_rect.width = sens_width;
@@ -340,8 +343,8 @@ public class SkinLayout {
                     } catch (NumberFormatException e) {
                         // ignore
                     }
-                } else if (lcline.startsWith("droidkey:")) {
-                    KeymapEntry entry = KeymapEntry.parse(line.substring(9), lineno);
+                } else if ((old_style = lcline.startsWith("droidkey:")) || lcline.startsWith("mapKey:")) {
+                    KeymapEntry entry = KeymapEntry.parse(old_style, line.substring(old_style ? 9 : 7), lineno);
                     if (entry != null)
                         keymapList.add(entry);
                 }
@@ -480,12 +483,12 @@ public class SkinLayout {
         return null;
     }
 
-    public KeymapEntry keymap_lookup(String keychar, boolean ctrl, boolean alt, boolean shift, boolean shift_mismatch_allowed,
+    public KeymapEntry keymap_lookup(String code, String shifted_code, boolean ctrl, boolean alt, boolean shift,
                               boolean numpad, boolean numlock, boolean cshift, IntHolder quality) {
         KeymapEntry ke = null;
         int q = 0;
         for (KeymapEntry entry : keymap) {
-            int qq = entry.match(keychar, ctrl, alt, shift, shift_mismatch_allowed, numpad, numlock, cshift);
+            int qq = entry.match(code, shifted_code, ctrl, alt, shift, numpad, numlock, cshift);
             if (qq == KeymapEntry.MAX_MATCH_QUALITY) {
                 quality.value = qq;
                 return entry;
@@ -499,12 +502,9 @@ public class SkinLayout {
     }
 
     public int find_shifted_code(int code) {
-        for (SkinKey key : keylist) {
-            if (key.code == code) {
-                int r = key.shifted_code;
-                return r == code ? 0 : r;
-            }
-        }
+        for (SkinKey key : keylist)
+            if (key.code == code && !key.single_code)
+                return key.shifted_code;
         return 0;
     }
 
@@ -712,11 +712,11 @@ public class SkinLayout {
         String text() {
             String u, s;
             if (unshifted.length() == 0)
-                u = "n/a";
+                u = "\u00a0";
             else
                 u = unshifted.substring(0, unshifted.length() - 1);
             if (shifted.length() == 0)
-                s = "n/a";
+                s = "\u00a0";
             else
                 s = shifted.substring(0, shifted.length() - 1);
             return s + "\n" + u;
@@ -735,6 +735,10 @@ public class SkinLayout {
             c = "Esc";
         else if (e.keychar.equals("\n"))
             c = "Enter";
+        else if (e.keychar.equals("\t"))
+            c = "Tab";
+        else if (e.keychar.equals(" "))
+            c = "Space";
         else if (e.keychar.equals("DEL"))
             c = "\u232b";
         else if (e.keychar.equals("DPAD_UP"))
@@ -755,15 +759,14 @@ public class SkinLayout {
             c = "PgDn";
         else
             c = e.keychar;
-        if (numpad)
-            c = "Kp" + c;
         String mods = "";
-        boolean printable = !e.ctrl && !e.alt && c.length() == 1 && c.charAt(0) >= 33 && c.charAt(0) <= 126;
+        if (numpad)
+            mods += "{n}";
         if (e.ctrl)
             mods += "^";
         if (e.alt)
             mods += "\u2325";
-        if (e.shift && !printable)
+        if (e.shift)
             mods += "\u21e7";
         return mods + c;
     }
