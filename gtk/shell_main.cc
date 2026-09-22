@@ -2895,23 +2895,26 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
             bool shift = (event->state & GDK_SHIFT_MASK) != 0;
             bool cshift = ann_shift != 0;
 
-            int c = 0, shifted_c = 0;
+            int c = 0, shifted_c = 0, orig_c = 0;
             GdkDisplay *disp = gdk_window_get_display(event->window);
             GdkKeymap *kmap = gdk_keymap_get_for_display(disp);
-            int state = event->state & ~(GDK_CONTROL_MASK | GDK_MOD1_MASK);
-            for (int i = 0; i < 2; i++) {
+            int state = event->state;
+            for (int i = 0; i < 3; i++) {
                 guint keyval;
                 gint effective_group;
                 gint level;
                 GdkModifierType consumed_modifiers;
-                int *cp = i == 0 ? &c : &shifted_c;
+                int *cp = i == 0 ? &orig_c : i == 1 ? &c : &shifted_c;
                 if (gdk_keymap_translate_keyboard_state(kmap, event->hardware_keycode, (GdkModifierType) state, event->group, 
                             &keyval, &effective_group, &level, &consumed_modifiers)) {
                     guint32 uc = gdk_keyval_to_unicode(keyval);
                     if (uc >= 32 && uc != 127)
                         *cp = uc;
                 }
-                state ^= GDK_SHIFT_MASK;
+                if (i == 0)
+                    state = event->state & ~(GDK_CONTROL_MASK | GDK_MOD1_MASK);
+                else
+                    state ^= GDK_SHIFT_MASK;
             }
 
             // Pretend the number keys and period on the numeric keypad always
@@ -2947,7 +2950,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                     numlock = false;
             }
 
-            bool printable = !(c >= 0 && c <= 31 || c == 127);
+            bool printable = !(orig_c >= 0 && orig_c <= 31 || orig_c == 127);
 
             int quality;
             keymap_entry *ke = skin_keymap_lookup(c, shifted_c, nKeyval, ctrl, alt, shift,
@@ -2968,55 +2971,56 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
             }
             unsigned char *key_macro = ke == NULL ? NULL : ke->macro;
 
-            if (!ctrl && !alt
-                    && (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
-                    && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0))) {
+            if (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
+                    && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0)) {
                 // The test above is to make sure that whatever mapping is in
                 // effect for R/S will never be overridden by the special cases
                 // for the ALPHA and A..F menus.
                 if (printable && core_alpha_menu()) {
-                    if (c >= 'a' && c <= 'z')
-                        c = c + 'A' - 'a';
-                    else if (c >= 'A' && c <= 'Z')
-                        c = c + 'a' - 'A';
-                    ckey = 1024 + (c & 65535);
+                    if (orig_c >= 'a' && orig_c <= 'z')
+                        orig_c = orig_c + 'A' - 'a';
+                    else if (orig_c >= 'A' && orig_c <= 'Z')
+                        orig_c = orig_c + 'a' - 'A';
+                    ckey = 1024 + (orig_c & 65535);
                     skey = -1;
                     macro = NULL;
                     shell_keydown(false, false);
                     mouse_key = false;
                     active_keycode = event->hardware_keycode;
                     return TRUE;
-                } else if (core_hex_menu() && ((c >= 'a' && c <= 'f')
-                                            || (c >= 'A' && c <= 'F'))) {
-                    if (c >= 'a' && c <= 'f')
-                        ckey = c - 'a' + 1;
-                    else
-                        ckey = c - 'A' + 1;
-                    skey = -1;
-                    macro = NULL;
-                    shell_keydown(false, false);
-                    mouse_key = false;
-                    active_keycode = event->hardware_keycode;
-                    return TRUE;
-                } else if (event->keyval == GDK_KEY_Left
-                        || event->keyval == GDK_KEY_Right
-                        || event->keyval == GDK_KEY_Delete) {
-                    int which;
-                    if (event->keyval == GDK_KEY_Left)
-                        which = shift ? 2 : 1;
-                    else if (event->keyval == GDK_KEY_Right)
-                        which = shift ? 4 : 3;
-                    else // event->keyval == GDK_KEY_Delete
-                        which = 5;
-                    which = core_special_menu_key(which);
-                    if (which != 0) {
-                        ckey = which;
+                } else if (!ctrl && !alt) {
+                    if (core_hex_menu() && ((c >= 'a' && c <= 'f')
+                                                || (c >= 'A' && c <= 'F'))) {
+                        if (c >= 'a' && c <= 'f')
+                            ckey = c - 'a' + 1;
+                        else
+                            ckey = c - 'A' + 1;
                         skey = -1;
                         macro = NULL;
                         shell_keydown(false, false);
                         mouse_key = false;
                         active_keycode = event->hardware_keycode;
                         return TRUE;
+                    } else if (event->keyval == GDK_KEY_Left
+                            || event->keyval == GDK_KEY_Right
+                            || event->keyval == GDK_KEY_Delete) {
+                        int which;
+                        if (event->keyval == GDK_KEY_Left)
+                            which = shift ? 2 : 1;
+                        else if (event->keyval == GDK_KEY_Right)
+                            which = shift ? 4 : 3;
+                        else // event->keyval == GDK_KEY_Delete
+                            which = 5;
+                        which = core_special_menu_key(which);
+                        if (which != 0) {
+                            ckey = which;
+                            skey = -1;
+                            macro = NULL;
+                            shell_keydown(false, false);
+                            mouse_key = false;
+                            active_keycode = event->hardware_keycode;
+                            return TRUE;
+                        }
                     }
                 }
             }
