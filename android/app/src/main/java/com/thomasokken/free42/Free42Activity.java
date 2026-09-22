@@ -1815,6 +1815,8 @@ public class Free42Activity extends Activity {
             boolean shift = event.isShiftPressed();
             boolean cshift = skin.getAnnunciators()[1];
 
+            int orig_ch = event.getUnicodeChar();
+
             int ch, shifted_ch;
             ch = KeymapEntry.numpad_normalize(keyCode);
             boolean numpad = ch != 0;
@@ -1846,7 +1848,7 @@ public class Free42Activity extends Activity {
                 shifted_code = code;
             }
 
-            boolean printable = ch >= 32 && ch != 127;
+            boolean printable = orig_ch >= 32 && orig_ch != 127;
 
             if (ckey != 0) {
                 shell_keyup(null);
@@ -1870,53 +1872,54 @@ public class Free42Activity extends Activity {
             }
             byte[] key_macro = ke == null ? null : ke.macro;
 
-            if (!ctrl && !alt
-                    && (key_macro == null || (key_macro[0] != 36 || key_macro.length > 1)
-                    && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro.length > 2))) {
+            if (key_macro == null || (key_macro[0] != 36 || key_macro.length > 1)
+                    && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro.length > 2)) {
                 // The test above is to make sure that whatever mapping is in
                 // effect for R/S will never be overridden by the special cases
                 // for the ALPHA and A..F menus.
                 if (printable && core_alpha_menu()) {
-                    if (ch >= 'a' && ch <= 'z')
-                        ch += 'A' - 'a';
-                    else if (ch >= 'A' && ch <= 'Z')
-                        ch += 'a' - 'A';
-                    ckey = 1024 + (ch & 65535);
+                    if (orig_ch >= 'a' && orig_ch <= 'z')
+                        orig_ch += 'A' - 'a';
+                    else if (orig_ch >= 'A' && orig_ch <= 'Z')
+                        orig_ch += 'a' - 'A';
+                    ckey = 1024 + (orig_ch & 65535);
                     skey = -1;
                     macroObj = null;
                     shell_keydown(false, false);
                     mouse_key = false;
                     active_keycode = keyCode;
                     return true;
-                } else if (core_hex_menu() && ((ch >= 'a' && ch <= 'f')
-                                            || (ch >= 'A' && ch <= 'F'))) {
-                    if (ch >= 'a' && ch <= 'f')
-                        ckey = ch - 'a' + 1;
-                    else
-                        ckey = ch - 'A' + 1;
-                    skey = -1;
-                    macroObj = null;
-                    shell_keydown(false, false);
-                    mouse_key = false;
-                    active_keycode = keyCode;
-                    return true;
-                } else if (code.equals("DPAD_LEFT") || code.equals("DPAD_RIGHT") || code.equals("FORWARD_DEL")) {
-                    int which;
-                    if (code.equals("DPAD_LEFT"))
-                        which = shift ? 2 : 1;
-                    else if (code.equals("DPAD_RIGHT"))
-                        which = shift ? 4 : 3;
-                    else // code.equals("FORWARD_DEL")
-                        which = 5;
-                    which = core_special_menu_key(which);
-                    if (which != 0) {
-                        ckey = which;
+                } else if (!ctrl && !alt) {
+                    if (core_hex_menu() && ((ch >= 'a' && ch <= 'f')
+                                                || (ch >= 'A' && ch <= 'F'))) {
+                        if (ch >= 'a' && ch <= 'f')
+                            ckey = ch - 'a' + 1;
+                        else
+                            ckey = ch - 'A' + 1;
                         skey = -1;
                         macroObj = null;
                         shell_keydown(false, false);
                         mouse_key = false;
                         active_keycode = keyCode;
                         return true;
+                    } else if (code.equals("DPAD_LEFT") || code.equals("DPAD_RIGHT") || code.equals("FORWARD_DEL")) {
+                        int which;
+                        if (code.equals("DPAD_LEFT"))
+                            which = shift ? 2 : 1;
+                        else if (code.equals("DPAD_RIGHT"))
+                            which = shift ? 4 : 3;
+                        else // code.equals("FORWARD_DEL")
+                            which = 5;
+                        which = core_special_menu_key(which);
+                        if (which != 0) {
+                            ckey = which;
+                            skey = -1;
+                            macroObj = null;
+                            shell_keydown(false, false);
+                            mouse_key = false;
+                            active_keycode = keyCode;
+                            return true;
+                        }
                     }
                 }
             }
