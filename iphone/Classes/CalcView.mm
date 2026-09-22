@@ -27,6 +27,7 @@
 #import "AlphaKeyboardView.h"
 #import "PrintView.h"
 #import "RootViewController.h"
+#import "ShiftMap.h"
 #import "ToastAlert.h"
 #import "Free42AppDelegate.h"
 #import "free42.h"
@@ -52,7 +53,8 @@ static void init_shell_state(int version);
 static int write_shell_state();
 
 state_type state;
-FILE* statefile;
+FILE *statefile;
+ShiftMap *shiftMap = NULL;
 
 static bool quit_flag = false;
 static bool enqueued;
@@ -432,6 +434,8 @@ static struct timeval runner_end_time;
     [super awakeFromNib];
     calcView = self;
     statefile = fopen("config/state", "r");
+    if (shiftMap == NULL)
+        shiftMap = new ShiftMap("config/shiftmap");
     int init_mode, version;
     char core_state_file_name[FILENAMELEN];
     int core_state_file_offset;
@@ -985,6 +989,7 @@ static void quit2(bool really_quit) {
 
     mkdir("config", 0755);
     write_shell_state();
+    shiftMap->write();
 
     char corefilename[FILENAMELEN];
     snprintf(corefilename, FILENAMELEN, "config/%s.f42", state.coreName);

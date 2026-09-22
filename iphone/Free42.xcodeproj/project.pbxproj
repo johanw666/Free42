@@ -99,6 +99,8 @@
 		E9BB9E9625682C7100708152 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E9BB9E9525682C7100708152 /* Launch Screen.storyboard */; };
 		E9C255DC1996B9C1007634C9 /* Ehrling42sl.gif in Resources */ = {isa = PBXBuildFile; fileRef = E9C255DA1996B9C1007634C9 /* Ehrling42sl.gif */; };
 		E9C255DD1996B9C1007634C9 /* Ehrling42sl.layout in Resources */ = {isa = PBXBuildFile; fileRef = E9C255DB1996B9C1007634C9 /* Ehrling42sl.layout */; };
+		E9CC0ADC3062847200F118BB /* ShiftMap.cc in Sources */ = {isa = PBXBuildFile; fileRef = E9CC0ADB3062847200F118BB /* ShiftMap.cc */; };
+		E9CC0ADD3062847200F118BB /* ShiftMap.cc in Sources */ = {isa = PBXBuildFile; fileRef = E9CC0ADB3062847200F118BB /* ShiftMap.cc */; };
 		E9CECB81255ED605003398B3 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9CECB80255ED605003398B3 /* libz.tbd */; };
 		E9ED02E92310A05B00C85D9A /* StatesView.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9ED02E72310A05A00C85D9A /* StatesView.mm */; };
 		E9F7136C16C5F1F0006A9553 /* minizip_ioapi.c in Sources */ = {isa = PBXBuildFile; fileRef = E9F7136616C5F1F0006A9553 /* minizip_ioapi.c */; };
@@ -336,6 +338,8 @@
 		E9BB9E9525682C7100708152 /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
 		E9C255DA1996B9C1007634C9 /* Ehrling42sl.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; name = Ehrling42sl.gif; path = skins/Ehrling42sl.gif; sourceTree = "<group>"; };
 		E9C255DB1996B9C1007634C9 /* Ehrling42sl.layout */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Ehrling42sl.layout; path = skins/Ehrling42sl.layout; sourceTree = "<group>"; };
+		E9CC0ADA3062847200F118BB /* ShiftMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShiftMap.h; sourceTree = "<group>"; };
+		E9CC0ADB3062847200F118BB /* ShiftMap.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ShiftMap.cc; sourceTree = "<group>"; };
 		E9CD21690FA39C41008E1E65 /* SelectFileView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SelectFileView.h; sourceTree = "<group>"; };
 		E9CECB80255ED605003398B3 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		E9ED02E72310A05A00C85D9A /* StatesView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = StatesView.mm; sourceTree = "<group>"; };
@@ -421,6 +425,8 @@
 				E9B16E020F88F015002BB9B2 /* shell_skin.h */,
 				E9B16E840F8907E8002BB9B2 /* shell_skin_iphone.h */,
 				E977D0811698FB4E00AA3FD9 /* shell_skin_iphone.mm */,
+				E9CC0ADA3062847200F118BB /* ShiftMap.h */,
+				E9CC0ADB3062847200F118BB /* ShiftMap.cc */,
 				E9ED02E82310A05A00C85D9A /* StatesView.h */,
 				E9ED02E72310A05A00C85D9A /* StatesView.mm */,
 				E95273332D3A82CE00363585 /* ToastAlert.h */,
@@ -847,6 +853,7 @@
 				E91005D90F893F8900B68C27 /* core_helpers.cc in Sources */,
 				E91005DA0F893F8900B68C27 /* core_keydown.cc in Sources */,
 				E91005DB0F893F8900B68C27 /* core_linalg1.cc in Sources */,
+				E9CC0ADD3062847200F118BB /* ShiftMap.cc in Sources */,
 				E91005DC0F893F8900B68C27 /* core_linalg2.cc in Sources */,
 				E91005DD0F893F8900B68C27 /* core_main.cc in Sources */,
 				E91005DE0F893F8900B68C27 /* core_math1.cc in Sources */,
@@ -903,6 +910,7 @@
 				E9FC40E5260707AF00E52296 /* core_helpers.cc in Sources */,
 				E9FC40E6260707AF00E52296 /* core_keydown.cc in Sources */,
 				E9FC40E7260707AF00E52296 /* core_linalg1.cc in Sources */,
+				E9CC0ADC3062847200F118BB /* ShiftMap.cc in Sources */,
 				E9FC40E8260707AF00E52296 /* core_linalg2.cc in Sources */,
 				E9FC40E9260707AF00E52296 /* core_main.cc in Sources */,
 				E9FC40EA260707AF00E52296 /* core_math1.cc in Sources */,
