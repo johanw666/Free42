@@ -42,6 +42,7 @@ struct SkinRect {
 
 struct SkinKey {
     int code, shifted_code;
+    bool single_code;
     SkinRect sens_rect;
     SkinRect disp_rect;
     SkinPoint src;
@@ -106,29 +107,116 @@ static int keymap_length = 0;
 /* Keymap matcher */
 /******************/
 
-int keymap_entry::match(unsigned short keychar, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
-                        bool numpad, bool cshift) {
-    int result = keychar == this->keychar
+int keymap_entry::match(unsigned short c, unsigned short shifted_c, bool ctrl, bool alt, bool shift, bool numpad, bool cshift) {
+    return (c == this->keychar || shifted_c == this->keychar)
             && ctrl == this->ctrl
             && alt == this->alt
-            && (shift_mismatch_allowed || shift == this->shift)
             && (numpad || !this->numpad)
             && (cshift || !this->cshift)
         ? (numpad == this->numpad ? 4 : 0)
             + (cshift == this->cshift ? 2 : 0)
+            + (((shift ? shifted_c : c) != this->keychar) != shift != cshift != this->shift != this->cshift ? -1 : 0)
             + 2
         : 0;
-    if (result == MAX_MATCH_QUALITY || !cshift || shift_mismatch_allowed)
-        return result;
-    int result2 = match(keychar, ctrl, alt, !shift, false, numpad, false);
-    return result2 > result ? result2 - 1 : result;
 }
 
 /*****************/
 /* Keymap parser */
 /*****************/
 
-keymap_entry *parse_keymap_entry(char *line, int lineno) {
+struct key_name {
+    unsigned short keychar;
+    const char *name;
+};
+
+static key_name vk[] = {
+    0x007f, "BACKSPACE", // Backspace key
+    0x0009, "TAB",       // Tab key
+    0xf739, "CLEAR",     // Clear key
+    0x000d, "ENTER",     // Enter key
+    0x001b, "ESCAPE",    // Esc key
+    0x0020, "SPACE",     // Spacebar key
+    0xf72c, "PAGE_UP",   // Page up key
+    0xf72d, "PAGE_DOWN", // Page down key
+    0xf72b, "END",       // End key
+    0xf729, "HOME",      // Home key
+    0xf702, "LEFT",      // Left arrow key
+    0xf700, "UP",        // Up arrow key
+    0xf703, "RIGHT",     // Right arrow key
+    0xf701, "DOWN",      // Down arrow key
+    0xf727, "INSERT",    // Insert key
+    0xf728, "DELETE",    // Delete key
+    0xf704, "F1",        // F1 key
+    0xf705, "F2",        // F2 key
+    0xf706, "F3",        // F3 key
+    0xf707, "F4",        // F4 key
+    0xf708, "F5",        // F5 key
+    0xf709, "F6",        // F6 key
+    0xf70a, "F7",        // F7 key
+    0xf70b, "F8",        // F8 key
+    0xf70c, "F9",        // F9 key
+    0xf70d, "F10",       // F10 key
+    0xf70e, "F11",       // F11 key
+    0xf70f, "F12",       // F12 key
+    0xf710, "F13",       // F13 key
+    0xf711, "F14",       // F14 key
+    0xf712, "F15",       // F15 key
+    0xf713, "F16",       // F16 key
+    0xf714, "F17",       // F17 key
+    0xf715, "F18",       // F18 key
+    0xf716, "F19",       // F19 key
+    0xf717, "F20",       // F20 key
+    0x0000, NULL
+};
+
+static unsigned short vk_parse(const char *code) {
+    for (int i = 0; vk[i].keychar != 0; i++)
+        if (strcmp(code, vk[i].name) == 0)
+            return vk[i].keychar;
+    return 0;
+}
+
+int utf8_length(const char *s) {
+    int len = 0;
+    char c;
+    while ((c = *s++) != 0) {
+        int n;
+        if (c == 0)
+            break;
+        if ((c & 0x80) == 0x00)
+            n = 1;
+        else if ((c & 0xc0) == 0x80)
+            continue;
+        else if ((c & 0xe0) == 0xc0)
+            n = 2;
+        else if ((c & 0xf0) == 0xe0)
+            n = 3;
+        else
+            continue;
+        while (--n) {
+            if (*s++ == 0)
+                break;
+        }
+        len++;
+    }
+    return len;
+}
+
+static int get_first_utf8_char(const char *s) {
+    int c = *s & 255;
+    if ((c & 0x80) == 0)
+        return c;
+    else if ((c & 0xc0) == 0x80)
+        return -1;
+    else if ((c & 0xe0) == 0xc0)
+        return ((c & 0x1f) << 6) | (s[1] & 0x3f);
+    else if ((c & 0xf0) == 0xe0)
+        return ((c & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f);
+    else
+        return -1;
+}
+
+keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno) {
     char *p;
     static keymap_entry entry;
 
@@ -174,12 +262,28 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
                 shift = true;
             else if (strcasecmp(tok, "cshift") == 0)
                 cshift = true;
-            else {
+            else if (old_style) {
                 if (strlen(tok) == 1)
                     keychar = (unsigned char) *tok;
                 else if (sscanf(tok, "0x%hx", &keychar) != 1) {
+                    bad_keycode:
                     NSLog(@"Keymap, line %d: Bad keycode.", lineno);
                     return NULL;
+                }
+                done = 1;
+            } else {
+                if (utf8_length(tok) == 1) {
+                    keychar = get_first_utf8_char(tok);
+                } else if (strncasecmp(tok, "0x", 2) == 0) {
+                    char *endptr;
+                    long k = strtol(tok + 2, &endptr, 16);
+                    if (*endptr != 0)
+                        goto bad_keycode;
+                    keychar = k;
+                } else {
+                    keychar = vk_parse(tok);
+                    if (keychar == 0)
+                        goto bad_keycode;
                 }
                 done = 1;
             }
@@ -206,14 +310,6 @@ keymap_entry *parse_keymap_entry(char *line, int lineno) {
             tok = strtok(NULL, " \t");
         }
         macro[macrolen] = 0;
-
-        if (!ctrl && !alt) {
-            if (keychar >= 'A' && keychar <= 'Z') {
-                keychar += 32;
-                shift = true;
-            } else if (keychar >= 'a' && keychar <= 'z')
-                shift = false;
-        }
 
         entry.ctrl = ctrl;
         entry.alt = alt;
@@ -408,6 +504,7 @@ void skin_load(long *width, long *height) {
     int kmcap = 0;
 
     int lineno = 0;
+    bool old_style;
 
     while (skin_gets(line, 1024)) {
         lineno++;
@@ -468,6 +565,7 @@ void skin_load(long *width, long *height) {
                     key = keylist + nkeys;
                     key->code = keynum;
                     key->shifted_code = shifted_keynum;
+                    key->single_code = n == 1;
                     key->sens_rect.x = sens_x;
                     key->sens_rect.y = sens_y;
                     key->sens_rect.width = sens_width;
@@ -572,8 +670,8 @@ void skin_load(long *width, long *height) {
                     ann->src.y = act_y;
                 }
             }
-        } else if (strncasecmp(line, "mackey:", 7) == 0) {
-            keymap_entry *entry = parse_keymap_entry(line + 7, lineno);
+        } else if ((old_style = strncasecmp(line, "mackey:", 7) == 0) || strncasecmp(line, "mapkey:", 7) == 0) {
+            keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
             if (entry != NULL) {
                 if (keymap_length == kmcap) {
                     kmcap += 50;
@@ -759,11 +857,11 @@ struct KeyShortcutInfo {
     NSString *text() {
         NSString *u, *s;
         if ([unshifted length] == 0)
-            u = @"n/a";
+            u = @"\u00a0";
         else
             u = [unshifted substringToIndex:[unshifted length] - 1];
         if ([shifted length] == 0)
-            s = @"n/a";
+            s = @"\u00a0";
         else
             s = [shifted substringToIndex:[shifted length] - 1];
         return [NSString stringWithFormat:@"%@\n%@", s, u];
@@ -772,18 +870,16 @@ struct KeyShortcutInfo {
 
 static NSString *entry_to_text(keymap_entry *e) {
     NSString *mods = @"";
-    bool printable = !e->ctrl && e->keychar >= 33 && e->keychar <= 126;
     if (e->numpad)
         mods = [mods stringByAppendingString:@"{n}"];
     if (e->ctrl)
         mods = [mods stringByAppendingString:@"^"];
     if (e->alt)
         mods = [mods stringByAppendingString:@"\u2325"];
-    if (e->shift && !printable)
+    if (e->shift)
         mods = [mods stringByAppendingString:@"\u21e7"];
     NSString *c;
     switch (e->keychar) {
-        case 3: c = @"KpEnter"; break;
         case 13: c = @"Enter"; break;
         case 27: c = @"Esc"; break;
         case 127: c = @"\u232B"; break;
@@ -801,10 +897,12 @@ static NSString *entry_to_text(keymap_entry *e) {
         case 0xf73f: c = @"Prev"; break;
         case 0xf740: c = @"Next"; break;
         default:
-            if (e->keychar >= 0xf704 && e->keychar <= 0xf726)
+            if (e->keychar > 32 && e->keychar < 0xf700 || e->keychar > 0xf8ff)
+                c = [NSString stringWithFormat:@"%C", e->keychar];
+            else if (e->keychar >= 0xf704 && e->keychar <= 0xf726)
                 c = [NSString stringWithFormat:@"F%d", e->keychar - 0xf704 + 1];
             else
-                c = [NSString stringWithFormat:@"%C", e->keychar];
+                c = [NSString stringWithFormat:@"0x%x", e->keychar];
     }
     return [mods stringByAppendingString:c];
 }
@@ -1086,21 +1184,19 @@ unsigned char *skin_find_macro(int ckey, int *type) {
 
 int skin_find_shifted_code(int code) {
     for (int i = 0; i < nkeys; i++)
-        if (keylist[i].code == code) {
-            int r = keylist[i].shifted_code;
-            return r == code ? 0 : r;
-        }
+        if (keylist[i].code == code && !keylist[i].single_code)
+            return keylist[i].shifted_code;
     return 0;
 }
 
-keymap_entry *skin_keymap_lookup(unsigned short keychar,
-                                 bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed,
+keymap_entry *skin_keymap_lookup(unsigned short c, unsigned short shifted_c,
+                                 bool ctrl, bool alt, bool shift,
                                  bool numpad, bool cshift, int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        int qq = entry->match(keychar, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift);
+        int qq = entry->match(c, shifted_c, ctrl, alt, shift, numpad, cshift);
         if (qq == MAX_MATCH_QUALITY) {
             *quality = qq;
             return entry;

@@ -34,10 +34,10 @@ struct keymap_entry {
     bool cshift; 
     unsigned short keychar;
     unsigned char macro[KEYMAP_MAX_MACRO_LENGTH + 1];
-    int match(unsigned short keychar, bool ctrl, bool alt, bool shift, bool shift_mismatch_allowed, bool numpad, bool cshift);
+    int match(unsigned short c, unsigned short shifted_c, bool ctrl, bool alt, bool shift, bool numpad, bool cshift);
 };
 
-keymap_entry *parse_keymap_entry(char *line, int lineno);
+keymap_entry *parse_keymap_entry(bool old_style, char *line, int lineno);
 
 int skin_getchar();
 void skin_rewind();

@@ -51,9 +51,13 @@ static void calc_keyup(int keycode);
 static int read_shell_state(int *version);
 static void init_shell_state(int version);
 static int write_shell_state();
+static void read_key_map(const char *keymapfilename);
+
+#define SHELL_VERSION 15
 
 state_type state;
 FILE *statefile;
+static bool keymap_obsolete = false;
 ShiftMap *shiftMap = NULL;
 
 static bool quit_flag = false;
@@ -472,6 +476,10 @@ static struct timeval runner_end_time;
         }
     }
 
+    if (keymap_obsolete)
+        rename("config/keymap.txt", "config/keymap.old");
+    read_key_map("config/keymap.txt");
+
     long w, h;
     skin_load(&w, &h);
     
@@ -740,13 +748,6 @@ static CLLocationManager *locMgr = nil;
     return YES;
 }
 
-static void read_key_map(const char *keymapfilename);
-
-+ (void) readKeyMap {
-    mkdir("config", 0755);
-    read_key_map("config/keymap.txt");
-}
-
 - (IBAction) toggleKeyboardShortcuts:(id)sender {
     [RootViewController showMain];
     keyboardShortcutsShowing = !keyboardShortcutsShowing;
@@ -808,9 +809,14 @@ static void read_key_map(const char *keymapfilename);
             } else if ([characters isEqualToString:@"\177"]) {
                 c = 0xf728;
             } else if ([characters isEqualToString:@"\33"]) {
-                // Allow Ctrl-[ to be used as Esc, for keyboards without an Esc key
-                c = 0x1b;
-                flags &= ~UIKeyModifierControl;
+                if ((flags & UIKeyModifierNumericPad) != 0) {
+                    c = 0xf739; // Clear
+                    flags &= ~UIKeyModifierNumericPad;
+                } else {
+                    // Allow Ctrl-[ to be used as Esc, for keyboards without an Esc key
+                    c = 0x1b;
+                    flags &= ~UIKeyModifierControl;
+                }
             } else {
                 c = [characters length] == 0 ? 0 : [characters characterAtIndex:0];
             }
@@ -825,7 +831,7 @@ static void read_key_map(const char *keymapfilename);
 
             unichar shifted_c;
 
-            if (numpad) {
+            if (numpad || c <= 32 || c == 127 || c >= 0xf700 && c <= 0xf8ff) {
                 shifted_c = c;
             } else if (ctrl) {
                 if (c < 32)
@@ -896,6 +902,7 @@ static void read_key_map(const char *keymapfilename) {
 
     if (keymapfile == NULL) {
         /* Try to create default keymap file */
+        mkdir("config", 0755);
         keymapfile = fopen(keymapfilename, "wb");
         if (keymapfile == NULL)
             return;
@@ -914,7 +921,7 @@ static void read_key_map(const char *keymapfilename) {
     }
 
     while (fgets(line, 1024, keymapfile) != NULL) {
-        keymap_entry *entry = parse_keymap_entry(line, ++lineno);
+        keymap_entry *entry = parse_keymap_entry(false, line, ++lineno);
         if (entry == NULL)
             continue;
         /* Create new keymap entry */
@@ -1036,7 +1043,10 @@ static void init_shell_state(int version) {
             state.popupAlphaKeyboard = 1;
             /* fall through */
         case 14:
-            /* current version (SHELL_VERSION = 14),
+            keymap_obsolete = true;
+            /* fall through */
+        case 15:
+            /* current version (SHELL_VERSION = 15),
              * so nothing to do here since everything
              * was initialized from the state file.
              */
@@ -1198,31 +1208,22 @@ static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flag
     bool shift = (flags & UIKeyModifierShift) != 0;
     bool cshift = ann_shift != 0;
 
-    bool printable = !ctrl && (c >= 32 && c <= 126 || c >= 128 && c < 0xf700 || c >= 0xf900);
-    bool shift_mismatch_allowed = printable && !numpad && c != 32;
+    bool printable = !ctrl && (orig_c >= 32 && orig_c <= 126 || orig_c >= 128 && orig_c < 0xf700 || orig_c >= 0xf900);
 
     if (ckey != 0) {
         shell_keyup();
         active_keycode = -1;
     }
 
-    unsigned short lc = c;
-    if (printable && !alt) {
-        if (lc >= 'A' && lc <= 'Z') {
-            lc += 32;
-            shift_mismatch_allowed = false;
-        } else if (lc >= 'a' && lc <= 'z')
-            shift_mismatch_allowed = false;
-    }
-
     int quality;
-    keymap_entry *ke = skin_keymap_lookup(lc, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift, &quality);
+    keymap_entry *ke = skin_keymap_lookup(c, shifted_c, ctrl, alt, shift, numpad, cshift, &quality);
     if (ke == NULL || quality < MAX_MATCH_QUALITY) {
         for (int i = 0; i < keymap_length; i++) {
             keymap_entry *entry = keymap + i;
-            int qq = entry->match(lc, ctrl, alt, shift, shift_mismatch_allowed, numpad, cshift);
+            int qq = entry->match(c, shifted_c, ctrl, alt, shift, numpad, cshift);
             if (qq == MAX_MATCH_QUALITY) {
                 ke = entry;
+                quality = qq;
                 break;
             } else if (qq > quality) {
                 ke = entry;
@@ -1238,11 +1239,11 @@ static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flag
         // effect for R/S will never be overridden by the special cases
         // for the ALPHA and A..F menus.
         if (printable && core_alpha_menu()) {
-            if (c >= 'a' && c <= 'z')
-                c = c + 'A' - 'a';
-            else if (c >= 'A' && c <= 'Z')
-                c = c + 'a' - 'A';
-            ckey = 1024 + c;
+            if (orig_c >= 'a' && orig_c <= 'z')
+                orig_c = orig_c + 'A' - 'a';
+            else if (orig_c >= 'A' && orig_c <= 'Z')
+                orig_c = orig_c + 'a' - 'A';
+            ckey = 1024 + orig_c;
             skey = -1;
             macro = NULL;
             shell_keydown(false, false);
@@ -1264,25 +1265,21 @@ static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flag
                 return;
             } else if (c == 0xf702 || c == 0xf703 || c == 0xf728) {
                 int which;
-               if (c == 0xf702)
+                if (c == 0xf702)
                     which = shift ? 2 : 1;
                 else if (c == 0xf703)
                     which = shift ? 4 : 3;
-                else if (c == 0xf728)
+                else // c == 0xf728
                     which = 5;
-                else
-                    which = 0;
+                which = core_special_menu_key(which);
                 if (which != 0) {
-                    which = core_special_menu_key(which);
-                    if (which != 0) {
-                        ckey = which;
-                        skey = -1;
-                        macro = NULL;
-                        shell_keydown(false, false);
-                        mouse_key = false;
-                        active_keycode = keycode;
-                        return;
-                    }
+                    ckey = which;
+                    skey = -1;
+                    macro = NULL;
+                    shell_keydown(false, false);
+                    mouse_key = false;
+                    active_keycode = keycode;
+                    return;
                 }
             }
         }
@@ -1299,9 +1296,8 @@ static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flag
         ckey = -10;
         skey = -1;
         bool skin_shift = cshift;
-        if (cshift && (quality & 1) == 0 && key_macro[0] != 0 && key_macro[1] == 0
-                && !ke->shift && !ke->cshift) {
-            // CShift active, but we ended up with an unshifted mapping.
+        if ((quality & 1) != 0 && key_macro[0] != 0 && key_macro[1] == 0) {
+            // Shift xor CShift active, but we ended up with an unshifted mapping.
             // Check if this is one of an 'unshifted,shifted' macro pair,
             // and if so, use the shifted partner as the fallback.
             int alt_code = skin_find_shifted_code(key_macro[0]);
@@ -1345,7 +1341,7 @@ static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flag
             macro = key_macro;
             macro_type = 0;
         }
-        shell_keydown(skin_shift, (quality & 1) != 0);
+        shell_keydown(skin_shift, (quality & 1) != cshift);
         mouse_key = false;
         active_keycode = keycode;
 //    } else {

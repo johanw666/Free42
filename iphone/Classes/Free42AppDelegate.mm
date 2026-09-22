@@ -39,7 +39,6 @@ static char version[32] = "";
     [[UIDevice currentDevice] setBatteryMonitoringEnabled:YES];
     [[NSNotificationCenter defaultCenter] addObserver:rootViewController selector:@selector(batteryLevelChanged) name:UIDeviceBatteryLevelDidChangeNotification object:nil];
     [rootViewController batteryLevelChanged];
-    [CalcView readKeyMap];
 }
 
 - (void) applicationDidEnterBackground:(UIApplication *)application {

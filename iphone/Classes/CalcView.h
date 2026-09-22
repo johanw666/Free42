@@ -18,7 +18,6 @@
 #import <UIKit/UIKit.h>
 #import "shell_skin.h"
 
-#define SHELL_VERSION 14
 #define FILENAMELEN 1024
 
 struct state_type {
@@ -82,7 +81,6 @@ void get_keymap(keymap_entry **map, int *length);
 + (void) stopTextPrinting;
 + (void) stopGifPrinting;
 - (void) setActive:(bool) active;
-+ (void) readKeyMap;
 - (IBAction) toggleKeyboardShortcuts:(id)sender;
 
 @end
