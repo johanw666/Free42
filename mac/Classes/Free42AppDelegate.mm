@@ -1306,7 +1306,7 @@ void calc_mouseup() {
         shell_keyup();
 }
 
-void calc_keydown(unsigned short c, unsigned short shifted_c, NSUInteger flags, unsigned short keycode) {
+void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, NSUInteger flags, unsigned short keycode) {
     if (ckey != 0 && mouse_key)
         return;
     
@@ -1316,7 +1316,7 @@ void calc_keydown(unsigned short c, unsigned short shifted_c, NSUInteger flags, 
     bool shift = (flags & NSEventModifierFlagShift) != 0;
     bool cshift = ann_shift != 0;
     
-    bool printable = c >= 32 && c != 127 && c < 0xf700 || c > 0xf8ff;
+    bool printable = !ctrl && (orig_c >= 32 && orig_c != 127 && orig_c < 0xf700 || orig_c > 0xf8ff);
 
     just_pressed_shift = false;
     
@@ -1343,53 +1343,54 @@ void calc_keydown(unsigned short c, unsigned short shifted_c, NSUInteger flags, 
     }
     unsigned char *key_macro = ke == NULL ? NULL : ke->macro;
 
-    if (!ctrl && !alt
-            && (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
-            && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0))) {
+    if (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
+            && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0)) {
         // The test above is to make sure that whatever mapping is in
         // effect for R/S will never be overridden by the special cases
         // for the ALPHA and A..F menus.
         if (printable && core_alpha_menu()) {
-            if (c >= 'a' && c <= 'z')
-                c = c + 'A' - 'a';
-            else if (c >= 'A' && c <= 'Z')
-                c = c + 'a' - 'A';
-            ckey = 1024 + c;
+            if (orig_c >= 'a' && orig_c <= 'z')
+                orig_c = orig_c + 'A' - 'a';
+            else if (orig_c >= 'A' && orig_c <= 'Z')
+                orig_c = orig_c + 'a' - 'A';
+            ckey = 1024 + orig_c;
             skey = -1;
             macro = NULL;
             shell_keydown(false, false);
             mouse_key = 0;
             active_keycode = keycode;
             return;
-        } else if (core_hex_menu() && ((c >= 'a' && c <= 'f')
-                                    || (c >= 'A' && c <= 'F'))) {
-            if (c >= 'a' && c <= 'f')
-                ckey = c - 'a' + 1;
-            else
-                ckey = c - 'A' + 1;
-            skey = -1;
-            macro = NULL;
-            shell_keydown(false, false);
-            mouse_key = 0;
-            active_keycode = keycode;
-            return;
-        } else if (c == NSLeftArrowFunctionKey || c == NSRightArrowFunctionKey || c == NSDeleteFunctionKey) {
-            int which;
-            if (c == NSLeftArrowFunctionKey)
-                which = shift ? 2 : 1;
-            else if (c == NSRightArrowFunctionKey)
-                which = shift ? 4 : 3;
-            else // c == NSDeleteFunctionKey
-                which = 5;
-            which = core_special_menu_key(which);
-            if (which != 0) {
-                ckey = which;
+        } else if (!ctrl && !alt) {
+            if (core_hex_menu() && ((c >= 'a' && c <= 'f')
+                                        || (c >= 'A' && c <= 'F'))) {
+                if (c >= 'a' && c <= 'f')
+                    ckey = c - 'a' + 1;
+                else
+                    ckey = c - 'A' + 1;
                 skey = -1;
                 macro = NULL;
                 shell_keydown(false, false);
                 mouse_key = 0;
                 active_keycode = keycode;
                 return;
+            } else if (c == NSLeftArrowFunctionKey || c == NSRightArrowFunctionKey || c == NSDeleteFunctionKey) {
+                int which;
+                if (c == NSLeftArrowFunctionKey)
+                    which = shift ? 2 : 1;
+                else if (c == NSRightArrowFunctionKey)
+                    which = shift ? 4 : 3;
+                else // c == NSDeleteFunctionKey
+                    which = 5;
+                which = core_special_menu_key(which);
+                if (which != 0) {
+                    ckey = which;
+                    skey = -1;
+                    macro = NULL;
+                    shell_keydown(false, false);
+                    mouse_key = 0;
+                    active_keycode = keycode;
+                    return;
+                }
             }
         }
     }

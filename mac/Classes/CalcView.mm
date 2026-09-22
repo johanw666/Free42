@@ -94,7 +94,7 @@ static unsigned short keychar_normalize(unsigned char c) {
     if ([c length] == 0 && [s length] == 0 && [ss length] == 0)
         return;
 
-    unsigned short ch = [c length] == 0 ? 0 : [c characterAtIndex:0];
+    unichar ch = [c length] == 0 ? 0 : [c characterAtIndex:0];
     unsigned short keyCode = [theEvent keyCode];
 
     if (ch == 127 || ch >= 0xf700 && ch <= 0xf8ff) {
@@ -103,11 +103,11 @@ static unsigned short keychar_normalize(unsigned char c) {
         else if (ch == NSUpArrowFunctionKey || ch == NSDownArrowFunctionKey
                 || ch == NSLeftArrowFunctionKey || ch == NSRightArrowFunctionKey)
             flags &= ~NSEventModifierFlagNumericPad;
-        calc_keydown(ch, ch, flags, keyCode);
+        calc_keydown(ch, ch, ch, flags, keyCode);
     } else {
-        unsigned short cs = [s length] == 0 ? 0 : keychar_normalize([s characterAtIndex:0]);
-        unsigned short css = [ss length] == 0 ? 0 : keychar_normalize([ss characterAtIndex:0]);
-        calc_keydown(cs, css, flags, keyCode);
+        unichar cs = [s length] == 0 ? 0 : keychar_normalize([s characterAtIndex:0]);
+        unichar css = [ss length] == 0 ? 0 : keychar_normalize([ss characterAtIndex:0]);
+        calc_keydown(cs, css, ch, flags, keyCode);
     }
 }
 

@@ -140,7 +140,7 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
                 && (this->keyval >= 32 && this->keyval <= 126 || shift == this->shift)
                 && (shift || !this->shift)
                 && (cshift || !this->cshift)
-            // Note: returning low scores, so MapKey mappings will beat GtkKey mappings.
+            // Note: returning high scores, so GtkKey mappings can override keymap.txt.
             // Also: always returning even scores, since odd scores trigger shift toggling
             // before playing back the selected macro, and the shift-toggle feature is
             // specific to MapKey.

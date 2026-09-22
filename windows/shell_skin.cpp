@@ -144,7 +144,7 @@ int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
                 && old_shift == this->shift
                 && (old_extended || !this->numpad)
                 && (cshift || !this->cshift)
-            // Note: returning low scores, so MapKey mappings will beat WinKey mappings.
+            // Note: returning high scores, so WinKey mappings can override keymap.txt.
             // Also: always returning even scores, since odd scores trigger shift toggling
             // before playing back the selected macro, and the shift-toggle feature is
             // specific to MapKey.
