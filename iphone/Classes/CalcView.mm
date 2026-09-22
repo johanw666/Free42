@@ -45,8 +45,8 @@
 static void quit2(bool really_quit);
 static void shell_keydown(bool cshift, bool cshift_to_shift_fallback);
 static void shell_keyup();
-static void calc_keydown(NSString *characters, long flags, int keycode);
-static void calc_keyup(NSString *characters, long flags, int keycode);
+static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flags, int keycode);
+static void calc_keyup(int keycode);
 
 static int read_shell_state(int *version);
 static void init_shell_state(int version);
@@ -765,13 +765,91 @@ static void read_key_map(const char *keymapfilename);
         UIPress *pr = [p objectAtIndex:i];
         UIKey *k = [pr key];
         if (k != nil) {
-            NSString *characters = [k characters];
-            NSString *nonModCharacters = [k charactersIgnoringModifiers];
-            if ([characters length] == 0 || [nonModCharacters hasPrefix:@"UIKeyInput"])
-                characters = nonModCharacters;
             long flags = [k modifierFlags];
             int keycode = [k keyCode];
-            calc_keydown(characters, flags, keycode);
+
+            unichar c = 0;
+            NSString *characters = [k charactersIgnoringModifiers];
+
+            if ([characters hasPrefix:@"UIKeyInput"]) {
+                // See https://developer.apple.com/documentation/uikit/input-strings-for-special-keys?language=objc
+                NSString *s = [characters substringFromIndex:10];
+                unsigned int fn;
+                if ([s isEqualToString:@"UpArrow"])
+                    c = 0xf700;
+                else if ([s isEqualToString:@"DownArrow"])
+                    c = 0xf701;
+                else if ([s isEqualToString:@"LeftArrow"])
+                    c = 0xf702;
+                else if ([s isEqualToString:@"RightArrow"])
+                    c = 0xf703;
+                else if ([s isEqualToString:@"Insert"])
+                    c = 0xf727;
+                else if ([s isEqualToString:@"Delete"])
+                    c = 0xf728;
+                else if ([s isEqualToString:@"Home"])
+                    c = 0xf729;
+                else if ([s isEqualToString:@"End"])
+                    c = 0xf72b;
+                else if ([s isEqualToString:@"PageUp"])
+                    c = 0xf72c;
+                else if ([s isEqualToString:@"PageDown"])
+                    c = 0xf72d;
+                else if ([s isEqualToString:@"Escape"])
+                    c = 0x1b;
+                else if ([s hasPrefix:@"F"] && sscanf([s UTF8String] + 1, "%u", &fn) == 1)
+                    c = 0xf703 + fn;
+                else
+                    return;
+            } else if ([characters isEqualToString:@"\10"]) {
+                c = 0x7f;
+            } else if ([characters isEqualToString:@"\5"]) {
+                c = 0xf727;
+            } else if ([characters isEqualToString:@"\177"]) {
+                c = 0xf728;
+            } else if ([characters isEqualToString:@"\33"]) {
+                // Allow Ctrl-[ to be used as Esc, for keyboards without an Esc key
+                c = 0x1b;
+                flags &= ~UIKeyModifierControl;
+            } else {
+                c = [characters length] == 0 ? 0 : [characters characterAtIndex:0];
+            }
+
+            characters = [k characters];
+            unichar orig_c = [characters length] == 0 ? 0 : [characters characterAtIndex:0];
+
+            bool ctrl = (flags & UIKeyModifierControl) != 0;
+            bool alt = (flags & UIKeyModifierAlternate) != 0;
+            bool shift = (flags & UIKeyModifierShift) != 0;
+            bool numpad = (flags & UIKeyModifierNumericPad) != 0;
+
+            unichar shifted_c;
+
+            if (numpad) {
+                shifted_c = c;
+            } else if (ctrl) {
+                if (c < 32)
+                    c += 64;
+                if (shift) {
+                    shifted_c = c;
+                    c = shiftMap->get(c);
+                } else
+                    shifted_c = shiftMap->get(c);
+            } else if (alt) {
+                if (shift) {
+                    shifted_c = c;
+                    c = shiftMap->get(c);
+                } else
+                    shifted_c = shiftMap->get(c);
+            } else if (shift) {
+                shifted_c = c;
+                c = orig_c;
+                shiftMap->set(shifted_c, c);
+            } else {
+                shifted_c = shiftMap->get(c);
+            }
+
+            calc_keydown(c, shifted_c, orig_c, flags, keycode);
             handled = true;
         }
     }
@@ -787,12 +865,8 @@ static void read_key_map(const char *keymapfilename);
         UIPress *pr = [p objectAtIndex:i];
         UIKey *k = [pr key];
         if (k != nil) {
-            NSString *characters = [k characters];
-            if ([characters length] == 0)
-                characters = [k charactersIgnoringModifiers];
-            long flags = [k modifierFlags];
             int keycode = [k keyCode];
-            calc_keyup(characters, flags, keycode);
+            calc_keyup(keycode);
             handled = true;
         }
     }
@@ -1109,60 +1183,14 @@ static void shell_keyup() {
     }
 }
 
-static void calc_keydown(NSString *characters, long flags, int keycode) {
+static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flags, int keycode) {
     if (ckey != 0 && mouse_key)
         return;
 
-    int len = [characters length];
-    just_pressed_shift = len == 0
+    just_pressed_shift = orig_c == 0
         && (flags & (UIKeyModifierShift | UIKeyModifierControl | UIKeyModifierAlternate)) == UIKeyModifierShift;
-    if (len == 0)
+    if (orig_c == 0)
         return;
-
-    NSString *c2 = nil;
-    if ([characters hasPrefix:@"UIKeyInput"]) {
-        // See https://developer.apple.com/documentation/uikit/input-strings-for-special-keys?language=objc
-        NSString *s = [characters substringFromIndex:10];
-        unsigned int fn;
-        if ([s isEqualToString:@"UpArrow"])
-            c2 = @"\uf700";
-        else if ([s isEqualToString:@"DownArrow"])
-            c2 = @"\uf701";
-        else if ([s isEqualToString:@"LeftArrow"])
-            c2 = @"\uf702";
-        else if ([s isEqualToString:@"RightArrow"])
-            c2 = @"\uf703";
-        else if ([s isEqualToString:@"Insert"])
-            c2 = @"\uf727";
-        else if ([s isEqualToString:@"Delete"])
-            c2 = @"\uf728";
-        else if ([s isEqualToString:@"Home"])
-            c2 = @"\uf729";
-        else if ([s isEqualToString:@"End"])
-            c2 = @"\uf72b";
-        else if ([s isEqualToString:@"PageUp"])
-            c2 = @"\uf72c";
-        else if ([s isEqualToString:@"PageDown"])
-            c2 = @"\uf72d";
-        else if ([s isEqualToString:@"Escape"])
-            c2 = @"\33";
-        else if ([s hasPrefix:@"F"] && sscanf([s UTF8String] + 1, "%u", &fn) == 1)
-            c2 = [NSString stringWithFormat:@"%C", (unsigned short) (0xf703 + fn)];
-        else
-            return;
-    } else if ([characters isEqualToString:@"\10"])
-        c2 = @"\177";
-    else if ([characters isEqualToString:@"\5"])
-        c2 = @"\uf727";
-    else if ([characters isEqualToString:@"\177"])
-        c2 = @"\uf728";
-    else if ([characters isEqualToString:@"\33"])
-        // Allow Ctrl-[ to be used as Esc, for keyboards without an Esc key
-        flags &= ~UIKeyModifierControl;
-    if (c2 != nil) {
-        characters = c2;
-        len = [c2 length];
-    }
 
     bool ctrl = (flags & UIKeyModifierControl) != 0;
     bool alt = (flags & UIKeyModifierAlternate) != 0;
@@ -1170,8 +1198,7 @@ static void calc_keydown(NSString *characters, long flags, int keycode) {
     bool shift = (flags & UIKeyModifierShift) != 0;
     bool cshift = ann_shift != 0;
 
-    unsigned short c = [characters characterAtIndex:0];
-    bool printable = !ctrl && len == 1 && (c >= 32 && c <= 126 || c >= 128 && c < 0xf700 || c >= 0xf900);
+    bool printable = !ctrl && (c >= 32 && c <= 126 || c >= 128 && c < 0xf700 || c >= 0xf900);
     bool shift_mismatch_allowed = printable && !numpad && c != 32;
 
     if (ckey != 0) {
@@ -1329,7 +1356,7 @@ static void calc_keydown(NSString *characters, long flags, int keycode) {
     }
 }
 
-static void calc_keyup(NSString *characters, long flags, int keycode) {
+static void calc_keyup(int keycode) {
     if (just_pressed_shift) {
         just_pressed_shift = false;
         ckey = 28;
