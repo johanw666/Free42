@@ -835,18 +835,20 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
             BYTE kb[256];
             GetKeyboardState(kb);
+            wchar_t wbuf[5] = L"";
+
+            int n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
+            wchar_t orig_c = n > 0 ? wbuf[0] : 0;
+            bool printable = !(orig_c >= 0 && orig_c <= 31 || orig_c == 127);
+
             kb[VK_CONTROL] = 0;
             kb[VK_MENU] = 0;
-
-            wchar_t wbuf[5] = L"";
-            int n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
-            wchar_t keyChar = n > 0 ? wbuf[0] : 0;
-            bool printable = !(keyChar >= 0 && keyChar <= 31 || keyChar == 127);
+            n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
+            wchar_t c = n > 0 ? wbuf[0] : 0;
 
             kb[VK_SHIFT] = shift_down ? 0 : 128;
-
             n = ToUnicode(virtKey, scanCode, kb, wbuf, 4, 0);
-            wchar_t shiftedKeyChar = n > 0 ? wbuf[0] : 0;
+            wchar_t shifted_c = n > 0 ? wbuf[0] : 0;
 
             if (ckey == 0 || !mouse_key) {
                 int i;
@@ -907,20 +909,20 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         case VK_DELETE: nVirtKey = VK_DECIMAL; break;
                     }
                     if (nVirtKey == VK_DECIMAL)
-                        keyChar = shiftedKeyChar = '.';
+                        c = shifted_c = '.';
                     else
-                        keyChar = shiftedKeyChar = '0' + nVirtKey - VK_NUMPAD0;
+                        c = shifted_c = '0' + nVirtKey - VK_NUMPAD0;
                 }
 
                 int quality;
                 bool nShift = shift_down || cshift_suppressed;
-                keymap_entry *ke = skin_keymap_lookup(keyChar, shiftedKeyChar, nVirtKey, ctrl_down, alt_down,
+                keymap_entry *ke = skin_keymap_lookup(c, shifted_c, nVirtKey, ctrl_down, alt_down,
                                                       nShift, numpad, numlock, cshift_down,
                                                       virtKey, shift_down, extended, &quality);
                 if (ke == NULL || quality < MAX_MATCH_QUALITY) {
                     for (i = 0; i < keymap_length; i++) {
                         keymap_entry *entry = keymap + i;
-                        int qq = entry->match(keyChar, shiftedKeyChar, nVirtKey, ctrl_down, alt_down,
+                        int qq = entry->match(c, shifted_c, nVirtKey, ctrl_down, alt_down,
                                               nShift, numpad, numlock, cshift_down,
                                               virtKey, shift_down, extended);
                         if (qq == MAX_MATCH_QUALITY) {
@@ -935,53 +937,54 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 }
                 unsigned char *key_macro = ke == NULL ? NULL : ke->macro;
 
-                if (!ctrl_down && !alt_down
-                        && (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
-                        && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0))) {
+                if (key_macro == NULL || (key_macro[0] != 36 || key_macro[1] != 0)
+                        && (key_macro[0] != 28 || key_macro[1] != 36 || key_macro[2] != 0)) {
                     // The test above is to make sure that whatever mapping is in
                     // effect for R/S will never be overridden by the special cases
                     // for the ALPHA and A..F menus.
                     if (printable && core_alpha_menu()) {
-                        if (keyChar >= 'a' && keyChar <= 'z')
-                            keyChar = keyChar + 'A' - 'a';
-                        else if (keyChar >= 'A' && keyChar <= 'Z')
-                            keyChar = keyChar + 'a' - 'A';
-                        ckey = 1024 + (keyChar & 65535);
+                        if (orig_c >= 'a' && orig_c <= 'z')
+                            orig_c = orig_c + 'A' - 'a';
+                        else if (orig_c >= 'A' && orig_c <= 'Z')
+                            orig_c = orig_c + 'a' - 'A';
+                        ckey = 1024 + (orig_c & 65535);
                         skey = -1;
                         macro = NULL;
                         shell_keydown(false, false);
                         mouse_key = false;
                         active_keycode = virtKey;
                         break;
-                    } else if (core_hex_menu() && ((keyChar >= 'a' && keyChar <= 'f')
-                                || (keyChar >= 'A' && keyChar <= 'F'))) {
-                        if (keyChar >= 'a' && keyChar <= 'f')
-                            ckey = keyChar - 'a' + 1;
-                        else
-                            ckey = keyChar - 'A' + 1;
-                        skey = -1;
-                        macro = NULL;
-                        shell_keydown(false, false);
-                        mouse_key = false;
-                        active_keycode = virtKey;
-                        break;
-                    } else if (nVirtKey == VK_LEFT || nVirtKey == VK_RIGHT || nVirtKey == VK_DELETE) {
-                        int which;
-                        if (nVirtKey == VK_LEFT)
-                            which = nShift ? 2 : 1;
-                        else if (nVirtKey == VK_RIGHT)
-                            which = nShift ? 4 : 3;
-                        else // nVirtKey == VK_DELETE
-                            which = 5;
-                        which = core_special_menu_key(which);
-                        if (which != 0) {
-                            ckey = which;
+                    } else if (!ctrl_down && !alt_down) {
+                        if (core_hex_menu() && ((c >= 'a' && c <= 'f')
+                                    || (c >= 'A' && c <= 'F'))) {
+                            if (c >= 'a' && c <= 'f')
+                                ckey = c - 'a' + 1;
+                            else
+                                ckey = c - 'A' + 1;
                             skey = -1;
                             macro = NULL;
                             shell_keydown(false, false);
                             mouse_key = false;
                             active_keycode = virtKey;
                             break;
+                        } else if (nVirtKey == VK_LEFT || nVirtKey == VK_RIGHT || nVirtKey == VK_DELETE) {
+                            int which;
+                            if (nVirtKey == VK_LEFT)
+                                which = nShift ? 2 : 1;
+                            else if (nVirtKey == VK_RIGHT)
+                                which = nShift ? 4 : 3;
+                            else // nVirtKey == VK_DELETE
+                                which = 5;
+                            which = core_special_menu_key(which);
+                            if (which != 0) {
+                                ckey = which;
+                                skey = -1;
+                                macro = NULL;
+                                shell_keydown(false, false);
+                                mouse_key = false;
+                                active_keycode = virtKey;
+                                break;
+                            }
                         }
                     }
                 }
