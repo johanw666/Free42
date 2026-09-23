@@ -818,11 +818,11 @@ static CLLocationManager *locMgr = nil;
                     flags &= ~UIKeyModifierControl;
                 }
             } else {
-                c = [characters length] == 0 ? 0 : [characters characterAtIndex:0];
+                c = [characters length] == 1 ? [characters characterAtIndex:0] : 0;
             }
 
             characters = [k characters];
-            unichar orig_c = [characters length] == 0 ? 0 : [characters characterAtIndex:0];
+            unichar orig_c = [characters length] == 1 ? [characters characterAtIndex:0] : c;
 
             bool ctrl = (flags & UIKeyModifierControl) != 0;
             bool alt = (flags & UIKeyModifierAlternate) != 0;
