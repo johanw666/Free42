@@ -153,11 +153,11 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
-            ? (numpad == this->numpad ? 8 : 0)
-                + (numlock == this->numlock ? 4 : 0)
-                + (cshift == this->cshift ? 2 : 0)
-                + (shift != cshift != this->shift != this->cshift ? -1 : 0)
+            ? (numpad == this->numpad ? 16 : 0)
+                + (numlock == this->numlock ? 8 : 0)
+                + (cshift == this->cshift ? 4 : 0)
                 + 2
+                + (shift != cshift != this->shift != this->cshift ? 1 : 0)
             : 0;
     } else {
         return (keychar == this->keychar || shifted_keychar == this->keychar)
@@ -166,11 +166,11 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
-            ? (numpad == this->numpad ? 8 : 0)
-                + (numlock == this->numlock ? 4 : 0)
-                + (cshift == this->cshift ? 2 : 0)
-                + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? -1 : 0)
-                + 2
+            ? (numpad == this->numpad ? 16 : 0)
+                + (numlock == this->numlock ? 8 : 0)
+                + (cshift == this->cshift ? 4 : 0)
+                + (keychar == this->keychar ? 2 : 0)
+                + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? 1 : 0)
             : 0;
     }
 }
@@ -1286,18 +1286,22 @@ keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, guint keyval,
                                  guint old_keyval, int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
+    int s = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
         int qq = entry->match(keychar, shifted_keychar, keyval, ctrl, alt, shift, numpad, numlock, cshift, old_keyval);
+        int ss = qq & 1;
+        qq &= ~1;
         if (qq == MAX_MATCH_QUALITY) {
-            *quality = qq;
+            *quality = qq | ss;
             return entry;
         } else if (qq > q) {
             q = qq;
+            s = ss;
             ke = entry;
         }
     }
-    *quality = q;
+    *quality = q | s;
     return ke;
 }
 

@@ -108,10 +108,10 @@ int keymap_entry::match(unsigned short keychar, unsigned short shifted_keychar,
             && alt == this->alt
             && (numpad || !this->numpad)
             && (cshift || !this->cshift)
-        ? (numpad == this->numpad ? 4 : 0)
-            + (cshift == this->cshift ? 2 : 0)
-            + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? -1 : 0)
-            + 2
+        ? (numpad == this->numpad ? 8 : 0)
+            + (cshift == this->cshift ? 4 : 0)
+            + (keychar == this->keychar ? 2 : 0)
+            + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? 1 : 0)
         : 0;
 }
 
@@ -1175,18 +1175,22 @@ keymap_entry *skin_keymap_lookup(unsigned short keychar, unsigned short shifted_
                                  bool ctrl, bool alt, bool shift, bool numpad, bool cshift, int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
+    int s = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
         int qq = entry->match(keychar, shifted_keychar, ctrl, alt, shift, numpad, cshift);
+        int ss = qq & 1;
+        qq &= ~1;
         if (qq == MAX_MATCH_QUALITY) {
-            *quality = qq;
+            *quality = qq | ss;
             return entry;
         } else if (qq > q) {
             q = qq;
+            s = ss;
             ke = entry;
         }
     }
-    *quality = q;
+    *quality = q | s;
     return ke;
 }
 

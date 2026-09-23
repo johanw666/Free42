@@ -487,17 +487,21 @@ public class SkinLayout {
                               boolean numpad, boolean numlock, boolean cshift, IntHolder quality) {
         KeymapEntry ke = null;
         int q = 0;
+        int s = 0;
         for (KeymapEntry entry : keymap) {
             int qq = entry.match(code, shifted_code, ctrl, alt, shift, numpad, numlock, cshift);
+            int ss = qq & 1;
+            qq &= 1;
             if (qq == KeymapEntry.MAX_MATCH_QUALITY) {
-                quality.value = qq;
+                quality.value = qq | ss;
                 return entry;
             } else if (qq > q) {
                 q = qq;
+                s = ss;
                 ke = entry;
             }
         }
-        quality.value = q;
+        quality.value = q | s;
         return ke;
     }
 

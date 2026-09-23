@@ -2955,17 +2955,23 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
             int quality;
             keymap_entry *ke = skin_keymap_lookup(c, shifted_c, nKeyval, ctrl, alt, shift,
                                                   numpad, numlock, cshift, event->keyval, &quality);
+            bool swap = (quality & 1) != 0;
+            quality &= ~1;
             if (ke == NULL || quality < MAX_MATCH_QUALITY) {
                 for (int i = 0; i < keymap_length; i++) {
                     keymap_entry *entry = keymap + i;
                     int qq = entry->match(c, shifted_c, nKeyval, ctrl, alt, shift, numpad, numlock, cshift, event->keyval);
+                    bool ss = (qq & 1) != 0;
+                    qq &= ~1;
                     if (qq == MAX_MATCH_QUALITY) {
                         ke = entry;
                         quality = qq;
+                        swap = ss;
                         break;
                     } else if (qq > quality) {
                         ke = entry;
                         quality = qq;
+                        swap = ss;
                     }
                 }
             }
@@ -3036,7 +3042,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                 ckey = -10;
                 skey = -1;
                 bool skin_shift = cshift;
-                if ((quality & 1) != 0 && key_macro[0] != 0 && key_macro[1] == 0) {
+                if (swap && key_macro[0] != 0 && key_macro[1] == 0) {
                     // Shift xor CShift active, but we ended up with an unshifted mapping.
                     // Check if this is one of an 'unshifted,shifted' macro pair,
                     // and if so, use the shifted partner as the fallback.
@@ -3081,7 +3087,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                     macro = key_macro;
                     macro_type = 0;
                 }
-                shell_keydown(skin_shift, (quality & 1) != cshift);
+                shell_keydown(skin_shift, swap != cshift);
                 mouse_key = false;
                 active_keycode = event->hardware_keycode;
             }
