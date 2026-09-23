@@ -76,6 +76,10 @@ ShiftMap::~ShiftMap() {
 void ShiftMap::write() {
     if (filename == NULL)
         return;
+    if (size == 0) {
+        remove(filename);
+        return;
+    }
     FILE *f = fopen(filename, "w");
     if (f != NULL) {
         size_t count = fwrite(data, 1, size, f);
