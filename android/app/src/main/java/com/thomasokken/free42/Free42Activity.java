@@ -1857,22 +1857,16 @@ public class Free42Activity extends Activity {
 
             IntHolder quality = new IntHolder();
             KeymapEntry ke = skin.keymap_lookup(code, shifted_code, ctrl, alt, shift, numpad, numlock, cshift, quality);
-            boolean swap = (quality.value & 1) != 0;
-            quality.value &= ~1;
             if (ke == null || quality.value < KeymapEntry.MAX_MATCH_QUALITY) {
                 for (KeymapEntry entry : keymap) {
                     int qq = entry.match(code, shifted_code, ctrl, alt, shift, numpad, numlock, cshift);
-                    boolean ss = (qq & 1) != 0;
-                    qq &= ~1;
                     if (qq == KeymapEntry.MAX_MATCH_QUALITY) {
                         ke = entry;
                         quality.value = qq;
-                        swap = ss;
                         break;
                     } else if (qq > quality.value) {
                         ke = entry;
                         quality.value = qq;
-                        swap = ss;
                     }
                 }
             }
@@ -1943,7 +1937,7 @@ public class Free42Activity extends Activity {
             ckey = -10;
             skey = -1;
             boolean skin_shift = cshift;
-            if (swap && key_macro.length == 1) {
+            if ((quality.value & 2) == 0 && key_macro.length == 1) {
                 // Shift xor CShift active, but we ended up with an unshifted mapping.
                 // Check if this is one of an 'unshifted,shifted' macro pair,
                 // and if so, use the shifted partner as the fallback.
@@ -1995,7 +1989,7 @@ public class Free42Activity extends Activity {
             } else {
                 macroObj = key_macro;
             }
-            shell_keydown(skin_shift, swap != cshift);
+            shell_keydown(skin_shift, ((quality.value & 2) == 0) != cshift);
             mouse_key = false;
             active_keycode = keyCode;
             return true;

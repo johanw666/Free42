@@ -140,11 +140,9 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
                 && (this->keyval >= 32 && this->keyval <= 126 || shift == this->shift)
                 && (shift || !this->shift)
                 && (cshift || !this->cshift)
-            // Note: returning high scores, so GtkKey mappings can override keymap.txt.
-            // Also: always returning even scores, since odd scores trigger shift toggling
-            // before playing back the selected macro, and the shift-toggle feature is
-            // specific to MapKey.
-            ? (shift == this->shift && cshift == this->cshift ? MAX_MATCH_QUALITY : MAX_MATCH_QUALITY - 2)
+            // These scores don't follow the new scoring scheme, they're just set up
+            // to be high enough that they can beat the key assignments in keymap.txt
+            ? ((shift != cshift) == (this->shift != this->cshift) ? MAX_MATCH_QUALITY : MAX_MATCH_QUALITY - 2)
             : 0;
     } else if (this->keychar == 0) {
         return keyval == this->keyval
@@ -153,11 +151,12 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
-            ? (numpad == this->numpad ? 16 : 0)
-                + (numlock == this->numlock ? 8 : 0)
-                + (cshift == this->cshift ? 4 : 0)
-                + 2
-                + (shift != cshift != this->shift != this->cshift ? 1 : 0)
+            ? (numpad == this->numpad ? 32 : 0)
+                + (numlock == this->numlock ? 16 : 0)
+                + (cshift == this->cshift ? 8 : 0)
+                + 4
+                + ((shift != cshift) == (this->shift != this->cshift) ? 2 : 0)
+                + 1
             : 0;
     } else {
         return (keychar == this->keychar || shifted_keychar == this->keychar)
@@ -166,11 +165,12 @@ int keymap_entry::match(int keychar, int shifted_keychar, guint keyval,
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
-            ? (numpad == this->numpad ? 16 : 0)
-                + (numlock == this->numlock ? 8 : 0)
-                + (cshift == this->cshift ? 4 : 0)
-                + (keychar == this->keychar ? 2 : 0)
-                + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? 1 : 0)
+            ? (numpad == this->numpad ? 32 : 0)
+                + (numlock == this->numlock ? 16 : 0)
+                + (cshift == this->cshift ? 8 : 0)
+                + (keychar == this->keychar ? 4 : 0)
+                + (((shift ? shifted_keychar : keychar) == this->keychar) != shift != cshift != this->shift != this->cshift ? 2 : 0)
+                + 1
             : 0;
     }
 }
@@ -1286,22 +1286,18 @@ keymap_entry *skin_keymap_lookup(int keychar, int shifted_keychar, guint keyval,
                                  guint old_keyval, int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
-    int s = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
         int qq = entry->match(keychar, shifted_keychar, keyval, ctrl, alt, shift, numpad, numlock, cshift, old_keyval);
-        int ss = qq & 1;
-        qq &= ~1;
         if (qq == MAX_MATCH_QUALITY) {
-            *quality = qq | ss;
+            *quality = qq;
             return entry;
         } else if (qq > q) {
             q = qq;
-            s = ss;
             ke = entry;
         }
     }
-    *quality = q | s;
+    *quality = q;
     return ke;
 }
 

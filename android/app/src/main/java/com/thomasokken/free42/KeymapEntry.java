@@ -213,15 +213,16 @@ public class KeymapEntry {
                 && (numpad || !this.numpad)
                 && (numlock || !this.numlock)
                 && (cshift || !this.cshift)
-            ? (numpad == this.numpad ? 16 : 0)
-                + (numlock == this.numlock ? 8 : 0)
-                + (cshift == this.cshift ? 4 : 0)
-                + (code.equals(this.keychar) ? 2 : 0)
-                + (!this.keychar.equals(shift ? shifted_code : code) != shift != cshift != this.shift != this.cshift ? 1 : 0)
+            ? (numpad == this.numpad ? 32 : 0)
+                + (numlock == this.numlock ? 16 : 0)
+                + (cshift == this.cshift ? 8 : 0)
+                + (code.equals(this.keychar) ? 4 : 0)
+                + (this.keychar.equals(shift ? shifted_code : code) != shift != cshift != this.shift != this.cshift ? 2 : 0)
+                + 1
             : 0;
     }
 
-    public static final int MAX_MATCH_QUALITY = 30;
+    public static final int MAX_MATCH_QUALITY = 63;
 
     public static int numpad_normalize(int keycode) {
         switch (keycode) {

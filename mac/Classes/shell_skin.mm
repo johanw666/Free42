@@ -101,17 +101,17 @@ static int keymap_length = 0;
 /* Keymap matcher */
 /******************/
 
-int keymap_entry::match(unsigned short keychar, unsigned short shifted_keychar,
-                        bool ctrl, bool alt, bool shift, bool numpad, bool cshift) {
-    return (keychar == this->keychar || shifted_keychar == this->keychar)
+int keymap_entry::match(unsigned short c, unsigned short shifted_c, bool ctrl, bool alt, bool shift, bool numpad, bool cshift) {
+    return (c == this->keychar || shifted_c == this->keychar)
             && ctrl == this->ctrl
             && alt == this->alt
             && (numpad || !this->numpad)
             && (cshift || !this->cshift)
-        ? (numpad == this->numpad ? 8 : 0)
-            + (cshift == this->cshift ? 4 : 0)
-            + (keychar == this->keychar ? 2 : 0)
-            + (((shift ? shifted_keychar : keychar) != this->keychar) != shift != cshift != this->shift != this->cshift ? 1 : 0)
+        ? (numpad == this->numpad ? 16 : 0)
+            + (cshift == this->cshift ? 8 : 0)
+            + (c == this->keychar ? 4 : 0)
+            + (((shift ? shifted_c : c) == this->keychar) != shift != cshift != this->shift != this->cshift ? 2 : 0)
+            + 1
         : 0;
 }
 
@@ -1171,26 +1171,22 @@ int skin_find_shifted_code(int code) {
     return 0;
 }
 
-keymap_entry *skin_keymap_lookup(unsigned short keychar, unsigned short shifted_keychar,
+keymap_entry *skin_keymap_lookup(unsigned short c, unsigned short shifted_c,
                                  bool ctrl, bool alt, bool shift, bool numpad, bool cshift, int *quality) {
     keymap_entry *ke = NULL;
     int q = 0;
-    int s = 0;
     for (int i = 0; i < keymap_length; i++) {
         keymap_entry *entry = keymap + i;
-        int qq = entry->match(keychar, shifted_keychar, ctrl, alt, shift, numpad, cshift);
-        int ss = qq & 1;
-        qq &= ~1;
+        int qq = entry->match(c, shifted_c, ctrl, alt, shift, numpad, cshift);
         if (qq == MAX_MATCH_QUALITY) {
-            *quality = qq | ss;
+            *quality = qq;
             return entry;
         } else if (qq > q) {
             q = qq;
-            s = ss;
             ke = entry;
         }
     }
-    *quality = q | s;
+    *quality = q;
     return ke;
 }
 

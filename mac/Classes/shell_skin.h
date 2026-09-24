@@ -23,7 +23,7 @@ void skin_menu_update(NSMenu *skinMenu);
 void skin_load(long *width, long *height);
 
 #define KEYMAP_MAX_MACRO_LENGTH 31
-#define MAX_MATCH_QUALITY 14
+#define MAX_MATCH_QUALITY 31
 struct keymap_entry {
     bool ctrl;
     bool alt;
