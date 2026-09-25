@@ -103,7 +103,7 @@ static void read_key_map(const char *keymapfilename);
 static void init_shell_state(int4 ver);
 static int read_shell_state(int4 *ver);
 static int write_shell_state();
-static void shell_keydown(bool cshift, bool cshift_to_shift_fallback);
+static void shell_keydown(bool cshift, bool flip_shift);
 static void shell_keyup();
 
 static void txt_writer(const char *text, int length);
@@ -1186,10 +1186,10 @@ static char version[32] = "";
 
 @end
 
-static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
+static void shell_keydown(bool cshift, bool flip_shift) {
     int repeat;
     if (skey == -1)
-        skey = skin_find_skey(ckey, cshift);
+        skey = skin_find_skey(ckey, cshift != flip_shift);
     skin_set_pressed_key(skey);
     if (timeout3_active && (macro != NULL || ckey != 28 /* KEY_SHIFT */)) {
         [instance cancelTimeout3];
@@ -1206,7 +1206,7 @@ static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
     if (macro != NULL) {
         if (macro_type != 0) {
             we_want_cpu = true;
-            if (cshift_to_shift_fallback) {
+            if (flip_shift) {
                 core_keydown(28, &enqueued, &repeat);
                 core_keyup();
             }
@@ -1217,7 +1217,7 @@ static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
                 squeak();
                 return;
             }
-            if (cshift_to_shift_fallback) {
+            if (flip_shift) {
                 if (macro[0] == 28)
                     macro++;
                 else {

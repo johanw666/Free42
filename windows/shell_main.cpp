@@ -476,10 +476,10 @@ static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     return TRUE;
 }
 
-static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
+static void shell_keydown(bool cshift, bool flip_shift) {
     if (ckey != 0) {
         if (skey == -1)
-            skey = skin_find_skey(ckey, cshift);
+            skey = skin_find_skey(ckey, cshift != flip_shift);
         skin_invalidate_key(skey);
     }
     if (timer != 0) {
@@ -494,7 +494,7 @@ static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
     int repeat;
     if (macro != NULL) {
         if (macro_type != 0) {
-            if (cshift_to_shift_fallback) {
+            if (flip_shift) {
                 core_keydown(28, &enqueued, &repeat);
                 core_keyup();
             }
@@ -504,7 +504,7 @@ static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
                 squeak();
                 return;
             }
-            if (cshift_to_shift_fallback) {
+            if (flip_shift) {
                 if (macro[0] == 28)
                     macro++;
                 else {

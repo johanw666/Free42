@@ -1613,13 +1613,13 @@ public class Free42Activity extends Activity {
             skin.repaint(canvas, shortcutsShowing);
         }
 
-        private void shell_keydown(boolean cshift, boolean cshift_to_shift_fallback) {
+        private void shell_keydown(boolean cshift, boolean flip_shift) {
             if (timeout3_active && (macroObj != null || ckey != 28 /* SHIFT */)) {
                 cancelTimeout3();
                 core_timeout3(false);
             }
             if (skey == -1)
-                skey = skin.find_skey(ckey, cshift);
+                skey = skin.find_skey(ckey, cshift != flip_shift);
             Rect inval = skin.set_active_key(skey);
             if (inval != null)
                 invalidateScaled(inval);
@@ -1631,7 +1631,7 @@ public class Free42Activity extends Activity {
                 running = core_keydown(ckey, enqueued, repeat, true);
             } else if (macroObj instanceof String) {
                 // Direct-mapped command
-                if (cshift_to_shift_fallback) {
+                if (flip_shift) {
                     core_keydown(28, enqueued, repeat, true);
                     core_keyup();
                 }
@@ -1640,7 +1640,7 @@ public class Free42Activity extends Activity {
             } else {
                 running = false;
                 byte[] macro = (byte[]) macroObj;
-                if (cshift_to_shift_fallback) {
+                if (flip_shift) {
                     if (macro.length > 0 && macro[0] == 28) {
                         byte[] new_macro = new byte[macro.length - 1];
                         System.arraycopy(macro, 1, new_macro, 0, macro.length - 1);

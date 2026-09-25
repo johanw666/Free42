@@ -43,7 +43,7 @@
 
 
 static void quit2(bool really_quit);
-static void shell_keydown(bool cshift, bool cshift_to_shift_fallback);
+static void shell_keydown(bool cshift, bool flip_shift);
 static void shell_keyup();
 static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flags, int keycode);
 static void calc_keyup(int keycode);
@@ -1082,10 +1082,10 @@ static void quit2(bool really_quit) {
         exit(0);
 }
 
-static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
+static void shell_keydown(bool cshift, bool flip_shift) {
     int repeat;
     if (skey == -1)
-        skey = skin_find_skey(ckey, cshift);
+        skey = skin_find_skey(ckey, cshift != flip_shift);
     skin_set_pressed_key(skey, calcView);
     if (timeout3_active && (macro != NULL || ckey != 28 /* KEY_SHIFT */)) {
         [calcView cancelTimeout3];
@@ -1102,7 +1102,7 @@ static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
     if (macro != NULL) {
         if (macro_type != 0) {
             we_want_cpu = true;
-            if (cshift_to_shift_fallback) {
+            if (flip_shift) {
                 core_keydown(28, &enqueued, &repeat);
                 core_keyup();
             }
@@ -1113,7 +1113,7 @@ static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
                 squeak();
                 return;
             }
-            if (cshift_to_shift_fallback) {
+            if (flip_shift) {
                 if (macro[0] == 28)
                     macro++;
                 else {

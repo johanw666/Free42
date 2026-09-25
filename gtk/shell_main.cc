@@ -2712,13 +2712,13 @@ static gboolean print_key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
     return TRUE;
 }
 
-static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
+static void shell_keydown(bool cshift, bool flip_shift) {
     GdkWindow *win = gtk_widget_get_window(calc_widget);
 
     int repeat;
     bool keep_running;
     if (skey == -1)
-        skey = skin_find_skey(ckey, cshift);
+        skey = skin_find_skey(ckey, cshift != flip_shift);
     skin_invalidate_key(win, skey);
     if (timeout3_id != 0 && (macro != NULL || ckey != 28 /* KEY_SHIFT */)) {
         g_source_remove(timeout3_id);
@@ -2728,7 +2728,7 @@ static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
 
     if (macro != NULL) {
         if (macro_type != 0) {
-            if (cshift_to_shift_fallback) {
+            if (flip_shift) {
                 core_keydown(28, &enqueued, &repeat);
                 core_keyup();
             }
@@ -2738,7 +2738,7 @@ static void shell_keydown(bool cshift, bool cshift_to_shift_fallback) {
                 squeak();
                 return;
             }
-            if (cshift_to_shift_fallback) {
+            if (flip_shift) {
                 if (macro[0] == 28)
                     macro++;
                 else {
