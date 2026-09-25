@@ -483,12 +483,19 @@ public class SkinLayout {
         return null;
     }
 
+    public boolean is_direct_macro(int ckey) {
+        for (SkinMacro macro : macrolist)
+            if (macro.code == ckey)
+                return !(macro.macro instanceof byte[]);
+        return false;
+    }
+
     public KeymapEntry keymap_lookup(String code, String shifted_code, boolean ctrl, boolean alt, boolean shift,
                               boolean numpad, boolean numlock, boolean cshift, IntHolder quality) {
         KeymapEntry ke = null;
         int q = 0;
         for (KeymapEntry entry : keymap) {
-            int qq = entry.match(code, shifted_code, ctrl, alt, shift, numpad, numlock, cshift);
+            int qq = entry.match(code, shifted_code, ctrl, alt, shift, numpad, numlock, cshift, this);
             if (qq == KeymapEntry.MAX_MATCH_QUALITY) {
                 quality.value = qq;
                 return entry;

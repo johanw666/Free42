@@ -137,8 +137,9 @@ extern const unsigned char * const skin_bitmap_data[];
 int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
                         bool ctrl, bool alt, bool shift, bool numpad, bool numlock, bool cshift,
                         int old_keycode, bool old_shift, bool old_extended) {
+    int result;
     if (old_style) {
-        return old_keycode == this->keycode
+        result = old_keycode == this->keycode
                 && ctrl == this->ctrl
                 && alt == this->alt
                 && old_shift == this->shift
@@ -149,34 +150,49 @@ int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
             ? (old_extended == this->numpad && cshift == this->cshift ? MAX_MATCH_QUALITY : MAX_MATCH_QUALITY - 4)
             : 0;
     } else if (this->keycode != 0) {
-        return keycode == this->keycode
+        result = keycode == this->keycode
                 && ctrl == this->ctrl
                 && alt == this->alt
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
-            ? (numpad == this->numpad ? 32 : 0)
-                + (numlock == this->numlock ? 16 : 0)
-                + (cshift == this->cshift ? 8 : 0)
+            ? (numpad == this->numpad ? 64 : 0)
+                + (numlock == this->numlock ? 32 : 0)
+                + (cshift == this->cshift ? 16 : 0)
+                + 8
                 + 4
                 + ((shift != cshift) == (this->shift != this->cshift) ? 2 : 0)
                 + 1
             : 0;
     } else {
-        return (keychar == this->keychar || shifted_keychar == this->keychar)
+        result = (keychar == this->keychar || shifted_keychar == this->keychar)
                 && ctrl == this->ctrl
                 && alt == this->alt
                 && (numpad || !this->numpad)
                 && (numlock || !this->numlock)
                 && (cshift || !this->cshift)
-            ? (numpad == this->numpad ? 32 : 0)
-                + (numlock == this->numlock ? 16 : 0)
-                + (cshift == this->cshift ? 8 : 0)
+            ? (numpad == this->numpad ? 64 : 0)
+                + (numlock == this->numlock ? 32 : 0)
+                + (cshift == this->cshift ? 16 : 0)
+                + 8
                 + (keychar == this->keychar ? 4 : 0)
                 + (((shift ? shifted_keychar : keychar) == this->keychar) != shift != cshift != this->shift != this->cshift ? 2 : 0)
                 + 1
             : 0;
     }
+
+    if (result != 0 && (result & 2) == 0) {
+        // Check for direct command/xeq macros; we try to avoid shift flipping for those
+        if (macro[0] == 0 || macro[1] != 0)
+            return result;
+        int ckey = macro[0] & 255;
+        if (ckey <= 37)
+            return result;
+        for (SkinMacro *m = macrolist; m != NULL; m = m->next)
+            if (m->code == ckey)
+                return m->type == MACRO_KEYS ? result : result - 8;
+    }
+    return result;
 }
 
 

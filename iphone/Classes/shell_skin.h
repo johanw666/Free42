@@ -25,7 +25,7 @@ struct SkinColor {
 #define IMGTYPE_TRUECOLOR 4
 
 #define KEYMAP_MAX_MACRO_LENGTH 31
-#define MAX_MATCH_QUALITY 31
+#define MAX_MATCH_QUALITY 63
 struct keymap_entry {
     bool ctrl;
     bool alt;

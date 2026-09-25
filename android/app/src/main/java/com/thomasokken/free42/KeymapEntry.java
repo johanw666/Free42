@@ -206,23 +206,36 @@ public class KeymapEntry {
     }
 
     public int match(String code, String shifted_code, boolean ctrl, boolean alt, boolean shift,
-                     boolean numpad, boolean numlock, boolean cshift) {
-        return (code.equals(this.keychar) || shifted_code.equals(this.keychar))
+                     boolean numpad, boolean numlock, boolean cshift, SkinLayout skin) {
+        int result = (code.equals(this.keychar) || shifted_code.equals(this.keychar))
                 && ctrl == this.ctrl
                 && alt == this.alt
                 && (numpad || !this.numpad)
                 && (numlock || !this.numlock)
                 && (cshift || !this.cshift)
-            ? (numpad == this.numpad ? 32 : 0)
-                + (numlock == this.numlock ? 16 : 0)
-                + (cshift == this.cshift ? 8 : 0)
+            ? (numpad == this.numpad ? 64 : 0)
+                + (numlock == this.numlock ? 32 : 0)
+                + (cshift == this.cshift ? 16 : 0)
+                + 8
                 + (code.equals(this.keychar) ? 4 : 0)
                 + (this.keychar.equals(shift ? shifted_code : code) != shift != cshift != this.shift != this.cshift ? 2 : 0)
                 + 1
             : 0;
+
+        if (result != 0 && (result & 2) == 0) {
+            // Check for direct command/xeq macros; we try to avoid shift flipping for those
+            if (macro.length != 1)
+                return result;
+            int ckey = macro[0] & 255;
+            if (ckey <= 37)
+                return result;
+            if (skin.is_direct_macro(ckey))
+                return result - 8;
+        }
+        return result;
     }
 
-    public static final int MAX_MATCH_QUALITY = 63;
+    public static final int MAX_MATCH_QUALITY = 127;
 
     public static int numpad_normalize(int keycode) {
         switch (keycode) {

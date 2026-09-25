@@ -108,17 +108,31 @@ static int keymap_length = 0;
 /******************/
 
 int keymap_entry::match(unsigned short c, unsigned short shifted_c, bool ctrl, bool alt, bool shift, bool numpad, bool cshift) {
-    return (c == this->keychar || shifted_c == this->keychar)
+    int result = (c == this->keychar || shifted_c == this->keychar)
             && ctrl == this->ctrl
             && alt == this->alt
             && (numpad || !this->numpad)
             && (cshift || !this->cshift)
-        ? (numpad == this->numpad ? 16 : 0)
-            + (cshift == this->cshift ? 8 : 0)
+        ? (numpad == this->numpad ? 32 : 0)
+            + (cshift == this->cshift ? 16 : 0)
+            + 8
             + (c == this->keychar ? 4 : 0)
             + (((shift ? shifted_c : c) == this->keychar) != shift != cshift != this->shift != this->cshift ? 2 : 0)
             + 1
         : 0;
+
+    if (result != 0 && (result & 2) == 0) {
+        // Check for direct command/xeq macros; we try to avoid shift flipping for those
+        if (macro[0] == 0 || macro[1] != 0)
+            return result;
+        int ckey = macro[0] & 255;
+        if (ckey <= 37)
+            return result;
+        for (SkinMacro *m = macrolist; m != NULL; m = m->next)
+            if (m->code == ckey)
+                return m->type == MACRO_KEYS ? result : result - 8;
+    }
+    return result;
 }
 
 /*****************/

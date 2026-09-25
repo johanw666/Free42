@@ -1859,7 +1859,7 @@ public class Free42Activity extends Activity {
             KeymapEntry ke = skin.keymap_lookup(code, shifted_code, ctrl, alt, shift, numpad, numlock, cshift, quality);
             if (ke == null || quality.value < KeymapEntry.MAX_MATCH_QUALITY) {
                 for (KeymapEntry entry : keymap) {
-                    int qq = entry.match(code, shifted_code, ctrl, alt, shift, numpad, numlock, cshift);
+                    int qq = entry.match(code, shifted_code, ctrl, alt, shift, numpad, numlock, cshift, skin);
                     if (qq == KeymapEntry.MAX_MATCH_QUALITY) {
                         ke = entry;
                         quality.value = qq;
