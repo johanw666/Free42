@@ -34,12 +34,21 @@
 // Buffer used to pass LBL name, for direct XEQ "LBL" mapping
 char dcm_lbl[8];
 
-static void handle_dcm_xeq() {
-    pending_command = CMD_XEQ;
+static int handle_dcm_xeq() {
     pending_command_arg.type = ARGTYPE_STR;
     pending_command_arg.length = dcm_lbl[0];
     for (int i = 0; i < pending_command_arg.length; i++)
         pending_command_arg.val.text[i] = dcm_lbl[i + 1];
+
+    int dummyprgm;
+    int4 dummypc;
+    if (!find_global_label(&pending_command_arg, &dummyprgm, &dummypc)) {
+        int cmd = find_builtin(dcm_lbl + 1, dcm_lbl[0]);
+        if (cmd != CMD_NONE)
+            return cmd;
+    }
+
+    pending_command = CMD_XEQ;
     if (flags.f.prgm_mode) {
         store_command_after(&pc, pending_command,
                                     &pending_command_arg, NULL);
@@ -47,6 +56,7 @@ static void handle_dcm_xeq() {
         pending_command = CMD_NONE;
         redisplay();
     }
+    return CMD_NONE;
 }
 
 static bool is_number_key(int shift, int key, bool *invalid) {
@@ -2121,8 +2131,10 @@ void keydown_alpha_mode(int shift, int key) {
     }
 
     if (key == 2048 + CMD_NULL) {
-        handle_dcm_xeq();
-        return;
+        int cmd = handle_dcm_xeq();
+        if (cmd == CMD_NONE)
+            return;
+        key = 2048 + cmd;
     }
 
     command = CMD_CANCELLED;
@@ -2909,8 +2921,10 @@ void keydown_normal_mode(int shift, int key) {
     }
 
     if (key == 2048 + CMD_NULL) {
-        handle_dcm_xeq();
-        return;
+        int cmd = handle_dcm_xeq();
+        if (cmd == CMD_NONE)
+            return;
+        key = 2048 + cmd;
     }
 
     if (!shift) {
