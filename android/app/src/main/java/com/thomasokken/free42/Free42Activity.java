@@ -1950,7 +1950,7 @@ public class Free42Activity extends Activity {
                     ckey = key_macro[0];
                 else if (key_macro.length == 2 && key_macro[0] == 28) {
                     ckey = key_macro[1];
-                    skin_shift = true;
+                    skin_shift = !skin_shift;
                 }
             boolean needs_expansion = false;
             for (int j = 0; j < key_macro.length; j++)

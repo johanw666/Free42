@@ -1017,7 +1017,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                             ckey = key_macro[0];
                         else if (key_macro[2] == 0 && key_macro[0] == 28) {
                             ckey = key_macro[1];
-                            skin_shift = true;
+                            skin_shift = !skin_shift;
                         }
                     bool needs_expansion = false;
                     for (int j = 0; key_macro[j] != 0; j++)
