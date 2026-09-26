@@ -144,9 +144,12 @@ int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
                 && old_shift == this->shift
                 && (old_extended || !this->numpad)
                 && (cshift || !this->cshift)
-            // These scores don't follow the new scoring scheme, they're just set up
-            // to be high enough that they can beat the key assignments in keymap.txt
-            ? (old_extended == this->numpad && cshift == this->cshift ? MAX_MATCH_QUALITY : MAX_MATCH_QUALITY - 4)
+            ? (old_extended == this->numpad ? 32 : 0)
+                + (numlock == this->numlock ? 16 : 0)
+                + (cshift == this->cshift ? 8 : 0)
+                + 4
+                + ((old_shift != cshift) == (this->shift != this->cshift) ? 2 : 0)
+                + 1
             : 0;
     } else if (this->keycode != 0) {
         return keycode == this->keycode
