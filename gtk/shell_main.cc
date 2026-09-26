@@ -2950,7 +2950,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                     numlock = false;
             }
 
-            bool printable = !(orig_c >= 0 && orig_c <= 31 || orig_c == 127);
+            bool printable = !ctrl && !alt && !(orig_c >= 0 && orig_c <= 31 || orig_c == 127);
 
             int quality;
             keymap_entry *ke = skin_keymap_lookup(c, shifted_c, nKeyval, ctrl, alt, shift,
