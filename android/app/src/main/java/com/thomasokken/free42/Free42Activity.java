@@ -1748,38 +1748,6 @@ public class Free42Activity extends Activity {
             return true;
         }
 
-        /*
-        private void logKeyEvent(String type, int keyCode, KeyEvent event) {
-            int ch = event.getUnicodeChar();
-            if (ch == 0)
-                ch = event.getUnicodeChar(0);
-            ch &= KeyCharacterMap.COMBINING_ACCENT_MASK;
-            String code;
-            if (ch == 0) {
-                code = KeyEvent.keyCodeToString(keyCode);
-                if (code.startsWith("KEYCODE_"))
-                    code = code.substring(8);
-            } else {
-                code = "" + (char) ch;
-            }
-
-            String m = "0000000" + Integer.toHexString(event.getMetaState());
-            m = m.substring(m.length() - 8);
-            String c;
-            if (code.length() == 1 && (code.charAt(0) < 32 || code.charAt(0) > 126)) {
-                String cs = "0000" + Integer.toHexString(code.charAt(0));
-                cs = cs.substring(cs.length() - 5);
-                if (cs.startsWith("0"))
-                    cs = cs.substring(1);
-                c = "U+" + cs;
-            } else
-                c = code;
-            shell_log(type + ": 0x" + m + " " + c + " ");
-            shell_log("keyCode = " + keyCode);
-            shell_log("event = " + event.toString());
-        }
-        */
-
         private long eventTime = 0;
 
         @Override
@@ -1805,8 +1773,6 @@ public class Free42Activity extends Activity {
 
             cancelRepeaterAndTimeouts1And2();
 
-            //logKeyEvent("KEY_DOWN", keyCode, event);
-
             boolean ctrl = event.isCtrlPressed();
             boolean alt = event.isAltPressed();
             boolean numlock = event.isNumLockOn()
@@ -1815,7 +1781,7 @@ public class Free42Activity extends Activity {
             boolean shift = event.isShiftPressed();
             boolean cshift = skin.getAnnunciators()[1];
 
-            int orig_ch = event.getUnicodeChar();
+            int orig_ch = event.getUnicodeChar() & KeyCharacterMap.COMBINING_ACCENT_MASK;
 
             int ch, shifted_ch;
             ch = KeymapEntry.numpad_normalize(keyCode);
@@ -1999,8 +1965,6 @@ public class Free42Activity extends Activity {
         public boolean onKeyUp(int keyCode, KeyEvent event) {
             if (event.getRepeatCount() > 0)
                 return true;
-
-            //logKeyEvent("KEY_UP", keyCode, event);
 
             cancelRepeaterAndTimeouts1And2();
             if (just_pressed_shift) {
