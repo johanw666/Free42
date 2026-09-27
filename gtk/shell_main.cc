@@ -753,9 +753,10 @@ static void activate(GtkApplication *theApp, gpointer userData) {
     GtkWidget *box = GTK_WIDGET(gtk_builder_get_object(builder, "box"));
 
     int win_width, win_height;
-    skin_load(&win_width, &win_height);
-    skin_set_window_size(win_width, win_height);
-    if (state.mainWindowWidth != 0)
+    bool skin_has_changed = skin_load(&win_width, &win_height);
+    if (state.mainWindowWidth == 0 || skin_has_changed)
+        skin_set_window_size(win_width, win_height);
+    else
         skin_set_window_size(state.mainWindowWidth, state.mainWindowHeight);
     GtkWidget *w = gtk_drawing_area_new();
     gtk_box_pack_start(GTK_BOX(box), w, TRUE, TRUE, 0);

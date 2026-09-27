@@ -655,7 +655,7 @@ static char *find_quote(char *s, bool first) {
     return NULL;
 }
 
-void skin_load(int *width, int *height) {
+bool skin_load(int *width, int *height) {
     char line[1024];
     bool force_builtin = false;
 
@@ -897,6 +897,8 @@ void skin_load(int *width, int *height) {
     /*********************************/
 
     memset(disp_bits, 0, 272);
+
+    return force_builtin;
 }
 
 bool skin_init_image(int type, int ncolors, const SkinColor *colors,

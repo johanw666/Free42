@@ -20,7 +20,7 @@
 
 #include <windows.h>
 
-void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *height);
+bool skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *height);
 
 struct SkinColor {
     unsigned char r, g, b, pad;

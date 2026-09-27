@@ -427,10 +427,10 @@ static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     RECT r;
 
-    skin_load(state.skinName, free42dirname, &r.right, &r.bottom);
+    bool skin_has_changed = skin_load(state.skinName, free42dirname, &r.right, &r.bottom);
     r.top = 0;
     r.left = 0;
-    if (state.mainWindowWidth != 0) {
+    if (state.mainWindowWidth != 0 && !skin_has_changed) {
         r.right = state.mainWindowWidth;
         r.bottom = state.mainWindowHeight;
         skin_set_window_size(state.mainWindowWidth, state.mainWindowHeight);

@@ -338,9 +338,10 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
     [mainWindow setTitle:@"Free42 Binary"];
 #endif
     long win_width, win_height;
-    skin_load(&win_width, &win_height);
+    bool skin_has_changed = skin_load(&win_width, &win_height);
+    long y_offset = state.mainWindowKnown && skin_has_changed ? state.mainWindowHeight - win_height : 0;
     NSSize sz;
-    if (state.mainWindowWidth == 0) {
+    if (state.mainWindowWidth == 0 || skin_has_changed) {
         sz.width = win_width;
         sz.height = win_height;
         state.mainWindowWidth = win_width;
@@ -356,7 +357,7 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
     if (state.mainWindowKnown) {
         NSPoint pt;
         pt.x = state.mainWindowX;
-        pt.y = state.mainWindowY;
+        pt.y = state.mainWindowY + y_offset;
         [mainWindow setFrameOrigin:pt];
     }
     

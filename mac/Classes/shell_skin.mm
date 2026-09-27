@@ -479,7 +479,7 @@ static char *find_quote(char *s, bool first) {
     return NULL;
 }
 
-void skin_load(long *width, long *height) {
+bool skin_load(long *width, long *height) {
     char line[1024];
     bool force_builtin = false;
     
@@ -747,6 +747,8 @@ void skin_load(long *width, long *height) {
     disp_bitmap = (unsigned char *) malloc(size);
     // TODO - handle memory allocation failure
     memset(disp_bitmap, 255, size);
+
+    return force_builtin;
 }
 
 bool skin_init_image(int type, int ncolors, const SkinColor *colors,

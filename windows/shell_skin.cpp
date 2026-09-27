@@ -524,7 +524,7 @@ static char *find_quote(char *s, bool first) {
     return NULL;
 }
 
-void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *height) {
+bool skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *height) {
     char line[1024];
     bool force_builtin = false;
 
@@ -777,6 +777,8 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
     pal.pal.Entries[0] = display_bg | 0xff000000;
     pal.pal.Entries[1] = display_fg | 0xff000000;
     disp_bitmap->SetPalette(&pal.pal);
+
+    return force_builtin;
 }
 
 bool skin_init_image(int type, int ncolors, const SkinColor *colors,
