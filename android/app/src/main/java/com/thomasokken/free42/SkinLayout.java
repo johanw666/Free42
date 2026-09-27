@@ -161,6 +161,7 @@ public class SkinLayout {
             String line;
             int lineno = 0;
             boolean old_style;
+            boolean map_key_ended = false;
             List<SkinKey> tempkeylist = new ArrayList<SkinKey>();
             List<SkinMacro> tempmacrolist = new ArrayList<SkinMacro>();
             List<KeymapEntry> keymapList = new ArrayList<KeymapEntry>();
@@ -344,9 +345,13 @@ public class SkinLayout {
                         // ignore
                     }
                 } else if ((old_style = lcline.startsWith("droidkey:")) || lcline.startsWith("mapkey:")) {
-                    KeymapEntry entry = KeymapEntry.parse(old_style, line.substring(old_style ? 9 : 7), lineno);
-                    if (entry != null)
-                        keymapList.add(entry);
+                    if (!old_style || !map_key_ended) {
+                        KeymapEntry entry = KeymapEntry.parse(old_style, line.substring(old_style ? 9 : 7), lineno);
+                        if (entry != null)
+                            keymapList.add(entry);
+                    }
+                } else if (lcline.startsWith("legacykeymaps:")) {
+                    map_key_ended = true;
                 }
             }
             keylist = tempkeylist.toArray(new SkinKey[0]);
