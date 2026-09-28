@@ -513,6 +513,30 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
     }
 }
 
+- (NSSize) windowWillResize:(NSWindow *) sender toSize:(NSSize) frameSize {
+    if (sender == mainWindow) {
+        NSRect availFrame = [[mainWindow screen] visibleFrame];
+        if (frameSize.width > availFrame.size.width || frameSize.height > availFrame.size.height) {
+            NSRect availContent = [mainWindow contentRectForFrameRect:availFrame];
+            int w, h;
+            skin_get_size(&w, &h);
+            double skinAspect = ((double) w) / h;
+            NSRect wantedRect;
+            wantedRect.origin.x = wantedRect.origin.y = 0;
+            if (availContent.size.width / availContent.size.height < skinAspect) {
+                wantedRect.size.width = availContent.size.width;
+                wantedRect.size.height = availContent.size.width / skinAspect;
+            } else {
+                wantedRect.size.width = availContent.size.height * skinAspect;
+                wantedRect.size.height = availContent.size.height;
+            }
+            NSSize wantedSize = [mainWindow frameRectForContentRect:wantedRect].size;
+            return wantedSize;
+        }
+    }
+    return frameSize;
+}
+
 - (IBAction) showAbout:(id)sender {
     const char *version = [Free42AppDelegate getVersion];
     [aboutVersion setStringValue:[NSString stringWithFormat:@"Free42 %s", version]];
