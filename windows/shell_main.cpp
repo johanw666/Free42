@@ -682,6 +682,28 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         LONG dx = r.left;
                         LONG dy = r.top;
                         AdjustWindowRect(&r, WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_OVERLAPPED, 1);
+
+                        HMONITOR hMon = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+                        MONITORINFO monitorInfo;
+                        monitorInfo.cbSize = sizeof(MONITORINFO);
+                        if (GetMonitorInfo(hMon, &monitorInfo)) {
+                            int maxW = monitorInfo.rcWork.right - monitorInfo.rcWork.left;
+                            int maxH = monitorInfo.rcWork.bottom - monitorInfo.rcWork.top;
+                            int w = r.right - r.left;
+                            int h = r.bottom - r.top;
+                            if (w > maxW || h > maxH) {
+                                int availW = maxW - (w - width);
+                                int availH = maxH - (h - height);
+                                if (availW * height < availH * width) {
+                                    r.right -= width - availW;
+                                    r.bottom -= height - availW * height / width;
+                                } else {
+                                    r.right -= width - availH * width / height;
+                                    r.bottom -= height - availH;
+                                }
+                            }
+                        }
+
                         dx -= r.left;
                         dy -= r.top;
                         OffsetRect(&r, dx, dy);
