@@ -13,10 +13,10 @@ if [ $# -eq 0 ]; then
     mv app/build/outputs/bundle/decimalRelease/app-decimal-release.aab ../packages/Free42Android.aab
     ./gradlew --warning-mode all assembleDecimalRelease
     mv app/build/outputs/apk/decimal/release/app-decimal-release.apk ../packages/Free42Android.apk
-elif [ $1 == "apk" ]; then
+elif [ "$1" = "apk" ]; then
     ./gradlew --warning-mode all assembleDecimalRelease
     mv app/build/outputs/apk/decimal/release/app-decimal-release.apk ../packages/Free42Android.apk
-elif [ $1 == "binapk" ]; then
+elif [ "$1" = "binapk" ]; then
     ./gradlew --warning-mode all assembleBinaryRelease
     mv app/build/outputs/apk/binary/release/app-binary-release.apk ../packages/Free42BinaryAndroid.apk
 else
