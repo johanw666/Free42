@@ -531,6 +531,10 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
                 wantedRect.size.height = availContent.size.height;
             }
             NSSize wantedSize = [mainWindow frameRectForContentRect:wantedRect].size;
+            if (wantedSize.width > frameSize.width)
+                wantedSize.width = frameSize.width;
+            if (wantedSize.height > frameSize.height)
+                wantedSize.height = frameSize.height;
             return wantedSize;
         }
     }
