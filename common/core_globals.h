@@ -280,7 +280,8 @@ typedef union {
         char thousands_separators;
         char stack_lift_disable;
         char dmy; /* Time Module DMY mode */
-        char f32; char f33;
+        char f32;
+        char prev_progmenu;
         char agraph_control1; /* 0 (default): dst = dst | src, 1: dst = src, */
         char agraph_control0; /* 2: dst = dst & ~src, 3: dst = dst ^ src */
         char digits_bit3;
@@ -414,6 +415,7 @@ extern bool mode_getkey1;
 extern bool mode_pause;
 extern bool mode_disable_stack_lift;
 extern bool mode_varmenu;
+extern bool mode_progmenu;
 extern bool mode_updown;
 extern int4 mode_sigma_reg;
 extern int mode_goose;

@@ -201,6 +201,11 @@ void keydown(int shift, int key) {
     // different behaviors for unshifted and shifted menu keys.
     flags.f.shift_state = shift;
 
+    // Track programmable menu key events, to allow programs using the
+    // programmable menu to emulate VARMENU behavior
+    flags.f.prev_progmenu = mode_progmenu;
+    mode_progmenu = false;
+
     pending_command = CMD_NONE;
 
     if (key >= 1024 && key < 2048) {
@@ -2323,6 +2328,7 @@ void keydown_normal_mode(int shift, int key) {
                 }
             } else
                 goto notprogmenu;
+            mode_progmenu = true;
             do_prgm_menu_key(keynum);
             return;
             notprogmenu:;
