@@ -266,7 +266,7 @@ typedef union {
         char double_wide_print;
         char lowercase_print;
         char f14;
-        char trace_print; /* 'normal_print' ignored if this is set */
+        char trace_print; /* This and 'normal_print' both set: STRACE mode */
         char normal_print;
         char f17; char f18; char f19; char f20;
         char printer_enable;

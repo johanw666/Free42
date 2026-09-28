@@ -608,7 +608,7 @@ bool core_keyup() {
         return false;
 
     if (mode_pause) {
-        /* The only way this can happen is if they key in question was Shift */
+        /* The only way this can happen is if the key in question was Shift */
         return false;
     }
 
