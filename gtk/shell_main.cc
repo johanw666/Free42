@@ -238,6 +238,7 @@ static const char *mainWindowXml =
                     "<child>"
                       "<object class='GtkMenuItem' id='show_printout_item'>"
                         "<property name='label'>Show Print-Out</property>"
+                        "<accelerator key='P' signal='activate' modifiers='GDK_CONTROL_MASK'/>"
                       "</object>"
                     "</child>"
                     "<child>"

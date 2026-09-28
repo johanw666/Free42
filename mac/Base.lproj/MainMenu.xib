@@ -79,8 +79,7 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="A44-EM-ZOr"/>
-                            <menuItem title="Show Print-Out" id="450">
-                                <modifierMask key="keyEquivalentModifierMask"/>
+                            <menuItem title="Show Print-Out" keyEquivalent="p" id="450">
                                 <connections>
                                     <action selector="showPrintOut:" target="520" id="612"/>
                                 </connections>

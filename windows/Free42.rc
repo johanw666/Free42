@@ -45,7 +45,7 @@ BEGIN
     BEGIN
         MENUITEM "States...",                   IDM_STATES
         MENUITEM SEPARATOR
-        MENUITEM "Show Print-Out",              IDM_SHOWPRINTOUT
+        MENUITEM "Show Print-Out\tCtrl+P",      IDM_SHOWPRINTOUT
         MENUITEM "Paper Advance\tCtrl+A",       IDM_PAPERADVANCE
         MENUITEM SEPARATOR
         MENUITEM "Import Programs...",          IDM_IMPORTPROGRAM
@@ -102,6 +102,7 @@ END
 
 IDC_FREE42 ACCELERATORS MOVEABLE PURE 
 BEGIN
+    "P",            IDM_SHOWPRINTOUT,       VIRTKEY, CONTROL, NOINVERT
     "A",            IDM_PAPERADVANCE,       VIRTKEY, CONTROL, NOINVERT
     "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
     "D",            IDM_CLEARPRINTOUT,      VIRTKEY, CONTROL, NOINVERT
