@@ -415,7 +415,6 @@ extern bool mode_getkey1;
 extern bool mode_pause;
 extern bool mode_disable_stack_lift;
 extern bool mode_varmenu;
-extern bool mode_progmenu;
 extern bool mode_updown;
 extern int4 mode_sigma_reg;
 extern int mode_goose;
