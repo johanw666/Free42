@@ -2555,9 +2555,10 @@ bool store_command(int4 pc, int command, arg_struct *arg, const char *num_str) {
     else
         update_label_table(current_prgm, pc, bufptr);
     invalidate_lclbls(current_prgm, false);
-    clear_all_rtns();
-    if (!loading_state)
+    if (!loading_state) {
+        clear_all_rtns();
         draw_varmenu();
+    }
     return true;
 }
 
