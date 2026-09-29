@@ -1346,6 +1346,11 @@ void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, NSUInteger flags
     bool cshift = ann_shift != 0;
     
     bool printable = !ctrl && (orig_c >= 32 && orig_c != 127 && orig_c < 0xf700 || orig_c > 0xf8ff);
+    if (!ctrl && orig_c == 0)
+        // Dead key. We pretend that this is printable as well, not because we are
+        // actually able to work with it, but in order to get consistent behavior for
+        // all character keys in ALPHA mode.
+        printable = true;
 
     just_pressed_shift = false;
     
