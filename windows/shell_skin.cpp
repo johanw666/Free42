@@ -145,9 +145,12 @@ int keymap_entry::match(int keychar, int shifted_keychar, int keycode,
                 && old_shift == this->shift
                 && (old_extended || !this->numpad)
                 && (cshift || !this->cshift)
-            // These scores don't follow the new scoring scheme, they're just set up
-            // to be high enough that they can beat the key assignments in keymap.txt
-            ? (old_extended == this->numpad && cshift == this->cshift ? MAX_MATCH_QUALITY : MAX_MATCH_QUALITY - 4)
+            ? (old_extended == this->numpad ? 32 : 0)
+                + (numlock == this->numlock ? 16 : 0)
+                + (cshift == this->cshift ? 8 : 0)
+                + 4
+                + ((old_shift != cshift) == (this->shift != this->cshift) ? 2 : 0)
+                + 1
             : 0;
     } else if (this->keycode != 0) {
         result = keycode == this->keycode
@@ -537,7 +540,7 @@ static char *find_quote(char *s, bool first) {
     return NULL;
 }
 
-void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *height) {
+bool skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *height) {
     char line[1024];
     bool force_builtin = false;
 
@@ -574,6 +577,7 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
 
     int lineno = 0;
     bool old_style;
+    bool map_key_ended = false;
 
     while (skin_gets(line, 1024)) {
         lineno++;
@@ -731,15 +735,19 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
                 }
             }
         } else if ((old_style = _strnicmp(line, "winkey:", 7) == 0) || _strnicmp(line, "mapkey:", 7) == 0) {
-            keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
-            if (entry != NULL) {
-                if (keymap_length == kmcap) {
-                    kmcap += 50;
-                    keymap = (keymap_entry *) realloc(keymap, kmcap * sizeof(keymap_entry));
-                    // TODO - handle memory allocation failure
+            if (!old_style || !map_key_ended) {
+                keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
+                if (entry != NULL) {
+                    if (keymap_length == kmcap) {
+                        kmcap += 50;
+                        keymap = (keymap_entry *) realloc(keymap, kmcap * sizeof(keymap_entry));
+                        // TODO - handle memory allocation failure
+                    }
+                    memcpy(keymap + (keymap_length++), entry, sizeof(keymap_entry));
                 }
-                memcpy(keymap + (keymap_length++), entry, sizeof(keymap_entry));
             }
+        } else if (_strnicmp(line, "legacykeymaps:", 14) == 0) {
+            map_key_ended = true;
         }
     }
 
@@ -790,6 +798,8 @@ void skin_load(wchar_t *skinname, const wchar_t *basedir, long *width, long *hei
     pal.pal.Entries[0] = display_bg | 0xff000000;
     pal.pal.Entries[1] = display_fg | 0xff000000;
     disp_bitmap->SetPalette(&pal.pal);
+
+    return force_builtin;
 }
 
 bool skin_init_image(int type, int ncolors, const SkinColor *colors,

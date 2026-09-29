@@ -338,9 +338,10 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
     [mainWindow setTitle:@"Free42 Binary"];
 #endif
     long win_width, win_height;
-    skin_load(&win_width, &win_height);
+    bool skin_has_changed = skin_load(&win_width, &win_height);
+    long y_offset = state.mainWindowKnown && skin_has_changed ? state.mainWindowHeight - win_height : 0;
     NSSize sz;
-    if (state.mainWindowWidth == 0) {
+    if (state.mainWindowWidth == 0 || skin_has_changed) {
         sz.width = win_width;
         sz.height = win_height;
         state.mainWindowWidth = win_width;
@@ -356,7 +357,7 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
     if (state.mainWindowKnown) {
         NSPoint pt;
         pt.x = state.mainWindowX;
-        pt.y = state.mainWindowY;
+        pt.y = state.mainWindowY + y_offset;
         [mainWindow setFrameOrigin:pt];
     }
     
@@ -510,6 +511,34 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
             [printView performSelectorOnMainThread:@selector(scrollToBottom) withObject:nil waitUntilDone:NO];
         }
     }
+}
+
+- (NSSize) windowWillResize:(NSWindow *) sender toSize:(NSSize) frameSize {
+    if (sender == mainWindow) {
+        NSRect availFrame = [[mainWindow screen] visibleFrame];
+        if (frameSize.width > availFrame.size.width || frameSize.height > availFrame.size.height) {
+            NSRect availContent = [mainWindow contentRectForFrameRect:availFrame];
+            int w, h;
+            skin_get_size(&w, &h);
+            double skinAspect = ((double) w) / h;
+            NSRect wantedRect;
+            wantedRect.origin.x = wantedRect.origin.y = 0;
+            if (availContent.size.width / availContent.size.height < skinAspect) {
+                wantedRect.size.width = availContent.size.width;
+                wantedRect.size.height = availContent.size.width / skinAspect;
+            } else {
+                wantedRect.size.width = availContent.size.height * skinAspect;
+                wantedRect.size.height = availContent.size.height;
+            }
+            NSSize wantedSize = [mainWindow frameRectForContentRect:wantedRect].size;
+            if (wantedSize.width > frameSize.width)
+                wantedSize.width = frameSize.width;
+            if (wantedSize.height > frameSize.height)
+                wantedSize.height = frameSize.height;
+            return wantedSize;
+        }
+    }
+    return frameSize;
 }
 
 - (IBAction) showAbout:(id)sender {
@@ -1316,7 +1345,12 @@ void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, NSUInteger flags
     bool shift = (flags & NSEventModifierFlagShift) != 0;
     bool cshift = ann_shift != 0;
     
-    bool printable = !ctrl && (orig_c >= 32 && orig_c != 127 && orig_c < 0xf700 || orig_c > 0xf8ff);
+    bool printable = !ctrl && (orig_c >= 32 && orig_c != 127 && orig_c < 0xf700 || orig_c > 0xf8fe);
+    if (!ctrl && orig_c == 0)
+        // Dead key. We pretend that this is printable as well, not because we are
+        // actually able to work with it, but in order to get consistent behavior for
+        // all character keys in ALPHA mode.
+        printable = true;
 
     just_pressed_shift = false;
     
@@ -1423,7 +1457,7 @@ void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, NSUInteger flags
                 ckey = key_macro[0];
             else if (key_macro[2] == 0 && key_macro[0] == 28) {
                 ckey = key_macro[1];
-                skin_shift = true;
+                skin_shift = !skin_shift;
             }
         bool needs_expansion = false;
         for (int j = 0; key_macro[j] != 0; j++)

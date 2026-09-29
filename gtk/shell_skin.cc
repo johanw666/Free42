@@ -671,7 +671,7 @@ static char *find_quote(char *s, bool first) {
     return NULL;
 }
 
-void skin_load(int *width, int *height) {
+bool skin_load(int *width, int *height) {
     char line[1024];
     bool force_builtin = false;
 
@@ -708,6 +708,7 @@ void skin_load(int *width, int *height) {
 
     int lineno = 0;
     bool old_style;
+    bool map_key_ended = false;
 
     while (skin_gets(line, 1024)) {
         lineno++;
@@ -872,16 +873,20 @@ void skin_load(int *width, int *height) {
                 }
             }
         } else if ((old_style = strncasecmp(line, "gtkkey:", 7) == 0) || strncasecmp(line, "mapkey:", 7) == 0) {
-            keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
-            if (entry != NULL) {
-                if (keymap_length == kmcap) {
-                    kmcap += 50;
-                    keymap = (keymap_entry *)
-                                realloc(keymap, kmcap * sizeof(keymap_entry));
-                    // TODO - handle memory allocation failure
+            if (!old_style || !map_key_ended) {
+                keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
+                if (entry != NULL) {
+                    if (keymap_length == kmcap) {
+                        kmcap += 50;
+                        keymap = (keymap_entry *)
+                                    realloc(keymap, kmcap * sizeof(keymap_entry));
+                        // TODO - handle memory allocation failure
+                    }
+                    memcpy(keymap + (keymap_length++), entry, sizeof(keymap_entry));
                 }
-                memcpy(keymap + (keymap_length++), entry, sizeof(keymap_entry));
             }
+        } else if (strncasecmp(line, "legacykeymaps:", 14) == 0) {
+            map_key_ended = true;
         }
     }
 
@@ -913,6 +918,8 @@ void skin_load(int *width, int *height) {
     /*********************************/
 
     memset(disp_bits, 0, 272);
+
+    return force_builtin;
 }
 
 bool skin_init_image(int type, int ncolors, const SkinColor *colors,

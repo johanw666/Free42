@@ -21,7 +21,7 @@
 #include <gtk/gtk.h>
 
 void skin_menu_update(GtkWidget *w);
-void skin_load(int *width, int *height);
+bool skin_load(int *width, int *height);
 
 struct SkinColor {
     unsigned char r, g, b, pad;

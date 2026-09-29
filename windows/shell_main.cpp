@@ -427,10 +427,10 @@ static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     RECT r;
 
-    skin_load(state.skinName, free42dirname, &r.right, &r.bottom);
+    bool skin_has_changed = skin_load(state.skinName, free42dirname, &r.right, &r.bottom);
     r.top = 0;
     r.left = 0;
-    if (state.mainWindowWidth != 0) {
+    if (state.mainWindowWidth != 0 && !skin_has_changed) {
         r.right = state.mainWindowWidth;
         r.bottom = state.mainWindowHeight;
         skin_set_window_size(state.mainWindowWidth, state.mainWindowHeight);
@@ -682,6 +682,28 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                         LONG dx = r.left;
                         LONG dy = r.top;
                         AdjustWindowRect(&r, WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_OVERLAPPED, 1);
+
+                        HMONITOR hMon = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+                        MONITORINFO monitorInfo;
+                        monitorInfo.cbSize = sizeof(MONITORINFO);
+                        if (GetMonitorInfo(hMon, &monitorInfo)) {
+                            int maxW = monitorInfo.rcWork.right - monitorInfo.rcWork.left;
+                            int maxH = monitorInfo.rcWork.bottom - monitorInfo.rcWork.top;
+                            int w = r.right - r.left;
+                            int h = r.bottom - r.top;
+                            if (w > maxW || h > maxH) {
+                                int availW = maxW - (w - width);
+                                int availH = maxH - (h - height);
+                                if (availW * height < availH * width) {
+                                    r.right -= width - availW;
+                                    r.bottom -= height - availW * height / width;
+                                } else {
+                                    r.right -= width - availH * width / height;
+                                    r.bottom -= height - availH;
+                                }
+                            }
+                        }
+
                         dx -= r.left;
                         dy -= r.top;
                         OffsetRect(&r, dx, dy);
@@ -1017,7 +1039,7 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                             ckey = key_macro[0];
                         else if (key_macro[2] == 0 && key_macro[0] == 28) {
                             ckey = key_macro[1];
-                            skin_shift = true;
+                            skin_shift = !skin_shift;
                         }
                     bool needs_expansion = false;
                     for (int j = 0; key_macro[j] != 0; j++)

@@ -341,6 +341,7 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
         set_running(false);
         if (!mode_shift && (key == KEY_RUN || key == KEY_EXIT)) {
             redisplay();
+            flags.f.prev_progmenu = mode_progmenu = false;
             return false;
         }
     }
@@ -358,6 +359,7 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
             if (key == KEY_EXIT ||
                     (mode_stoppable && !mode_shift && key == KEY_RUN)) {
                 keybuf_tail = keybuf_head;
+                flags.f.prev_progmenu = mode_progmenu = false;
                 stop_interruptible();
                 return false;
             } else {
@@ -398,6 +400,7 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
         if (key != 0) {
             if (key == KEY_EXIT) {
                 keybuf_tail = keybuf_head;
+                flags.f.prev_progmenu = mode_progmenu = false;
                 set_shift(false);
                 set_running(false);
                 pending_command = CMD_CANCELLED;
@@ -407,6 +410,7 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
             *enqueued = 1;
             if (!mode_shift && key == KEY_RUN) {
                 keybuf_tail = keybuf_head;
+                flags.f.prev_progmenu = mode_progmenu = false;
                 set_running(false);
                 redisplay();
                 return false;
@@ -608,7 +612,7 @@ bool core_keyup() {
         return false;
 
     if (mode_pause) {
-        /* The only way this can happen is if they key in question was Shift */
+        /* The only way this can happen is if the key in question was Shift */
         return false;
     }
 

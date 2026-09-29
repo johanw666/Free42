@@ -520,6 +520,7 @@ void skin_load(long *width, long *height) {
 
     int lineno = 0;
     bool old_style;
+    bool map_key_ended = false;
 
     while (skin_gets(line, 1024)) {
         lineno++;
@@ -686,15 +687,19 @@ void skin_load(long *width, long *height) {
                 }
             }
         } else if ((old_style = strncasecmp(line, "mackey:", 7) == 0) || strncasecmp(line, "mapkey:", 7) == 0) {
-            keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
-            if (entry != NULL) {
-                if (keymap_length == kmcap) {
-                    kmcap += 50;
-                    keymap = (keymap_entry *) realloc(keymap, kmcap * sizeof(keymap_entry));
-                    // TODO - handle memory allocation failure
+            if (!old_style || !map_key_ended) {
+                keymap_entry *entry = parse_keymap_entry(old_style, line + 7, lineno);
+                if (entry != NULL) {
+                    if (keymap_length == kmcap) {
+                        kmcap += 50;
+                        keymap = (keymap_entry *) realloc(keymap, kmcap * sizeof(keymap_entry));
+                        // TODO - handle memory allocation failure
+                    }
+                    memcpy(keymap + (keymap_length++), entry, sizeof(keymap_entry));
                 }
-                memcpy(keymap + (keymap_length++), entry, sizeof(keymap_entry));
             }
+        } else if (strncasecmp(line, "legacykeymaps:", 14) == 0) {
+            map_key_ended = true;
         }
     }
     
@@ -912,7 +917,7 @@ static NSString *entry_to_text(keymap_entry *e) {
         case 0xf73f: c = @"Prev"; break;
         case 0xf740: c = @"Next"; break;
         default:
-            if (e->keychar > 32 && e->keychar < 0xf700 || e->keychar > 0xf8ff)
+            if (e->keychar > 32 && e->keychar < 0xf700 || e->keychar > 0xf8fe)
                 c = [NSString stringWithFormat:@"%C", e->keychar];
             else if (e->keychar >= 0xf704 && e->keychar <= 0xf726)
                 c = [NSString stringWithFormat:@"F%d", e->keychar - 0xf704 + 1];

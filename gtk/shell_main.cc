@@ -238,6 +238,7 @@ static const char *mainWindowXml =
                     "<child>"
                       "<object class='GtkMenuItem' id='show_printout_item'>"
                         "<property name='label'>Show Print-Out</property>"
+                        "<accelerator key='P' signal='activate' modifiers='GDK_CONTROL_MASK'/>"
                       "</object>"
                     "</child>"
                     "<child>"
@@ -753,9 +754,10 @@ static void activate(GtkApplication *theApp, gpointer userData) {
     GtkWidget *box = GTK_WIDGET(gtk_builder_get_object(builder, "box"));
 
     int win_width, win_height;
-    skin_load(&win_width, &win_height);
-    skin_set_window_size(win_width, win_height);
-    if (state.mainWindowWidth != 0)
+    bool skin_has_changed = skin_load(&win_width, &win_height);
+    if (state.mainWindowWidth == 0 || skin_has_changed)
+        skin_set_window_size(win_width, win_height);
+    else
         skin_set_window_size(state.mainWindowWidth, state.mainWindowHeight);
     GtkWidget *w = gtk_drawing_area_new();
     gtk_box_pack_start(GTK_BOX(box), w, TRUE, TRUE, 0);
@@ -2950,7 +2952,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                     numlock = false;
             }
 
-            bool printable = !(orig_c >= 0 && orig_c <= 31 || orig_c == 127);
+            bool printable = !ctrl && !alt && !(orig_c >= 0 && orig_c <= 31 || orig_c == 127);
 
             int quality;
             keymap_entry *ke = skin_keymap_lookup(c, shifted_c, nKeyval, ctrl, alt, shift,
@@ -3053,7 +3055,7 @@ static gboolean key_cb(GtkWidget *w, GdkEventKey *event, gpointer cd) {
                         ckey = key_macro[0];
                     else if (key_macro[2] == 0 && key_macro[0] == 28) {
                         ckey = key_macro[1];
-                        skin_shift = true;
+                        skin_shift = !skin_shift;
                     }
                 bool needs_expansion = false;
                 for (int j = 0; key_macro[j] != 0; j++)

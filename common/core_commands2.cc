@@ -606,6 +606,7 @@ int docmd_pse(arg_struct *arg) {
         redisplay();
         pending_command = saved_command;
         mode_pause = true;
+        keybuf_head = keybuf_tail;
     }
     return ERR_NONE;
 }
