@@ -831,7 +831,7 @@ static CLLocationManager *locMgr = nil;
 
             unichar shifted_c;
 
-            if (numpad || c <= 32 || c == 127 || c >= 0xf700 && c <= 0xf8ff) {
+            if (numpad || c <= 32 || c == 127 || c >= 0xf700 && c <= 0xf8fe) {
                 shifted_c = c;
             } else if (ctrl) {
                 if (c < 32)
@@ -1208,7 +1208,7 @@ static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flag
     bool shift = (flags & UIKeyModifierShift) != 0;
     bool cshift = ann_shift != 0;
 
-    bool printable = !ctrl && (orig_c >= 32 && orig_c != 127 && orig_c < 0xf700 || orig_c > 0xf8ff);
+    bool printable = !ctrl && (orig_c >= 32 && orig_c != 127 && orig_c < 0xf700 || orig_c > 0xf8fe);
 
     if (ckey != 0) {
         shell_keyup();

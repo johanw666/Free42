@@ -1345,7 +1345,7 @@ void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, NSUInteger flags
     bool shift = (flags & NSEventModifierFlagShift) != 0;
     bool cshift = ann_shift != 0;
     
-    bool printable = !ctrl && (orig_c >= 32 && orig_c != 127 && orig_c < 0xf700 || orig_c > 0xf8ff);
+    bool printable = !ctrl && (orig_c >= 32 && orig_c != 127 && orig_c < 0xf700 || orig_c > 0xf8fe);
     if (!ctrl && orig_c == 0)
         // Dead key. We pretend that this is printable as well, not because we are
         // actually able to work with it, but in order to get consistent behavior for

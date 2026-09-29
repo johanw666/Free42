@@ -903,7 +903,7 @@ static NSString *entry_to_text(keymap_entry *e) {
         case 0xf73f: c = @"Prev"; break;
         case 0xf740: c = @"Next"; break;
         default:
-            if (e->keychar > 32 && e->keychar < 0xf700 || e->keychar > 0xf8ff)
+            if (e->keychar > 32 && e->keychar < 0xf700 || e->keychar > 0xf8fe)
                 c = [NSString stringWithFormat:@"%C", e->keychar];
             else if (e->keychar >= 0xf704 && e->keychar <= 0xf726)
                 c = [NSString stringWithFormat:@"F%d", e->keychar - 0xf704 + 1];

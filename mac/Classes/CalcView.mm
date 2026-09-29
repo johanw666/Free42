@@ -97,7 +97,7 @@ static unsigned short keychar_normalize(unsigned char c) {
     unichar ch = [c length] == 0 ? 0 : [c characterAtIndex:0];
     unsigned short keyCode = [theEvent keyCode];
 
-    if (ch == 127 || ch >= 0xf700 && ch <= 0xf8ff) {
+    if (ch == 127 || ch >= 0xf700 && ch <= 0xf8fe) {
         if (ch == NSHelpFunctionKey)
             ch = NSInsertFunctionKey;
         else if (ch == NSUpArrowFunctionKey || ch == NSDownArrowFunctionKey

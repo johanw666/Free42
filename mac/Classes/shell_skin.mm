@@ -922,7 +922,7 @@ static NSString *entry_to_text(keymap_entry *e) {
         case NSPrevFunctionKey: c = @"Prev"; break;
         case NSNextFunctionKey: c = @"Next"; break;
         default:
-            if (e->keychar > 32 && e->keychar < 0xf700 || e->keychar > 0xf8ff)
+            if (e->keychar > 32 && e->keychar < 0xf700 || e->keychar > 0xf8fe)
                 c = [NSString stringWithFormat:@"%C", e->keychar];
             else if (e->keychar >= NSF1FunctionKey && e->keychar <= NSF35FunctionKey)
                 c = [NSString stringWithFormat:@"F%d", e->keychar - NSF1FunctionKey + 1];
