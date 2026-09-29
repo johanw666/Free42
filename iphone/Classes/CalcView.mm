@@ -1238,7 +1238,7 @@ static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flag
         // The test above is to make sure that whatever mapping is in
         // effect for R/S will never be overridden by the special cases
         // for the ALPHA and A..F menus.
-        if (printable && core_alpha_menu()) {
+        if ((!alt || key_macro == NULL) && printable && core_alpha_menu()) {
             if (orig_c >= 'a' && orig_c <= 'z')
                 orig_c = orig_c + 'A' - 'a';
             else if (orig_c >= 'A' && orig_c <= 'Z')
