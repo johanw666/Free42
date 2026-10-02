@@ -152,7 +152,7 @@ public class Free42Activity extends Activity {
     private int[] soundIds;
     
     // Streams for reading and writing the state file
-    private PositionTrackingInputStream stateFileInputStream;
+    private InputStream stateFileInputStream;
     private OutputStream stateFileOutputStream;
     
     // Show "States" dialog if invoked after state import; this
@@ -202,78 +202,6 @@ public class Free42Activity extends Activity {
     private final Runnable timeout1Caller = new Runnable() { public void run() { timeout1(); } };
     private final Runnable timeout2Caller = new Runnable() { public void run() { timeout2(); } };
     private final Runnable timeout3Caller = new Runnable() { public void run() { timeout3(); } };
-
-    private static class PositionTrackingInputStream extends InputStream {
-        private InputStream stream;
-        private int pos;
-        public PositionTrackingInputStream(InputStream stream) {
-            this.stream = stream;
-            pos = 0;
-        }
-        public int getPosition() {
-            return pos;
-        }
-        @Override
-        public int read() throws IOException {
-            if (pos == -1)
-                throw new IOException();
-            try {
-                pos++;
-                return stream.read();
-            } catch (IOException e) {
-                pos = -1;
-                throw e;
-            }
-        }
-        @Override
-        public int read(byte[] buf) throws IOException {
-            if (pos == -1)
-                throw new IOException();
-            try {
-                pos += buf.length;
-                return stream.read(buf);
-            } catch (IOException e) {
-                pos = -1;
-                throw e;
-            }
-        }
-        @Override
-        public int read(byte[] buf, int offset, int length) throws IOException {
-            if (pos == -1)
-                throw new IOException();
-            try {
-                pos += buf.length;
-                return stream.read(buf, offset, length);
-            } catch (IOException e) {
-                pos = -1;
-                throw e;
-            }
-        }
-        @Override
-        public boolean markSupported() {
-            return false;
-        }
-        @Override
-        public int available() throws IOException {
-            return stream.available();
-        }
-        @Override
-        public void close() throws IOException {
-            stream.close();
-        }
-        @Override
-        public void mark(int readlimit) {
-            throw new UnsupportedOperationException();
-        }
-        @Override
-        public void reset() {
-            throw new UnsupportedOperationException();
-        }
-        @Override
-        public long skip(long n) throws IOException {
-            return stream.skip(n);
-        }
-    }
     
     ///////////////////////////////////////////////////////
     ///// Top-level code to interface with Android UI /////
@@ -288,44 +216,36 @@ public class Free42Activity extends Activity {
         importedState = intent.getStringExtra("importedState");
         importedProgram = intent.getStringExtra("importedProgram");
 
-        int init_mode;
-        IntHolder version = new IntHolder();
+        boolean init_core_from_file;
         String coreFileName = null;
-        int coreFileOffset = 0;
+
         try {
-            stateFileInputStream = new PositionTrackingInputStream(openFileInput("state"));
+            stateFileInputStream = openFileInput("state");
         } catch (FileNotFoundException e) {
             stateFileInputStream = null;
         }
         if (stateFileInputStream != null) {
-            if (read_shell_state(version))
-                init_mode = 1;
+            if (read_shell_state())
+                init_core_from_file = true;
             else {
                 init_shell_state(-1);
-                init_mode = 2;
-            }
-        } else {
-            init_shell_state(-1);
-            init_mode = 0;
-        }
-        if (init_mode == 1) {
-            if (version.value > 25) {
-                coreFileName = getFilesDir() + "/" + coreName + ".f42";
-            } else {
-                coreFileName = getFilesDir() + "/state";
-                coreFileOffset = stateFileInputStream.getPosition();
+                init_core_from_file = false;
             }
             try {
                 stateFileInputStream.close();
             } catch (IOException e) {}
-        }  else {
+            stateFileInputStream = null;
+        } else {
+            init_shell_state(-1);
+            init_core_from_file = false;
+        }
+        coreFileName = getFilesDir() + "/" + coreName + ".f42";
+        if (!init_core_from_file) {
             // The shell state was missing or corrupt, but there
             // may still be a valid core state...
-            coreFileName = getFilesDir() + "/" + coreName + ".f42";
             if (new File(coreFileName).isFile()) {
                 // Core state "Untitled.f42" exists; let's try to read it
-                init_mode = 1;
-                version.value = 26;
+                init_core_from_file = true;
             }
         }
 
@@ -427,7 +347,7 @@ public class Free42Activity extends Activity {
 
         nativeInit();
         core_cleanup();
-        core_init(init_mode, version.value, coreFileName, coreFileOffset);
+        core_init(init_core_from_file ? coreFileName : null);
         if (popupAlpha == 2 && core_alpha_menu())
             calcContainer.showAlphaKeyboard(true);
 
@@ -539,12 +459,15 @@ public class Free42Activity extends Activity {
         try {
             stateFileOutputStream = openFileOutput("state", Context.MODE_PRIVATE);
             write_shell_state();
-            stateFileOutputStream.close();
         } catch (Exception e) {
-            if (stateFileOutputStream != null)
+            //
+        } finally {
+            if (stateFileOutputStream != null) {
                 try {
                     stateFileOutputStream.close();
-                } catch (IOException e2) {}
+                } catch (IOException e) {}
+                stateFileOutputStream = null;
+            }
         }
 
         // Write core state
@@ -913,7 +836,7 @@ public class Free42Activity extends Activity {
         core_cleanup();
         coreName = stateName;
         String newFileName = getFilesDir() + "/" + coreName + ".f42";
-        core_init(1, 26, newFileName, 0);
+        core_init(newFileName);
         boolean show = popupAlpha == 2 && core_alpha_menu();
         calcContainer.showAlphaKeyboard(show);
         if (core_powercycle())
@@ -2449,13 +2372,11 @@ public class Free42Activity extends Activity {
     ///// This section is where all the real 'shell' work is done. /////
     ////////////////////////////////////////////////////////////////////
     
-    private boolean read_shell_state(IntHolder version) {
+    private boolean read_shell_state() {
         try {
             if (state_read_int() != FREE42_MAGIC())
                 return false;
-            version.value = state_read_int();
-            if (version.value < 0)
-                return false;
+            int dummy = state_read_int();
             int shell_version = state_read_int();
             ShellSpool.printToGif = state_read_boolean();
             ShellSpool.printToGifFileName = state_read_string();
@@ -2641,7 +2562,7 @@ public class Free42Activity extends Activity {
     private void write_shell_state() {
         try {
             state_write_int(FREE42_MAGIC());
-            state_write_int(27);
+            state_write_int(0);
             state_write_int(SHELL_VERSION);
             state_write_boolean(ShellSpool.printToGif);
             state_write_string(ShellSpool.printToGifFileName);
@@ -2837,7 +2758,7 @@ public class Free42Activity extends Activity {
     
     private native void nativeInit();
     
-    private native void core_init(int read_state, int version, String state_file_name, int state_file_offset);
+    private native void core_init(String state_file_name);
     private native void core_save_state(String state_file_name);
     private native void core_cleanup();
     private native void core_repaint_display();

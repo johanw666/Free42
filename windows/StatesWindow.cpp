@@ -187,7 +187,7 @@ static void switchTo(HWND hDlg) {
     path += state.coreName;
     path += L".f42";
     char *cpath = wide2utf(path.c_str());
-    core_init(1, 26, cpath, 0);
+    core_init(cpath);
     free(cpath);
     bool running = core_powercycle();
     EndDialog(hDlg, running ? 1 : 0);

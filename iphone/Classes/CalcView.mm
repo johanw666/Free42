@@ -48,9 +48,9 @@ static void shell_keyup();
 static void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, long flags, int keycode);
 static void calc_keyup(int keycode);
 
-static int read_shell_state(int *version);
+static bool read_shell_state();
 static void init_shell_state(int version);
-static int write_shell_state();
+static bool write_shell_state();
 static void read_key_map(const char *keymapfilename);
 
 #define SHELL_VERSION 15
@@ -440,39 +440,30 @@ static struct timeval runner_end_time;
     statefile = fopen("config/state", "r");
     if (shiftMap == NULL)
         shiftMap = new ShiftMap("config/shiftmap");
-    int init_mode, version;
+
+    bool init_core_from_file;
     char core_state_file_name[FILENAMELEN];
-    int core_state_file_offset;
+
     if (statefile != NULL) {
-        if (read_shell_state(&version)) {
-            init_mode = 1;
+        if (read_shell_state()) {
+            init_core_from_file = true;
         } else {
             init_shell_state(-1);
-            init_mode = 2;
-        }
-    } else {
-        init_shell_state(-1);
-        init_mode = 0;
-    }
-    if (init_mode == 1) {
-        if (version > 25) {
-            snprintf(core_state_file_name, FILENAMELEN, "config/%s.f42", state.coreName);
-            core_state_file_offset = 0;
-        } else {
-            strcpy(core_state_file_name, "config/state");
-            core_state_file_offset = (int) ftell(statefile);
+            init_core_from_file = false;
         }
         fclose(statefile);
-    }  else {
+    } else {
+        init_shell_state(-1);
+        init_core_from_file = false;
+    }
+    snprintf(core_state_file_name, FILENAMELEN, "config/%s.f42", state.coreName);
+    if (!init_core_from_file) {
         // The shell state was missing or corrupt, but there
         // may still be a valid core state...
-        snprintf(core_state_file_name, FILENAMELEN, "config/%s.f42", state.coreName);
         struct stat st;
         if (stat(core_state_file_name, &st) == 0) {
             // Core state "Untitled.f42" exists; let's try to read it
-            core_state_file_offset = 0;
-            init_mode = 1;
-            version = 26;
+            init_core_from_file = true;
         }
     }
 
@@ -484,7 +475,7 @@ static struct timeval runner_end_time;
     skin_load(&w, &h);
     
     core_cleanup();
-    core_init(init_mode, version, core_state_file_name, core_state_file_offset);
+    core_init(init_core_from_file ? core_state_file_name : NULL);
     keep_running = core_powercycle();
     if (keep_running)
         [self startRunner];
@@ -555,7 +546,7 @@ static struct timeval runner_end_time;
     strcpy(state.coreName, name);
     char corefilename[FILENAMELEN];
     snprintf(corefilename, FILENAMELEN, "config/%s.f42", state.coreName);
-    core_init(1, 26, corefilename, 0);
+    core_init(corefilename);
     if (state.popupAlphaKeyboard == 2 && core_alpha_menu())
         [RootViewController showAlphaKeyboard];
     else
@@ -942,37 +933,29 @@ static void read_key_map(const char *keymapfilename) {
 
 extern bool off_enable_flag;
 
-static int read_shell_state(int *ver) {
+static bool read_shell_state() {
     int magic;
-    int version;
     int state_size;
     int state_version;
     
     if (fread(&magic, 1, sizeof(int), statefile) != sizeof(int))
-        return 0;
+        return false;
     if (magic != FREE42_MAGIC)
-        return 0;
+        return false;
     
-    if (fread(&version, 1, sizeof(int), statefile) != sizeof(int))
-        return 0;
-    if (version == 0) {
-        /* State file version 0 does not contain shell state,
-         * only core state, so we just hard-init the shell.
-         */
-        init_shell_state(-1);
-        *ver = version;
-        return 1;
-    }
+    int dummy;
+    if (fread(&dummy, 1, sizeof(int), statefile) != sizeof(int))
+        return false;
     
     if (fread(&state_size, 1, sizeof(int), statefile) != sizeof(int))
-        return 0;
+        return false;
     if (fread(&state_version, 1, sizeof(int), statefile) != sizeof(int))
-        return 0;
+        return false;
     if (state_version < 0 || state_version > SHELL_VERSION)
         /* Unknown shell state version */
-        return 0;
+        return false;
     if (fread(&state, 1, state_size, statefile) != state_size)
-        return 0;
+        return false;
     if (state_version >= 8) {
         core_settings.matrix_singularmatrix = state.matrix_singularmatrix;
         core_settings.matrix_outofrange = state.matrix_outofrange;
@@ -984,8 +967,7 @@ static int read_shell_state(int *ver) {
         core_settings.localized_copy_paste = state.localized_copy_paste;
     
     init_shell_state(state_version);
-    *ver = version;
-    return 1;
+    return true;
 }
 
 static void init_shell_state(int version) {
@@ -1366,9 +1348,9 @@ static void calc_keyup(int keycode) {
     }
 }
 
-static int write_shell_state() {
+static bool write_shell_state() {
     int magic = FREE42_MAGIC;
-    int version = 27;
+    int version = 0;
     int state_size = sizeof(state);
     int state_version = SHELL_VERSION;
 
@@ -1376,25 +1358,30 @@ static int write_shell_state() {
     
     FILE *statefile = fopen("config/state", "w");
     if (statefile == NULL)
-        return 0;
+        return false;
+    bool success = false;
+
     if (fwrite(&magic, 1, sizeof(int), statefile) != sizeof(int))
-        return 0;
+        goto fail;
     if (fwrite(&version, 1, sizeof(int), statefile) != sizeof(int))
-        return 0;
+        goto fail;
     if (fwrite(&state_size, 1, sizeof(int), statefile) != sizeof(int))
-        return 0;
+        goto fail;
     if (fwrite(&state_version, 1, sizeof(int), statefile) != sizeof(int))
-        return 0;
+        goto fail;
     state.matrix_singularmatrix = core_settings.matrix_singularmatrix;
     state.matrix_outofrange = core_settings.matrix_outofrange;
     state.auto_repeat = core_settings.auto_repeat;
     state.allow_big_stack = core_settings.allow_big_stack;
     state.localized_copy_paste = core_settings.localized_copy_paste;
     if (fwrite(&state, 1, sizeof(state), statefile) != sizeof(state))
-        return 0;
+        goto fail;
     
+    success = true;
+
+    fail:
     fclose(statefile);
-    return 1;
+    return success;
 }
 
 void shell_blitter(const char *bits, int bytesperline, int x, int y, int width, int height) {

@@ -604,7 +604,7 @@ bool write_phloat(phloat d);
 bool read_arg(arg_struct *arg);
 bool write_arg(const arg_struct *arg);
 
-bool load_state(int4 version, bool *clear, bool *too_new);
+bool load_state(bool *clear, bool *too_new);
 void save_state(bool *success);
 // Reason:
 // 0 = Memory Clear

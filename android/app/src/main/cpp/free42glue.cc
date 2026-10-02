@@ -106,12 +106,15 @@ Java_com_thomasokken_free42_Free42Activity_FREE42_1MAGIC_1STR(JNIEnv *env, jobje
 /**********************************************************/
 
 extern "C" void
-Java_com_thomasokken_free42_Free42Activity_core_1init(JNIEnv *env, jobject thiz, jint read_state, jint version,
-            jstring state_file_name, jint offset) {
+Java_com_thomasokken_free42_Free42Activity_core_1init(JNIEnv *env, jobject thiz, jstring state_file_name) {
     Tracer T("core_init");
-    const char *buf = env->GetStringUTFChars(state_file_name, NULL);
-    core_init(read_state, version, buf, offset);
-    env->ReleaseStringUTFChars(state_file_name, buf);
+    if (state_file_name == NULL) {
+        core_init(NULL);
+    } else {
+        const char *buf = env->GetStringUTFChars(state_file_name, NULL);
+        core_init(buf);
+        env->ReleaseStringUTFChars(state_file_name, buf);
+    }
 }
 
 extern "C" void

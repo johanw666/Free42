@@ -181,8 +181,8 @@ static void printout_length_changed();
 
 static void read_key_map(const wchar_t *keymapfilename);
 static void init_shell_state(int4 version);
-static int read_shell_state(int4 *version);
-static int write_shell_state();
+static bool read_shell_state();
+static bool write_shell_state();
 static void txt_writer(const char *text, int length);
 static void txt_newliner();
 static void gif_seeker(int4 pos);
@@ -376,42 +376,30 @@ static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     printout_pos = printout_bottom;
 
-    int init_mode;
-    int4 version;
+    bool init_core_from_file;
     wchar_t core_state_file_name[FILENAMELEN];
-    size_t core_state_file_offset;
 
     statefile = _wfopen(statefilename, L"rb");
     if (statefile != NULL) {
-        if (read_shell_state(&version))
-            init_mode = 1;
+        if (read_shell_state())
+            init_core_from_file = true;
         else {
             init_shell_state(-1);
-            init_mode = 2;
-        }
-    } else {
-        init_shell_state(-1);
-        init_mode = 0;
-    }
-    if (init_mode == 1) {
-        if (version > 25) {
-            swprintf(core_state_file_name, L"%ls\\%ls.f42", free42dirname, state.coreName);
-            core_state_file_offset = 0;
-        } else {
-            wcscpy(core_state_file_name, statefilename);
-            core_state_file_offset = ftell(statefile);
+            init_core_from_file = false;
         }
         fclose(statefile);
     } else {
+        init_shell_state(-1);
+        init_core_from_file = false;
+    }
+    swprintf(core_state_file_name, L"%ls\\%ls.f42", free42dirname, state.coreName);
+    if (!init_core_from_file) {
         // The shell state was missing or corrupt, but there
         // may still be a valid core state...
         swprintf(core_state_file_name, L"%ls\\%ls.f42", free42dirname, state.coreName);
-        if (GetFileAttributesW(core_state_file_name) != INVALID_FILE_ATTRIBUTES) {
+        if (GetFileAttributesW(core_state_file_name) != INVALID_FILE_ATTRIBUTES)
             // Core state "Untitled.f42" exists; let's try to read it
-            core_state_file_offset = 0;
-            init_mode = 1;
-            version = 26;
-        }
+            init_core_from_file = true;
     }
 
     if (keymap_obsolete) {
@@ -447,7 +435,7 @@ static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     skin_set_window(hMainWnd);
 
     char *csfn = wide2utf(core_state_file_name);
-    core_init(init_mode, version, csfn, (int) core_state_file_offset);
+    core_init(init_core_from_file ? csfn : NULL);
     free(csfn);
 
     if (state.mainPlacementValid) {
@@ -2888,119 +2876,64 @@ static void init_shell_state(int4 version) {
     }
 }
 
-struct old_state_type {
-    BOOL extras;
-    WINDOWPLACEMENT mainPlacement;
-    int mainPlacementValid;
-    WINDOWPLACEMENT printOutPlacement;
-    int printOutPlacementValid;
-    int printOutOpen;
-    int printerToTxtFile;
-    int printerToGifFile;
-    char printerTxtFileName[FILENAMELEN];
-    char printerGifFileName[FILENAMELEN];
-    int printerGifMaxLength;
-    char skinName[FILENAMELEN];
-    BOOL alwaysOnTop;
-    BOOL singleInstance;
-    BOOL calculatorKey;
-    char coreName[FILENAMELEN];
-    bool matrix_singularmatrix;
-    bool matrix_outofrange;
-    bool auto_repeat;
-};
-
-static int read_shell_state(int4 *ver) {
+static bool read_shell_state() {
     int4 magic;
-    int4 version;
     int4 state_size;
     int4 state_version;
 
     if (fread(&magic, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (magic != FREE42_MAGIC)
-        return 0;
+        return false;
 
-    if (fread(&version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+    int4 dummy;
+    if (fread(&dummy, 1, sizeof(int4), statefile) != sizeof(int4))
+        return false;
 
-    if (version > 0) {
-        if (fread(&state_size, 1, sizeof(int4), statefile) != sizeof(int4))
-            return 0;
-        if (fread(&state_version, 1, sizeof(int4), statefile) != sizeof(int4))
-            return 0;
-        if (state_version < 0 || state_version > SHELL_VERSION)
-            /* Unknown shell state version */
-            return 0;
-        if (version > 27) {
-            if (fread(&state, 1, state_size, statefile) != state_size)
-                return 0;
-            core_settings.matrix_singularmatrix = state.matrix_singularmatrix;
-            core_settings.matrix_outofrange = state.matrix_outofrange;
-            core_settings.auto_repeat = state.auto_repeat;
-            core_settings.allow_big_stack = state.allow_big_stack;
-            core_settings.localized_copy_paste = state.localized_copy_paste;
-        } else {
-            old_state_type old_state;
-            if (fread(&old_state, 1, state_size, statefile) != state_size)
-                return 0;
-            state.extras = old_state.extras;
-            state.mainPlacement = old_state.mainPlacement;
-            state.mainPlacementValid = old_state.mainPlacementValid;
-            state.printOutPlacement = old_state.printOutPlacement;
-            state.printOutPlacementValid = old_state.printOutPlacementValid;
-            state.printOutOpen = old_state.printOutOpen;
-            state.printerToTxtFile = old_state.printerToTxtFile;
-            state.printerToGifFile = old_state.printerToGifFile;
-            MultiByteToWideChar(CP_ACP, 0, old_state.printerTxtFileName, FILENAMELEN, state.printerTxtFileName, FILENAMELEN);
-            MultiByteToWideChar(CP_ACP, 0, old_state.printerGifFileName, FILENAMELEN, state.printerGifFileName, FILENAMELEN);
-            state.printerGifMaxLength = old_state.printerGifMaxLength;
-            MultiByteToWideChar(CP_ACP, 0, old_state.skinName, FILENAMELEN, state.skinName, FILENAMELEN);
-            state.alwaysOnTop = old_state.alwaysOnTop;
-            state.singleInstance = old_state.singleInstance;
-            MultiByteToWideChar(CP_ACP, 0, old_state.coreName, FILENAMELEN, state.coreName, FILENAMELEN);
-            state.matrix_singularmatrix = old_state.matrix_singularmatrix;
-            state.matrix_outofrange = old_state.matrix_outofrange;
-            state.auto_repeat = old_state.auto_repeat;
-            if (state_version >= 9) {
-                core_settings.matrix_singularmatrix = old_state.matrix_singularmatrix;
-                core_settings.matrix_outofrange = old_state.matrix_outofrange;
-                core_settings.auto_repeat = old_state.auto_repeat;
-            }
-        }
-        // Initialize the parts of the shell state
-        // that were NOT read from the state file
-        init_shell_state(state_version);
-    } else
-        init_shell_state(-1);
+    if (fread(&state_size, 1, sizeof(int4), statefile) != sizeof(int4))
+        return false;
+    if (fread(&state_version, 1, sizeof(int4), statefile) != sizeof(int4))
+        return false;
+    if (state_version < 0 || state_version > SHELL_VERSION)
+        /* Unknown shell state version */
+        return false;
+    if (fread(&state, 1, state_size, statefile) != state_size)
+        return false;
+    core_settings.matrix_singularmatrix = state.matrix_singularmatrix;
+    core_settings.matrix_outofrange = state.matrix_outofrange;
+    core_settings.auto_repeat = state.auto_repeat;
+    core_settings.allow_big_stack = state.allow_big_stack;
+    core_settings.localized_copy_paste = state.localized_copy_paste;
+    // Initialize the parts of the shell state
+    // that were NOT read from the state file
+    init_shell_state(state_version);
 
-    *ver = version;
-    return 1;
+    return true;
 }
 
-static int write_shell_state() {
+static bool write_shell_state() {
     int4 magic = FREE42_MAGIC;
-    int4 version = 28;
+    int4 version = 0;
     int4 state_size = sizeof(state_type);
     int4 state_version = SHELL_VERSION;
 
     if (fwrite(&magic, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (fwrite(&version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (fwrite(&state_size, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (fwrite(&state_version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     state.matrix_singularmatrix = core_settings.matrix_singularmatrix;
     state.matrix_outofrange = core_settings.matrix_outofrange;
     state.auto_repeat = core_settings.auto_repeat;
     state.allow_big_stack = core_settings.allow_big_stack;
     state.localized_copy_paste = core_settings.localized_copy_paste;
     if (fwrite(&state, 1, sizeof(state_type), statefile) != sizeof(state_type))
-        return 0;
+        return false;
 
-    return 1;
+    return true;
 }
 
 /* Callbacks used by shell_print() and shell_spool_txt() / shell_spool_gif() */

@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    core_init(0, 0, NULL, 0);
+    core_init(NULL);
 
     std::ifstream in(argv[1]);
     if (in.fail()) {

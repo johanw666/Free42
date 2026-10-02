@@ -27,16 +27,12 @@
 
 /* core_init()
  *
- * This function initializes the emulator core. If the read_state parameter is
- * 1, the core should read saved state from the file named by the
- * state_file_name parameter, reading from the offset indicated by the offset
- * parameter; if read_state is 0, or if there is a problem reading the saved
- * state, it should perform a hard reset.
- * If the read_state parameter is 1, the 'version' parameter should contain the
- * state file version number; otherwise its value is not used.
+ * This function initializes the emulator core. The state_file_name parameter
+ * is the name of the state file the core should initialize itself from; if
+ * this is NULL, the core should perform a hard reset.
  * This is guaranteed to be the first function called on the emulator core.
  */
-void core_init(int read_state, int4 version, const char *state_file_name, int offset);
+void core_init(const char *state_file_name);
 
 /* core_save_state()
  *

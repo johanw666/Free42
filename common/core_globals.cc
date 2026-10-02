@@ -4089,9 +4089,8 @@ static bool load_state2(bool *clear, bool *too_new) {
 
 // See the comment for bug_mode at its declaration...
 
-bool load_state(int4 ver_p, bool *clear, bool *too_new) {
+bool load_state(bool *clear, bool *too_new) {
     bug_mode = 0;
-    ver = ver_p;
     long fpos = ftell(gfile);
     if (load_state2(clear, too_new))
         return true;
