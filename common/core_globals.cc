@@ -704,7 +704,6 @@ bool mode_pause = false;
 bool mode_disable_stack_lift; /* transient */
 bool mode_caller_stack_lift_disabled;
 bool mode_varmenu;
-bool mode_progmenu;
 bool mode_updown;
 int4 mode_sigma_reg;
 int mode_goose;
@@ -837,9 +836,9 @@ bool no_keystrokes_yet;
  * Version 52: 3.3    BASE enhancements (carry; display modes)
  * Version 53: 3.3.3  STATIC/DYNAMIC for menus
  * Version 54: 3.3.11 Statistics sums menu
- * Version 55: 3.4    Flag 33: Previous key was programmable menu
+ * Version 55:        skipping this number because reasons
  */
-#define FREE42_VERSION 55
+#define FREE42_VERSION 54
 
 
 /*******************/
@@ -2556,9 +2555,10 @@ bool store_command(int4 pc, int command, arg_struct *arg, const char *num_str) {
     else
         update_label_table(current_prgm, pc, bufptr);
     invalidate_lclbls(current_prgm, false);
-    clear_all_rtns();
-    if (!loading_state)
+    if (!loading_state) {
+        clear_all_rtns();
         draw_varmenu();
+    }
     return true;
 }
 
@@ -3886,7 +3886,7 @@ static bool load_state2(bool *clear, bool *too_new) {
         return false;
     }
 
-    if (ver > FREE42_VERSION) {
+    if (ver > FREE42_VERSION && ver != 55) {
         *too_new = true;
         return false;
     }
@@ -3949,10 +3949,8 @@ static bool load_state2(bool *clear, bool *too_new) {
     else if (!read_bool(&mode_caller_stack_lift_disabled))
         return false;
     if (!read_bool(&mode_varmenu)) return false;
-    if (ver < 55)
-        mode_progmenu = false;
-    else if (!read_bool(&mode_progmenu))
-        return false;
+    if (ver == 55)
+        if (!read_bool(&bdummy)) return false;
     if (!read_bool(&mode_updown)) return false;
 
     if (!read_bool(&mode_getkey))
@@ -4091,9 +4089,8 @@ static bool load_state2(bool *clear, bool *too_new) {
 
 // See the comment for bug_mode at its declaration...
 
-bool load_state(int4 ver_p, bool *clear, bool *too_new) {
+bool load_state(bool *clear, bool *too_new) {
     bug_mode = 0;
-    ver = ver_p;
     long fpos = ftell(gfile);
     if (load_state2(clear, too_new))
         return true;
@@ -4143,7 +4140,6 @@ void save_state(bool *success) {
     if (!write_bool(mode_running)) return;
     if (!write_bool(mode_caller_stack_lift_disabled)) return;
     if (!write_bool(mode_varmenu)) return;
-    if (!write_bool(mode_progmenu)) return;
     if (!write_bool(mode_updown)) return;
     if (!write_bool(mode_getkey)) return;
 
@@ -4370,7 +4366,6 @@ void hard_reset(int reason) {
     mode_pause = false;
     mode_caller_stack_lift_disabled = false;
     mode_varmenu = false;
-    mode_progmenu = false;
     prgm_highlight_row = 0;
     varmenu_length = 0;
     mode_updown = false;

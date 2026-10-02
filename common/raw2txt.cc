@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     }
     fclose(in);
 
-    core_init(0, 0, NULL, 0);
+    core_init(NULL);
 
     core_import_programs(0, argv[1]);
 

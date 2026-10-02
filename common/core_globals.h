@@ -415,7 +415,6 @@ extern bool mode_getkey1;
 extern bool mode_pause;
 extern bool mode_disable_stack_lift;
 extern bool mode_varmenu;
-extern bool mode_progmenu;
 extern bool mode_updown;
 extern int4 mode_sigma_reg;
 extern int mode_goose;
@@ -605,7 +604,7 @@ bool write_phloat(phloat d);
 bool read_arg(arg_struct *arg);
 bool write_arg(const arg_struct *arg);
 
-bool load_state(int4 version, bool *clear, bool *too_new);
+bool load_state(bool *clear, bool *too_new);
 void save_state(bool *success);
 // Reason:
 // 0 = Memory Clear

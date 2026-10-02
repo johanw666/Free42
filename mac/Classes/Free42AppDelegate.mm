@@ -101,8 +101,8 @@ static int gif_lines;
 static void show_message(const char *title, const char *message);
 static void read_key_map(const char *keymapfilename);
 static void init_shell_state(int4 ver);
-static int read_shell_state(int4 *ver);
-static int write_shell_state();
+static bool read_shell_state();
+static bool write_shell_state();
 static void shell_keydown(bool cshift, bool flip_shift);
 static void shell_keyup();
 
@@ -276,44 +276,33 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
     /***** Open the state file and read the shell settings *****/
     /***********************************************************/
     
-    int4 version;
-    int init_mode;
+    bool init_core_from_file;
     char core_state_file_name[FILENAMELEN];
-    int core_state_file_offset;
+
     if (statefilename[0] != 0)
         statefile = fopen(statefilename, "r");
     else
         statefile = NULL;
     if (statefile != NULL) {
-        if (read_shell_state(&version)) {
-            init_mode = 1;
+        if (read_shell_state()) {
+            init_core_from_file = true;
         } else {
             init_shell_state(-1);
-            init_mode = 2;
-        }
-    } else {
-        init_shell_state(-1);
-        init_mode = 0;
-    }
-    if (init_mode == 1) {
-        if (version > 25) {
-            snprintf(core_state_file_name, FILENAMELEN, "%s/%s.f42", free42dirname, state.coreName);
-            core_state_file_offset = 0;
-        } else {
-            strcpy(core_state_file_name, statefilename);
-            core_state_file_offset = ftell(statefile);
+            init_core_from_file = false;
         }
         fclose(statefile);
     } else {
+        init_shell_state(-1);
+        init_core_from_file = false;
+    }
+    snprintf(core_state_file_name, FILENAMELEN, "%s/%s.f42", free42dirname, state.coreName);
+    if (!init_core_from_file) {
         // The shell state was missing or corrupt, but there
         // may still be a valid core state...
-        snprintf(core_state_file_name, FILENAMELEN, "%s/%s.f42", free42dirname, state.coreName);
         struct stat st;
         if (stat(core_state_file_name, &st) == 0) {
             // Core state "Untitled.f42" exists; let's try to read it
-            core_state_file_offset = 0;
-            init_mode = 1;
-            version = 26;
+            init_core_from_file = true;
         }
     }
 
@@ -383,7 +372,7 @@ static void low_battery_checker(CFRunLoopTimerRef timer, void *info) {
         [mainWindow makeKeyAndOrderFront:self];
     }
     
-    core_init(init_mode, version, core_state_file_name, core_state_file_offset);
+    core_init(init_core_from_file ? core_state_file_name : NULL);
     if (core_powercycle())
         [self startRunner];
     
@@ -1121,7 +1110,7 @@ static char version[32] = "";
     strcpy(state.coreName, name);
     char corefilename[FILENAMELEN];
     snprintf(corefilename, FILENAMELEN, "%s/%s.f42", free42dirname, state.coreName);
-    core_init(1, 26, corefilename, 0);
+    core_init(corefilename);
     if (core_powercycle())
         [instance startRunner];
 }
@@ -1934,37 +1923,28 @@ static void init_shell_state(int4 version) {
     }
 }
 
-static int read_shell_state(int4 *ver) {
+static bool read_shell_state() {
     int4 magic;
-    int4 version;
     int4 state_size;
     int4 state_version;
     
     if (fread(&magic, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (magic != FREE42_MAGIC)
-        return 0;
-    
-    if (fread(&version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
-    if (version == 0) {
-        /* State file version 0 does not contain shell state,
-         * only core state, so we just hard-init the shell.
-         */
-        init_shell_state(-1);
-        *ver = version;
-        return 1;
-    }
+        return false;
+    int4 dummy;
+    if (fread(&dummy, 1, sizeof(int4), statefile) != sizeof(int4))
+        return false;
     
     if (fread(&state_size, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (fread(&state_version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (state_version < 0 || state_version > SHELL_VERSION)
     /* Unknown shell state version */
-        return 0;
+        return false;
     if (fread(&state, 1, state_size, statefile) != state_size)
-        return 0;
+        return false;
 
     if (state_version >= 2) {
         core_settings.matrix_singularmatrix = state.matrix_singularmatrix;
@@ -1979,33 +1959,32 @@ static int read_shell_state(int4 *ver) {
         core_settings.localized_copy_paste = state.localized_copy_paste;
     
     init_shell_state(state_version);
-    *ver = version;
-    return 1;
+    return true;
 }
 
-static int write_shell_state() {
+static bool write_shell_state() {
     int4 magic = FREE42_MAGIC;
-    int4 version = 27;
+    int4 version = 0;
     int4 state_size = sizeof(state_type);
     int4 state_version = SHELL_VERSION;
     
     if (fwrite(&magic, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (fwrite(&version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (fwrite(&state_size, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     if (fwrite(&state_version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return 0;
+        return false;
     state.matrix_singularmatrix = core_settings.matrix_singularmatrix;
     state.matrix_outofrange = core_settings.matrix_outofrange;
     state.auto_repeat = core_settings.auto_repeat;
     state.allow_big_stack = core_settings.allow_big_stack;
     state.localized_copy_paste = core_settings.localized_copy_paste;
     if (fwrite(&state, 1, sizeof(state_type), statefile) != sizeof(state_type))
-        return 0;
+        return false;
     
-    return 1;
+    return true;
 }
 
 /* Callbacks used by shell_print() and shell_spool_txt() / shell_spool_gif() */

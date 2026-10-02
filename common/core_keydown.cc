@@ -196,15 +196,10 @@ int find_cmd_getkey_mapping(int cmd) {
     }
 }
 
-void keydown(int shift, int key) {
+static void keydown2(int shift, int key) {
     // Preserve state of Shift, to allow MENU handlers to implement
     // different behaviors for unshifted and shifted menu keys.
     flags.f.shift_state = shift;
-
-    // Track programmable menu key events, to allow programs using the
-    // programmable menu to emulate VARMENU behavior
-    flags.f.prev_progmenu = mode_progmenu;
-    mode_progmenu = false;
 
     pending_command = CMD_NONE;
 
@@ -444,6 +439,16 @@ void keydown(int shift, int key) {
         keydown_alpha_mode(shift, key);
     else
         keydown_normal_mode(shift, key);
+}
+
+void keydown(int shift, int key) {
+    // This bit of trickery serves to allow programmable menu keystrokes
+    // to let flag 33 remain unchanged, while all other keystrokes will
+    // cause it to be cleared.
+    bool prev_progmenu = flags.f.prev_progmenu;
+    flags.f.prev_progmenu = false;
+    keydown2(shift, key);
+    flags.f.prev_progmenu = prev_progmenu && flags.f.prev_progmenu;
 }
 
 void keydown_number_entry(int shift, int key) {
@@ -2328,7 +2333,7 @@ void keydown_normal_mode(int shift, int key) {
                 }
             } else
                 goto notprogmenu;
-            mode_progmenu = true;
+            flags.f.prev_progmenu = true;
             do_prgm_menu_key(keynum);
             return;
             notprogmenu:;

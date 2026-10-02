@@ -75,18 +75,13 @@ static int4 oldpc;
 
 core_settings_struct core_settings;
 
-void core_init(int read_saved_state, int4 version, const char *state_file_name, int offset) {
-
-    /* Possible values for read_saved_state:
-     * 0: state file not present (Memory Clear)
-     * 1: state file present and looks OK so far
-     * 2: state file present but not OK (State File Corrupt)
-     */
+void core_init(const char *state_file_name) {
 
     phloat_init();
+    bool read_saved_state = state_file_name != NULL;
 
     char *state_file_name_crash = NULL;
-    if (read_saved_state == 1) {
+    if (read_saved_state) {
         // Before loading state, rename the state file by appending .crash
         // to its name. We'll rename it back, right after loading is done.
         // This way, if we crash while loading state, we end up with a
@@ -103,16 +98,14 @@ void core_init(int read_saved_state, int4 version, const char *state_file_name, 
         my_rename(state_file_name, state_file_name_crash);
         gfile = my_fopen(state_file_name_crash, "rb");
         if (gfile == NULL)
-            read_saved_state = 0;
-        else if (offset > 0)
-            fseek(gfile, offset, SEEK_SET);
+            read_saved_state = false;
     } else
         gfile = NULL;
 
     bool clear, too_new = false;
     int reason = 0;
-    if (read_saved_state != 1 || !load_state(version, &clear, &too_new)) {
-        reason = too_new ? 2 : (read_saved_state != 0 && !clear) ? 1 : 0;
+    if (!read_saved_state || !load_state(&clear, &too_new)) {
+        reason = too_new ? 2 : (read_saved_state && !clear) ? 1 : 0;
         hard_reset(reason);
     }
     if (gfile != NULL)
@@ -341,7 +334,7 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
         set_running(false);
         if (!mode_shift && (key == KEY_RUN || key == KEY_EXIT)) {
             redisplay();
-            flags.f.prev_progmenu = mode_progmenu = false;
+            flags.f.prev_progmenu = false;
             return false;
         }
     }
@@ -359,7 +352,7 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
             if (key == KEY_EXIT ||
                     (mode_stoppable && !mode_shift && key == KEY_RUN)) {
                 keybuf_tail = keybuf_head;
-                flags.f.prev_progmenu = mode_progmenu = false;
+                flags.f.prev_progmenu = false;
                 stop_interruptible();
                 return false;
             } else {
@@ -400,7 +393,7 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
         if (key != 0) {
             if (key == KEY_EXIT) {
                 keybuf_tail = keybuf_head;
-                flags.f.prev_progmenu = mode_progmenu = false;
+                flags.f.prev_progmenu = false;
                 set_shift(false);
                 set_running(false);
                 pending_command = CMD_CANCELLED;
@@ -410,7 +403,7 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
             *enqueued = 1;
             if (!mode_shift && key == KEY_RUN) {
                 keybuf_tail = keybuf_head;
-                flags.f.prev_progmenu = mode_progmenu = false;
+                flags.f.prev_progmenu = false;
                 set_running(false);
                 redisplay();
                 return false;
