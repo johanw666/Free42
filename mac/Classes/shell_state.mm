@@ -36,8 +36,8 @@ void init_shell_state(int4 version) {
             state.printerTxtFileName[0] = 0;
             state.printerGifFileName[0] = 0;
             state.printerGifMaxLength = 256;
-            state.mainWindowKnown = 0;
-            state.printWindowKnown = 0;
+            state.mainWindowKnown = false;
+            state.printWindowKnown = false;
             state.skinName[0] = 0;
             /* fall through */
         case 0:

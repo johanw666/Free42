@@ -34,8 +34,8 @@ extern bool off_enable_flag;
 void init_shell_state(int version) {
     switch (version) {
         case -1:
-            state.printerToTxtFile = 0;
-            state.printerToGifFile = 0;
+            state.printerToTxtFile = false;
+            state.printerToGifFile = false;
             state.printerTxtFileName[0] = 0;
             state.printerGifFileName[0] = 0;
             state.printerGifMaxLength = 256;
@@ -44,7 +44,7 @@ void init_shell_state(int version) {
         case 0:
             /* fall through */
         case 1:
-            state.alwaysOn = 0;
+            state.alwaysOn = false;
             /* fall through */
         case 2:
             state.keyClicks = 1;
