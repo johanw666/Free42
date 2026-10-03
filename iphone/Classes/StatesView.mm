@@ -21,6 +21,7 @@
 #import "CalcView.h"
 #import "StatesView.h"
 #import "RootViewController.h"
+#import "shell_state.h"
 #import "core_main.h"
 
 

@@ -15,15 +15,18 @@
  * along with this program; if not, see http://www.gnu.org/licenses/.
  *****************************************************************************/
 
+#include <stdio.h>
+
 class ShiftMap {
     private:
-        char *filename;
         char *data;
         size_t size, capacity;
     public:
-        ShiftMap(const char *fn);
+        ShiftMap();
         ~ShiftMap();
-        void write();
+        bool read(FILE *f, size_t n);
+        size_t nbytes();
+        bool write(FILE *f);
         ssize_t find(unsigned short c);
         unsigned short get(unsigned short c);
         void set(unsigned short c, unsigned short sc);

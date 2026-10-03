@@ -32,6 +32,7 @@
 #import "RootViewController.h"
 #import "shell.h"
 #import "shell_skin_iphone.h"
+#import "shell_state.h"
 #import "core_main.h"
 
 static SystemSoundID soundIDs[20];

@@ -57,6 +57,8 @@
 		E93F2B560F894D9000CE8542 /* shell_spool.cc in Sources */ = {isa = PBXBuildFile; fileRef = E93F2B540F894D9000CE8542 /* shell_spool.cc */; };
 		E94C3CFE132DAB0A00880A45 /* Entitlements.plist in Resources */ = {isa = PBXBuildFile; fileRef = E94C3CFD132DAB0A00880A45 /* Entitlements.plist */; };
 		E94DE6C61011E9AE005E6B19 /* about-icon.png in Resources */ = {isa = PBXBuildFile; fileRef = E94DE6C51011E9AE005E6B19 /* about-icon.png */; };
+		E94E3E9130712C510001FF08 /* shell_state.mm in Sources */ = {isa = PBXBuildFile; fileRef = E94E3E9030712C510001FF08 /* shell_state.mm */; };
+		E94E3E9230712C510001FF08 /* shell_state.mm in Sources */ = {isa = PBXBuildFile; fileRef = E94E3E9030712C510001FF08 /* shell_state.mm */; };
 		E95273352D3A82CE00363585 /* ToastAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = E95273342D3A82CE00363585 /* ToastAlert.m */; };
 		E95273362D3A82CE00363585 /* ToastAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = E95273342D3A82CE00363585 /* ToastAlert.m */; };
 		E969A3A322D15AB100E6EBEB /* Matt42X.gif in Resources */ = {isa = PBXBuildFile; fileRef = E969A39F22D15AB100E6EBEB /* Matt42X.gif */; };
@@ -285,6 +287,8 @@
 		E94025B319312D060096B2E4 /* bid_functions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bid_functions.h; path = ../common/bid_functions.h; sourceTree = "<group>"; };
 		E94C3CFD132DAB0A00880A45 /* Entitlements.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Entitlements.plist; sourceTree = "<group>"; };
 		E94DE6C51011E9AE005E6B19 /* about-icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "about-icon.png"; sourceTree = "<group>"; };
+		E94E3E8F30712C510001FF08 /* shell_state.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = shell_state.h; sourceTree = "<group>"; };
+		E94E3E9030712C510001FF08 /* shell_state.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = shell_state.mm; sourceTree = "<group>"; };
 		E95273332D3A82CE00363585 /* ToastAlert.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ToastAlert.h; sourceTree = "<group>"; };
 		E95273342D3A82CE00363585 /* ToastAlert.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ToastAlert.m; sourceTree = "<group>"; };
 		E969A39F22D15AB100E6EBEB /* Matt42X.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; name = Matt42X.gif; path = skins/Matt42X.gif; sourceTree = "<group>"; };
@@ -425,6 +429,8 @@
 				E9B16E020F88F015002BB9B2 /* shell_skin.h */,
 				E9B16E840F8907E8002BB9B2 /* shell_skin_iphone.h */,
 				E977D0811698FB4E00AA3FD9 /* shell_skin_iphone.mm */,
+				E94E3E8F30712C510001FF08 /* shell_state.h */,
+				E94E3E9030712C510001FF08 /* shell_state.mm */,
 				E9CC0ADA3062847200F118BB /* ShiftMap.h */,
 				E9CC0ADB3062847200F118BB /* ShiftMap.cc */,
 				E9ED02E82310A05A00C85D9A /* StatesView.h */,
@@ -861,6 +867,7 @@
 				E91005E00F893F8900B68C27 /* core_phloat.cc in Sources */,
 				E91005E10F893F8900B68C27 /* core_sto_rcl.cc in Sources */,
 				E91005E20F893F8900B68C27 /* core_tables.cc in Sources */,
+				E94E3E9230712C510001FF08 /* shell_state.mm in Sources */,
 				E91005E30F893F8900B68C27 /* core_variables.cc in Sources */,
 				E95273362D3A82CE00363585 /* ToastAlert.m in Sources */,
 				E9F94FE62D2883370054518B /* AlphaKeyboardView.mm in Sources */,
@@ -918,6 +925,7 @@
 				E9FC40EC260707AF00E52296 /* core_phloat.cc in Sources */,
 				E9FC40ED260707AF00E52296 /* core_sto_rcl.cc in Sources */,
 				E9FC40EE260707AF00E52296 /* core_tables.cc in Sources */,
+				E94E3E9130712C510001FF08 /* shell_state.mm in Sources */,
 				E9FC40EF260707AF00E52296 /* core_variables.cc in Sources */,
 				E95273352D3A82CE00363585 /* ToastAlert.m in Sources */,
 				E9F94FE72D2883370054518B /* AlphaKeyboardView.mm in Sources */,

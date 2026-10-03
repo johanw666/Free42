@@ -20,33 +20,6 @@
 
 #define FILENAMELEN 1024
 
-struct state_type {
-    int printerToTxtFile;
-    int printerToGifFile;
-    char printerTxtFileName[FILENAMELEN];
-    char printerGifFileName[FILENAMELEN];
-    int printerGifMaxLength;
-    char skinName[FILENAMELEN];
-    char landscapeSkinName[FILENAMELEN];
-    int alwaysOn;
-    int keyClicks;
-    int hapticFeedback;
-    int orientationMode; // 0=auto 1=portrait 2=landscape
-    int maintainSkinAspect[2];
-    bool offEnabled;
-    char coreName[FILENAMELEN];
-    bool matrix_singularmatrix;
-    bool matrix_outofrange;
-    bool auto_repeat;
-    bool allow_big_stack;
-    bool localized_copy_paste;
-    int swipeDirectionMode; // 0=left 1=off 2=right
-    char popupAlphaKeyboard; // 0=disabled 1=off 2=on
-};
-
-extern state_type state;
-extern FILE *statefile;
-
 void get_keymap(keymap_entry **map, int *length);
 
 

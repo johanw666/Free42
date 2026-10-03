@@ -10,6 +10,8 @@
 		1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDD58140DA1D0A300B32029 /* MainMenu.xib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
+		E902DABB307102350077F603 /* shell_state.mm in Sources */ = {isa = PBXBuildFile; fileRef = E902DABA307102350077F603 /* shell_state.mm */; };
+		E902DABC307102350077F603 /* shell_state.mm in Sources */ = {isa = PBXBuildFile; fileRef = E902DABA307102350077F603 /* shell_state.mm */; };
 		E9031CB10FF690AC0023F9EC /* builtin_skins.txt in Resources */ = {isa = PBXBuildFile; fileRef = E9031CB00FF690AC0023F9EC /* builtin_skins.txt */; };
 		E9031CB60FF690CB0023F9EC /* Ehrling42sl.gif in Resources */ = {isa = PBXBuildFile; fileRef = E9031CB20FF690CB0023F9EC /* Ehrling42sl.gif */; };
 		E9031CB70FF690CB0023F9EC /* Ehrling42sl.layout in Resources */ = {isa = PBXBuildFile; fileRef = E9031CB30FF690CB0023F9EC /* Ehrling42sl.layout */; };
@@ -191,6 +193,8 @@
 		32CA4F630368D1EE00C91783 /* Free42_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Free42_Prefix.pch; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* Free42 Decimal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Free42 Decimal.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E902DAB9307102350077F603 /* shell_state.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = shell_state.h; path = Classes/shell_state.h; sourceTree = "<group>"; };
+		E902DABA307102350077F603 /* shell_state.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = shell_state.mm; path = Classes/shell_state.mm; sourceTree = "<group>"; };
 		E9031CB00FF690AC0023F9EC /* builtin_skins.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = builtin_skins.txt; sourceTree = "<group>"; };
 		E9031CB20FF690CB0023F9EC /* Ehrling42sl.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; name = Ehrling42sl.gif; path = ../skins/Ehrling42sl.gif; sourceTree = SOURCE_ROOT; };
 		E9031CB30FF690CB0023F9EC /* Ehrling42sl.layout */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Ehrling42sl.layout; path = ../skins/Ehrling42sl.layout; sourceTree = SOURCE_ROOT; };
@@ -364,6 +368,8 @@
 				E97714CB0FEC0E9A00F8CA16 /* shell_skin.h */,
 				E979254A1698897600598A02 /* shell_skin.mm */,
 				E907929822AD943A00DA7F7E /* SkinListDataSource.h */,
+				E902DAB9307102350077F603 /* shell_state.h */,
+				E902DABA307102350077F603 /* shell_state.mm */,
 				E907929722AD943A00DA7F7E /* SkinListDataSource.mm */,
 				E9E059D922FEF91B009DDC40 /* StateListDataSource.h */,
 				E9E059D722FEF866009DDC40 /* StateListDataSource.mm */,
@@ -804,6 +810,7 @@
 				E959D43E0FEC0A44007C56A4 /* core_phloat.cc in Sources */,
 				E959D43F0FEC0A44007C56A4 /* core_sto_rcl.cc in Sources */,
 				E9DDAC7522FF861F00E994AF /* StateNameWindow.mm in Sources */,
+				E902DABC307102350077F603 /* shell_state.mm in Sources */,
 				E959D4400FEC0A44007C56A4 /* core_tables.cc in Sources */,
 				E9E059D422FEF075009DDC40 /* StatesWindow.mm in Sources */,
 				E959D4410FEC0A44007C56A4 /* core_variables.cc in Sources */,
@@ -850,6 +857,7 @@
 				E969E2332603F14900EABB28 /* core_phloat.cc in Sources */,
 				E969E2342603F14900EABB28 /* core_sto_rcl.cc in Sources */,
 				E969E2352603F14900EABB28 /* StateNameWindow.mm in Sources */,
+				E902DABB307102350077F603 /* shell_state.mm in Sources */,
 				E969E2362603F14900EABB28 /* core_tables.cc in Sources */,
 				E969E2372603F14900EABB28 /* StatesWindow.mm in Sources */,
 				E969E2382603F14900EABB28 /* core_variables.cc in Sources */,

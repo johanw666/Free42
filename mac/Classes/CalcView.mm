@@ -18,6 +18,7 @@
 #import "CalcView.h"
 #import "Free42AppDelegate.h"
 #import "shell_skin.h"
+#import "shell_state.h"
 
 @implementation CalcView
 

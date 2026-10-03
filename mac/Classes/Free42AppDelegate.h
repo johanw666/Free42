@@ -21,27 +21,6 @@
 
 #define FILENAMELEN 256
 
-struct state_type {
-    int printerToTxtFile;
-    int printerToGifFile;
-    char printerTxtFileName[FILENAMELEN];
-    char printerGifFileName[FILENAMELEN];
-    int printerGifMaxLength;
-    char mainWindowKnown, printWindowKnown, printWindowMapped;
-    int mainWindowX, mainWindowY;
-    int printWindowX, printWindowY, printWindowHeight;
-    char skinName[FILENAMELEN];
-    char coreName[FILENAMELEN];
-    bool matrix_singularmatrix;
-    bool matrix_outofrange;
-    bool auto_repeat;
-    bool allow_big_stack;
-    bool localized_copy_paste;
-    int mainWindowWidth, mainWindowHeight;
-};
-
-extern state_type state;
-
 extern char free42dirname[FILENAMELEN];
 
 #define PRINT_LINES 9000

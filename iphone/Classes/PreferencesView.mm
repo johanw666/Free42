@@ -23,6 +23,7 @@
 #import "core_main.h"
 #import "shell.h"
 #import "shell_skin_iphone.h"
+#import "shell_state.h"
 
 @implementation PreferencesView
 
@@ -83,10 +84,10 @@
     [orientationSelector setSelectedSegmentIndex:state.orientationMode];
     [swipeDirectionSelector setSelectedSegmentIndex:state.swipeDirectionMode];
     [popupAlphaKeyboardSelector setSelectedSegmentIndex:state.popupAlphaKeyboard];
-    [maintainSkinAspectSwitch setOn:state.maintainSkinAspect[[CalcView isPortrait] ? 0 : 1] != 0];
-    [printToTextSwitch setOn:(state.printerToTxtFile != 0)];
+    [maintainSkinAspectSwitch setOn:state.maintainSkinAspect[[CalcView isPortrait] ? 0 : 1]];
+    [printToTextSwitch setOn:state.printerToTxtFile];
     [printToTextField setText:[NSString stringWithUTF8String:state.printerTxtFileName]];
-    [printToGifSwitch setOn:(state.printerToGifFile != 0)];
+    [printToGifSwitch setOn:state.printerToGifFile];
     [printToGifField setText:[NSString stringWithUTF8String:state.printerGifFileName]];
     [maxGifLengthField setText:[NSString stringWithFormat:@"%d", state.printerGifMaxLength]];
     
@@ -212,7 +213,7 @@
     shell_always_on(alwaysOnSwitch.on);
     state.orientationMode = (int) orientationSelector.selectedSegmentIndex;
     int isPortrait = [CalcView isPortrait] ? 0 : 1;
-    int maintainSkinAspect = maintainSkinAspectSwitch.on ? 1 : 0;
+    bool maintainSkinAspect = maintainSkinAspectSwitch.on;
     if (maintainSkinAspect != state.maintainSkinAspect[isPortrait]) {
         state.maintainSkinAspect[isPortrait] = maintainSkinAspect;
         long w, h;

@@ -22,6 +22,7 @@
 #import "Free42AppDelegate.h"
 #import "shell.h"
 #import "shell_spool.h"
+#import "shell_state.h"
 
 
 @implementation PrintView

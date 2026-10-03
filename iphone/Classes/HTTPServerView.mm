@@ -29,6 +29,7 @@
 #import "CalcView.h"
 #import "Free42AppDelegate.h"
 #import "RootViewController.h"
+#import "shell_state.h"
 
 // From simpleserver.c
 void handle_client(int csock);
