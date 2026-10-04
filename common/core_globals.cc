@@ -3534,6 +3534,8 @@ void clear_all_rtns() {
     }
     if (mode_plainmenu == MENU_PROGRAMMABLE)
         set_menu(MENULEVEL_PLAIN, MENU_NONE);
+    else if (mode_appmenu == MENU_PROGRAMMABLE)
+        set_menu(MENULEVEL_APP, MENU_NONE);
     if (varmenu_role == 3)
         varmenu_role = 0;
 }

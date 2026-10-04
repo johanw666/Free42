@@ -55,6 +55,7 @@ int docmd_mvar(arg_struct *arg);
 int docmd_varmenu(arg_struct *arg);
 int docmd_getkey(arg_struct *arg);
 int docmd_menu(arg_struct *arg);
+int docmd_menu1(arg_struct *arg);
 int docmd_x_eq_0(arg_struct *arg);
 int docmd_x_ne_0(arg_struct *arg);
 int docmd_x_lt_0(arg_struct *arg);

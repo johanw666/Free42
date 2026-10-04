@@ -307,6 +307,8 @@ static void keydown2(int shift, int key) {
                 set_menu(MENULEVEL_APP, MENU_BASE1);
             else if (mode_plainmenu == MENU_PROGRAMMABLE)
                 set_menu(MENULEVEL_PLAIN, MENU_NONE);
+            else if (mode_appmenu == MENU_PROGRAMMABLE)
+                set_menu(MENULEVEL_APP, MENU_NONE);
             input_length = 0;
         }
         flags.f.message = 0;

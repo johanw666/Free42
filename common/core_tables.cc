@@ -491,6 +491,7 @@ const command_spec cmd_array[] =
     { /* PMEXEC */      NULL,              "",                    0x44, 0x00, 0x00, 0x00,  0, ARG_OTHER,  0, NA_T },
     { /* PGMVAR */      docmd_pgmvar,      "PGMVAR",              0x00, 0x40, 0xf2, 0x30,  6, ARG_PRGM,   0, NA_T },
     { /* VARMNU1 */     docmd_varmnu1,     "V\301\322MN\3251",    0x00, 0x42, 0xf2, 0x31,  7, ARG_PRGM,   0, NA_T },
+    { /* MENU1 */       docmd_menu1,       "M\305NU1",            0x00, 0x00, 0xa7, 0x77,  5, ARG_NONE,   0, NA_T },
     { /* X2LINE */      docmd_x2line,      "X2LINE",              0x42, 0x00, 0x00, 0x00,  6, ARG_NONE,   1, 0x13 },
     { /* A2LINE */      docmd_a2line,      "A2LINE",              0x42, 0x00, 0x00, 0x00,  6, ARG_NONE,   0, NA_T },
     { /* A2PLINE */     docmd_a2pline,     "A2+LINE",             0x42, 0x00, 0x00, 0x00,  7, ARG_NONE,   0, NA_T },
