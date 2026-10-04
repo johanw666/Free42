@@ -836,7 +836,6 @@ bool no_keystrokes_yet;
  * Version 52: 3.3    BASE enhancements (carry; display modes)
  * Version 53: 3.3.3  STATIC/DYNAMIC for menus
  * Version 54: 3.3.11 Statistics sums menu
- * Version 55:        skipping this number because reasons
  */
 #define FREE42_VERSION 54
 
@@ -3888,7 +3887,7 @@ static bool load_state2(bool *clear, bool *too_new) {
         return false;
     }
 
-    if (ver > FREE42_VERSION && ver != 55) {
+    if (ver > FREE42_VERSION) {
         *too_new = true;
         return false;
     }
