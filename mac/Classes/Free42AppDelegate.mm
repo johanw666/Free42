@@ -137,6 +137,10 @@ static bool is_file(const char *name);
 @synthesize skinListDataSource;
 @synthesize statesWindow;
 
+- (BOOL) applicationSupportsSecureRestorableState:(NSApplication*)app {
+    return YES;
+}
+
 static struct timeval runner_end_time;
 
 - (void) startRunner {
