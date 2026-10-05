@@ -920,7 +920,7 @@ int docmd_rtnerr(arg_struct *arg) {
     } else {
         return ERR_INTERNAL_ERROR;
     }
-    int err2 = pop_func_state(true);
+    int err2 = pop_func_state(err != ERR_NONE);
     if (err2 != ERR_NONE)
         return err2;
     if (err != ERR_NONE && flags.f.error_ignore) {
