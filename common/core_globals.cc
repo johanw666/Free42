@@ -3950,8 +3950,6 @@ static bool load_state2(bool *clear, bool *too_new) {
     else if (!read_bool(&mode_caller_stack_lift_disabled))
         return false;
     if (!read_bool(&mode_varmenu)) return false;
-    if (ver == 55)
-        if (!read_bool(&bdummy)) return false;
     if (!read_bool(&mode_updown)) return false;
 
     if (!read_bool(&mode_getkey))
