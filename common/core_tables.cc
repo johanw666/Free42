@@ -404,6 +404,9 @@ const command_spec cmd_array[] =
     { /* GETKEYA */     docmd_getkeya,     "G\305TK\305\331A",    0x00, 0x00, 0xa6, 0xee,  7, ARG_NONE,   0, NA_T },
     { /* LASTO */       docmd_lasto,       "LASTO",               0x00, 0xf5, 0xf2, 0xc8,  5, ARG_NAMED,  0, NA_T },
     { /* LCLV */        docmd_lclv,        "LCLV",                0x00, 0x71, 0xf2, 0x64,  4, ARG_NAMED,  0, NA_T },
+    { /* TRY */         docmd_try,         "TRY",                 0x00, 0x00, 0xa7, 0x78,  3, ARG_NONE,   0, NA_T },
+    { /* TRYX */        docmd_tryx,        "TRYX",                0x00, 0x00, 0xa7, 0x79,  4, ARG_NONE,   1, 0x01 },
+    { /* CATCH_T */     docmd_catch_t,     "CATCH?",              0x00, 0x00, 0xa7, 0x7a,  6, ARG_NONE,   0, NA_T },
 
     /* BASE enhancements */
     { /* SL */          docmd_sl,          "SL",                  0x00, 0x00, 0xa7, 0xdc,  2, ARG_NONE,   1, 0x01 },

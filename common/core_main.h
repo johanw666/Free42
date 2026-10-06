@@ -381,6 +381,7 @@ bool start_alpha_prgm_line();
 void finish_alpha_prgm_line();
 int shiftcharacter(char c);
 void set_old_pc(int4 pc);
+void set_last_err(int error);
 const char *number_format();
 
 

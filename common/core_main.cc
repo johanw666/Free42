@@ -5398,7 +5398,7 @@ void set_old_pc(int4 pc) {
     oldpc = pc;
 }
 
-static void set_last_err(int error) {
+void set_last_err(int error) {
     if (error <= RTNERR_MAX) {
         lasterr = error;
     } else {
@@ -5425,30 +5425,49 @@ static bool handle_error(int error) {
         } else if (error == ERR_NUMBER_TOO_LARGE
                 || error == ERR_NUMBER_TOO_SMALL) {
             // Handling these separately because they shouldn't be
-            // suppressed by flag 25, nor trapped by SOLVE
-            goto handle_it;
+            // suppressed by flag 25, nor trapped by SOLVE or TRY
+            handle_it:
+            pc = oldpc;
+            display_error(error);
+            set_running(false);
+            return false;
         } else if (error != ERR_NONE && error != ERR_YES) {
             if (flags.f.error_ignore && error != ERR_SUSPICIOUS_OFF) {
                 flags.f.error_ignore = 0;
                 set_last_err(error);
                 return true;
             }
-            if (solve_active() && (error == ERR_OUT_OF_RANGE
-                                        || error == ERR_DIVIDE_BY_0
-                                        || error == ERR_INVALID_DATA
-                                        || error == ERR_STAT_MATH_ERROR)) {
+            bool solve_err = solve_active()
+                        && (error == ERR_OUT_OF_RANGE
+                         || error == ERR_DIVIDE_BY_0
+                         || error == ERR_INVALID_DATA
+                         || error == ERR_STAT_MATH_ERROR
+                         || error == ERR_INVALID_FORECAST_MODEL);
+            bool trap = should_trap(error);
+            int trap_level;
+            if (solve_err) {
+                if (trap) {
+                    trap_level = get_trap_rtn_level(error);
+                    if (trap_level > solve_level())
+                        goto do_trap;
+                }
                 bool stop = unwind_stack_until_solve();
                 error = return_to_solve(1, stop);
                 if (error == ERR_STOP)
                     set_running(false);
                 if (error == ERR_NONE || error == ERR_RUN || error == ERR_STOP)
                     return false;
+            } else if (trap) {
+                trap_level = get_trap_rtn_level(error);
+                do_trap:
+                bool stop = unwind_stack_until_level(trap_level);
+                set_caught(true);
+                set_last_err(error);
+                if (stop)
+                    set_running(false);
+                return false;
             }
-            handle_it:
-            pc = oldpc;
-            display_error(error);
-            set_running(false);
-            return false;
+            goto handle_it;
         }
         return true;
     } else if (pending_command == CMD_SST || pending_command == CMD_SST_RT) {
@@ -5469,26 +5488,44 @@ static bool handle_error(int error) {
         } else if (error == ERR_NUMBER_TOO_LARGE
                 || error == ERR_NUMBER_TOO_SMALL) {
             // Handling these separately because they shouldn't be
-            // suppressed by flag 25, nor trapped by SOLVE
-            goto handle_it_2;
+            // suppressed by flag 25, nor trapped by SOLVE or TRY
+            handle_it_2:
+            pc = oldpc;
+            display_error(error);
         } else {
             if (flags.f.error_ignore) {
                 flags.f.error_ignore = 0;
                 set_last_err(error);
                 goto noerr;
             }
-            if (solve_active() && (error == ERR_OUT_OF_RANGE
-                                      || error == ERR_DIVIDE_BY_0
-                                      || error == ERR_INVALID_DATA
-                                      || error == ERR_STAT_MATH_ERROR)) {
+            bool solve_err = solve_active()
+                        && (error == ERR_OUT_OF_RANGE
+                         || error == ERR_DIVIDE_BY_0
+                         || error == ERR_INVALID_DATA
+                         || error == ERR_STAT_MATH_ERROR
+                         || error == ERR_INVALID_FORECAST_MODEL);
+            bool trap = should_trap(error);
+            int trap_level;
+            if (solve_err) {
+                if (trap) {
+                    trap_level = get_trap_rtn_level(error);
+                    if (trap_level > solve_level())
+                        goto do_trap_2;
+                }
                 bool stop = unwind_stack_until_solve();
                 error = return_to_solve(1, stop);
                 if (error == ERR_NONE || error == ERR_RUN || error == ERR_STOP)
                     goto noerr;
+            } else if (trap) {
+                trap_level = get_trap_rtn_level(error);
+                do_trap_2:
+                bool stop = unwind_stack_until_level(trap_level);
+                set_caught(true);
+                set_last_err(error);
+                error = stop ? ERR_STOP : ERR_NONE;
+                goto noerr;
             }
-            handle_it_2:
-            pc = oldpc;
-            display_error(error);
+            goto handle_it_2;
         }
         return false;
     } else {

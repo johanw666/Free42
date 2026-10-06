@@ -77,6 +77,9 @@ int docmd_getmi(arg_struct *arg);
 int docmd_putmi(arg_struct *arg);
 int docmd_getli(arg_struct *arg);
 int docmd_putli(arg_struct *arg);
+int docmd_try(arg_struct *arg);
+int docmd_tryx(arg_struct *arg);
+int docmd_catch_t(arg_struct *arg);
 
 int docmd_4stk(arg_struct *arg);
 int docmd_l4stk(arg_struct *arg);

@@ -547,6 +547,7 @@ static int finish_solve(int message) {
 
     current_prgm = solve.prev_prgm;
     pc = solve.prev_pc;
+    returning_from_solve_or_integ();
 
     arg.type = ARGTYPE_STR;
     string_copy(arg.val.text, &dummy, solve.var_name, solve.var_length);
@@ -1029,6 +1030,11 @@ int return_to_solve(int failure, bool stop) {
     }
 }
 
+void get_solve_caller(int *prgm, int4 *pc) {
+    *prgm = solve.prev_prgm;
+    *pc = solve.prev_pc;
+}
+
 static void reset_integ() {
     integ.prgm_length = 0;
     integ.active_prgm_length = 0;
@@ -1180,6 +1186,7 @@ static int finish_integ() {
 
     current_prgm = integ.prev_prgm;
     pc = integ.prev_pc;
+    returning_from_solve_or_integ();
 
     if (!integ.keep_running) {
         char buf[22];
@@ -1278,4 +1285,9 @@ int return_to_integ(bool stop) {
     default:
         return ERR_INTERNAL_ERROR;
     }
+}
+
+void get_integ_caller(int *prgm, int4 *pc) {
+    *prgm = integ.prev_prgm;
+    *pc = integ.prev_pc;
 }

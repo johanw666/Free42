@@ -836,8 +836,9 @@ bool no_keystrokes_yet;
  * Version 52: 3.3    BASE enhancements (carry; display modes)
  * Version 53: 3.3.3  STATIC/DYNAMIC for menus
  * Version 54: 3.3.11 Statistics sums menu
+ * Version 55: 3.4    Error trapping
  */
-#define FREE42_VERSION 54
+#define FREE42_VERSION 55
 
 
 /*******************/
@@ -848,13 +849,13 @@ struct rtn_stack_entry {
     int4 prgm;
     int4 pc;
     int4 get_prgm() {
-        int4 p = prgm & 0x1fffffff;
-        if ((p & 0x10000000) != 0)
-            p |= 0xe0000000;
+        int4 p = prgm & 0x0fffffff;
+        if ((p & 0x08000000) != 0)
+            p |= 0xf0000000;
         return p;
     }
     void set_prgm(int4 prgm) {
-        this->prgm = prgm & 0x1fffffff;
+        this->prgm = prgm & 0x0fffffff;
     }
     bool has_matrix() {
         return (prgm & 0x80000000) != 0;
@@ -883,6 +884,15 @@ struct rtn_stack_entry {
         else
             prgm &= 0xdfffffff;
     }
+    bool has_trap() {
+        return (prgm & 0x10000000) != 0;
+    }
+    void set_has_trap(bool state) {
+        if (state)
+            prgm |= 0x10000000;
+        else
+            prgm &= 0xefffffff;
+    }
 };
 
 #define MAX_RTN_LEVEL 1024
@@ -894,6 +904,11 @@ static bool rtn_level_0_has_func_state;
 static int rtn_stop_level = -1;
 static bool rtn_solve_active = false;
 static bool rtn_integ_active = false;
+
+static int4 trap_flags = 0;
+static int4 trap_level = 0;
+static int4 trap_deeper_flags = 0;
+static bool trap_caught = false;
 
 #ifdef IPHONE
 /* For iPhone, we disable OFF by default, to satisfy App Store
@@ -1463,6 +1478,15 @@ static bool persist_globals() {
         goto done;
     if (!write_bool(rtn_integ_active))
         goto done;
+    if (!write_int4(trap_flags))
+        goto done;
+    if (!write_int4(trap_level))
+        goto done;
+    if (!write_int4(trap_deeper_flags))
+        goto done;
+    if (!write_bool(trap_caught))
+        goto done;
+
     ret = true;
 
     done:
@@ -1793,6 +1817,21 @@ static bool unpersist_globals() {
         goto done;
     if (!read_bool(&rtn_integ_active))
         goto done;
+    if (ver >= 55) {
+        if (!read_int4(&trap_flags))
+            goto done;
+        if (!read_int4(&trap_level))
+            goto done;
+        if (!read_int4(&trap_deeper_flags))
+            goto done;
+        if (!read_bool(&trap_caught))
+            goto done;
+    } else {
+        trap_flags = 0;
+        trap_level = 0;
+        trap_deeper_flags = 0;
+        trap_caught = false;
+    }
 
     ret = true;
 
@@ -3333,6 +3372,89 @@ int pop_func_state(bool error) {
     return err;
 }
 
+int set_trap(int4 flags) {
+    if (trap_level > rtn_level) {
+        return ERR_INTERNAL_ERROR;
+    } else if (trap_level == rtn_level) {
+        trap_flags = flags;
+    } else {
+        int8 re = trap_level | (trap_deeper_flags & (int8) 0xffff) << 32;
+        int8 im = trap_flags | (trap_deeper_flags & (int8) 0xffff0000) << 16;
+        vartype *v = new_complex(re, im);
+        if (v == NULL)
+            return ERR_INSUFFICIENT_MEMORY;
+        int err = store_private_var("TRAP", 4, v);
+        if (err != ERR_NONE) {
+            free_vartype(v);
+            return err;
+        }
+        rtn_stack[rtn_level - 1].set_has_trap(true);
+        trap_deeper_flags |= trap_flags;
+        trap_flags = flags;
+        trap_level = rtn_level;
+    }
+    return ERR_NONE;
+}
+
+bool should_trap(int err) {
+    if (err == ERR_NONE)
+        return false;
+    int4 mask = err == -1 || err > RTNERR_MAX ? 1 : 1 << err;
+    return (mask & (trap_flags | trap_deeper_flags)) != 0;
+}
+
+int get_trap_rtn_level(int err) {
+    if (err == ERR_NONE)
+        return -1;
+    int4 mask = err == -1 || err > RTNERR_MAX ? 1 : 1 << err;
+    if ((mask & trap_flags) != 0)
+        return trap_level;
+    if ((mask & trap_deeper_flags) == 0)
+        return -1;
+    for (int i = rtn_level; i > 0; i--)
+        if (rtn_stack[i - 1].has_trap()) {
+            vartype *v = recall_private_var_from_level("TRAP", 4, i);
+            if (v == NULL)
+                continue;
+            vartype_complex *c = (vartype_complex *) v;
+            int4 t_level = (int4) to_int8(c->re);
+            int4 t_flags = (int4) to_int8(c->im);
+            if ((mask & t_flags) != 0)
+                return t_level;
+        }
+    return -1;
+}
+
+void set_caught(bool caught) {
+    trap_caught = caught;
+}
+
+bool get_caught() {
+    return trap_caught;
+}
+
+static void pop_trap() {
+    if (rtn_level > trap_level)
+        return;
+    if (rtn_level == 0 || !rtn_stack[rtn_level - 1].has_trap()) {
+        no_more_traps:
+        trap_level = 0;
+        trap_flags = 0;
+        trap_deeper_flags = 0;
+        return;
+    }
+    vartype *v = recall_private_var("TRAP", 4);
+    if (v == NULL)
+        // Shouldn't happen
+        goto no_more_traps;
+    vartype_complex *c = (vartype_complex *) v;
+    int8 re = to_int8(c->re);
+    int8 im = to_int8(c->im);
+    trap_level = re;
+    trap_flags = im;
+    trap_deeper_flags = (re >> 32) | (im >> 16) & 0xffff0000;
+}
+
 void step_out() {
     if (rtn_level > 0)
         rtn_stop_level = rtn_level - 1;
@@ -3350,9 +3472,16 @@ bool should_i_stop_at_this_level() {
     return stop;
 }
 
+void returning_from_solve_or_integ() {
+    if (trap_level == rtn_level)
+        trap_flags = 0;
+    set_caught(false);
+}
+
 static void remove_locals() {
     if (matedit_mode == 3 && matedit_level >= rtn_level)
         leave_matrix_editor();
+    pop_trap();
     int last = -1;
     for (int i = vars_count - 1; i >= 0; i--) {
         if (vars[i].level == -1)
@@ -3399,6 +3528,7 @@ int rtn(int err) {
     // NOTE: 'err' should be one of ERR_NONE, ERR_YES, or ERR_NO.
     // For any actual *error*, i.e. anything that should actually
     // stop program execution, use rtn_with_error() instead.
+    set_caught(false);
     int newprgm;
     int4 newpc;
     bool stop;
@@ -3429,13 +3559,31 @@ int rtn(int err) {
 }
 
 int rtn_with_error(int err) {
+    set_caught(false);
     bool stop;
-    if (solve_active() && (err == ERR_OUT_OF_RANGE
-                            || err == ERR_DIVIDE_BY_0
-                            || err == ERR_INVALID_DATA
-                            || err == ERR_STAT_MATH_ERROR)) {
+    bool solve_err = solve_active()
+                && (err == ERR_OUT_OF_RANGE
+                 || err == ERR_DIVIDE_BY_0
+                 || err == ERR_INVALID_DATA
+                 || err == ERR_STAT_MATH_ERROR
+                 || err == ERR_INVALID_FORECAST_MODEL);
+    bool trap = should_trap(err);
+    int t_level;
+    if (solve_err) {
+        if (trap) {
+            t_level = get_trap_rtn_level(err);
+            if (t_level > solve_level())
+                goto do_trap;
+        }
         stop = unwind_stack_until_solve();
         return return_to_solve(1, stop);
+    } else if (trap) {
+        t_level = get_trap_rtn_level(err);
+        do_trap:
+        stop = unwind_stack_until_level(t_level);
+        set_caught(true);
+        set_last_err(err);
+        return stop ? ERR_STOP : ERR_NONE;
     }
     int newprgm;
     int4 newpc;
@@ -3497,6 +3645,8 @@ void pop_rtn_addr(int *prgm, int4 *pc, bool *stop) {
         else if (*prgm == -3)
             rtn_integ_active = false;
     }
+    if (trap_level == rtn_level && *prgm != -2 && *prgm != -3)
+        trap_flags = 0;
 }
 
 static void get_saved_stack_mode(int *m) {
@@ -3565,6 +3715,13 @@ bool integ_active() {
     return rtn_integ_active;
 }
 
+int solve_level() {
+    for (int i = 0; i < rtn_level; i++)
+        if (rtn_stack[i].get_prgm() == -2)
+            return i;
+    return -1;
+}
+
 bool unwind_stack_until_solve() {
     int prgm;
     int4 pc;
@@ -3574,6 +3731,31 @@ bool unwind_stack_until_solve() {
         get_saved_stack_mode(&st_mode);
         pop_rtn_addr(&prgm, &pc, &stop);
     } while (prgm != -2);
+    if (st_mode == 0) {
+        arg_struct dummy_arg;
+        docmd_4stk(&dummy_arg);
+    } else if (st_mode == 1) {
+        docmd_nstk(NULL);
+    }
+    return stop;
+}
+
+bool unwind_stack_until_level(int level) {
+    bool stop;
+    int st_mode = -1;
+    while (rtn_level > level) {
+        get_saved_stack_mode(&st_mode);
+        pop_rtn_addr(&current_prgm, &pc, &stop);
+    }
+    if (current_prgm == -2) {
+        get_solve_caller(&current_prgm, &pc);
+        if (trap_level == rtn_level)
+            trap_flags = 0;
+    } else if (current_prgm == -3) {
+        get_integ_caller(&current_prgm, &pc);
+        if (trap_level == rtn_level)
+            trap_flags = 0;
+    }
     if (st_mode == 0) {
         arg_struct dummy_arg;
         docmd_4stk(&dummy_arg);

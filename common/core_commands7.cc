@@ -1255,6 +1255,21 @@ int docmd_putli(arg_struct *arg) {
     return ERR_NONE;
 }
 
+int docmd_try(arg_struct *arg) {
+    return set_trap(-1);
+}
+
+int docmd_tryx(arg_struct *arg) {
+    phloat x = ((vartype_real *) stack[sp])->x;
+    if (x < 0 || x >= (1 << (RTNERR_MAX + 1)))
+        return ERR_INVALID_DATA;
+    return set_trap(to_int4(x));
+}
+
+int docmd_catch_t(arg_struct *arg) {
+    return get_caught() ? ERR_YES : ERR_NO;
+}
+
 /////////////////////
 ///// Big Stack /////
 /////////////////////
