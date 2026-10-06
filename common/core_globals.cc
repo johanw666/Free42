@@ -3380,7 +3380,17 @@ int set_trap(int4 flags) {
     } else {
         int8 re = trap_level | (trap_deeper_flags & (int8) 0xffff) << 32;
         int8 im = trap_flags | (trap_deeper_flags & (int8) 0xffff0000) << 16;
+        #ifdef BCD_MATH
         vartype *v = new_complex(re, im);
+        #else
+        /* Silence warning about possible loss of precision in VS2022.
+         * The warning is correct, in that we're assigning 64-bit integers
+         * to floating-point types with only 53-bit mantissas; but it just
+         * happens to be the case that we know we're only using 48 bits
+         * so this really is okay.
+         */
+        vartype *v = new_complex((double) re, (double) im);
+        #endif
         if (v == NULL)
             return ERR_INSUFFICIENT_MEMORY;
         int err = store_private_var("TRAP", 4, v);
@@ -3450,8 +3460,8 @@ static void pop_trap() {
     vartype_complex *c = (vartype_complex *) v;
     int8 re = to_int8(c->re);
     int8 im = to_int8(c->im);
-    trap_level = re;
-    trap_flags = im;
+    trap_level = (int4) re;
+    trap_flags = (int4) im;
     trap_deeper_flags = (re >> 32) | (im >> 16) & 0xffff0000;
 }
 
