@@ -3410,14 +3410,24 @@ bool should_trap(int err) {
     if (err == ERR_NONE)
         return false;
     int4 mask = err == -1 || err > RTNERR_MAX ? 1 : 1 << err;
-    return (mask & (trap_flags | trap_deeper_flags)) != 0;
+    // TRY doesn't affect the level in which it is called;
+    // its scope is the duration of the first subroutine to
+    // be called after the TRY. If no subroutine is called
+    // before the end of the routine containing the TRY, the
+    // trap expires when the routine returns.
+    if (trap_level < rtn_level)
+        return (mask & (trap_flags | trap_deeper_flags)) != 0;
+    else
+        return (mask & trap_deeper_flags) != 0;
 }
 
 int get_trap_rtn_level(int err) {
     if (err == ERR_NONE)
         return -1;
     int4 mask = err == -1 || err > RTNERR_MAX ? 1 : 1 << err;
-    if ((mask & trap_flags) != 0)
+    // TRY doesn't affect the level in which it is called;
+    // see the comment in should_trap()
+    if (trap_level < rtn_level && (mask & trap_flags) != 0)
         return trap_level;
     if ((mask & trap_deeper_flags) == 0)
         return -1;
