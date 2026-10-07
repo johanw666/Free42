@@ -1322,6 +1322,7 @@ void calc_mouseup() {
 }
 
 void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, NSUInteger flags, unsigned short keycode) {
+    just_pressed_shift = false;
     if (ckey != 0 && mouse_key)
         return;
     
@@ -1338,8 +1339,6 @@ void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, NSUInteger flags
         // all character keys in ALPHA mode.
         printable = true;
 
-    just_pressed_shift = false;
-    
     if (ckey != 0) {
         shell_keyup();
         active_keycode = -1;
