@@ -86,6 +86,10 @@ static unsigned short keychar_normalize(unsigned char c) {
         return;
 
     NSUInteger flags = [theEvent modifierFlags];
+    if ((flags & NSEventModifierFlagCommand) != 0) {
+        [super keyDown:theEvent];
+        return;
+    }
     NSUInteger flags2 = flags
                 & NSEventModifierFlagDeviceIndependentFlagsMask
                 & ~(NSEventModifierFlagControl | NSEventModifierFlagOption);
