@@ -73,6 +73,7 @@ int docmd_prp(arg_struct *arg);
 int docmd_prv(arg_struct *arg);
 int docmd_prreg(arg_struct *arg);
 int docmd_prstk(arg_struct *arg);
+int pra_helper(bool trace, const char *text, int length);
 int docmd_pra(arg_struct *arg);
 int docmd_prx(arg_struct *arg);
 int docmd_prusr(arg_struct *arg);

@@ -837,8 +837,9 @@ bool no_keystrokes_yet;
  * Version 53: 3.3.3  STATIC/DYNAMIC for menus
  * Version 54: 3.3.11 Statistics sums menu
  * Version 55: 3.4    Error trapping
+ * Version 56: 3.4    Error trapping: stack trace
  */
-#define FREE42_VERSION 55
+#define FREE42_VERSION 56
 
 
 /*******************/
@@ -909,6 +910,7 @@ static int4 trap_flags = 0;
 static int4 trap_level = 0;
 static int4 trap_deeper_flags = 0;
 static bool trap_caught = false;
+static vartype *trap_trace = NULL;
 
 #ifdef IPHONE
 /* For iPhone, we disable OFF by default, to satisfy App Store
@@ -1486,6 +1488,8 @@ static bool persist_globals() {
         goto done;
     if (!write_bool(trap_caught))
         goto done;
+    if (!persist_vartype(trap_trace))
+        goto done;
 
     ret = true;
 
@@ -1832,6 +1836,11 @@ static bool unpersist_globals() {
         trap_deeper_flags = 0;
         trap_caught = false;
     }
+    if (ver >= 56) {
+        if (!unpersist_vartype(&trap_trace))
+            goto done;
+    } else
+        trap_trace = NULL;
 
     ret = true;
 
@@ -3447,6 +3456,10 @@ int get_trap_rtn_level(int err) {
 
 void set_caught(bool caught) {
     trap_caught = caught;
+    if (!caught && trap_trace != NULL) {
+        free_vartype(trap_trace);
+        trap_trace = NULL;
+    }
 }
 
 bool get_caught() {
@@ -3579,7 +3592,6 @@ int rtn(int err) {
 }
 
 int rtn_with_error(int err) {
-    set_caught(false);
     bool stop;
     bool solve_err = solve_active()
                 && (err == ERR_OUT_OF_RANGE
@@ -3596,13 +3608,14 @@ int rtn_with_error(int err) {
                 goto do_trap;
         }
         stop = unwind_stack_until_solve();
+        set_caught(false);
         return return_to_solve(1, stop);
     } else if (trap) {
         t_level = get_trap_rtn_level(err);
         do_trap:
-        stop = unwind_stack_until_level(t_level);
-        set_caught(true);
         set_last_err(err);
+        stop = unwind_stack_until_level(t_level, true);
+        set_caught(true);
         return stop ? ERR_STOP : ERR_NONE;
     }
     int newprgm;
@@ -3614,6 +3627,7 @@ int rtn_with_error(int err) {
         int line = pc2line(newpc);
         set_old_pc(line2pc(line - 1));
     }
+    set_caught(false);
     return err;
 }
 
@@ -3760,7 +3774,130 @@ bool unwind_stack_until_solve() {
     return stop;
 }
 
-bool unwind_stack_until_level(int level) {
+static void create_stack_trace(int level) {
+    textbuf tb;
+    tb.buf = NULL;
+    tb.size = 0;
+    tb.capacity = 0;
+    tb.fail = false;
+    
+    bool no_error = level == -1;
+
+    if (no_error) {
+        tb_write(&tb, "No Error", 8);
+        level = 0;
+    } else if (lasterr == -1)
+        tb_write(&tb, lasterr_text, lasterr_length);
+    else
+        tb_write(&tb, errors[lasterr].text, errors[lasterr].length);
+    tb_write(&tb, "\n", 1);
+
+    int f_prgm, prev_prgm = -1;
+    int4 f_pc;
+    for (int i = rtn_level; i >= level; i--) {
+        if (i == rtn_level) {
+            f_prgm = current_prgm;
+            f_pc = pc;
+        } else {
+            f_prgm = rtn_stack[i].get_prgm();
+            if (f_prgm == -2)
+                get_solve_caller(&f_prgm, &f_pc);
+            else if (f_prgm == -3)
+                get_integ_caller(&f_prgm, &f_pc);
+            else
+                f_pc = rtn_stack[i].pc;
+        }
+        if (f_prgm != prev_prgm) {
+            int a = 0;
+            int b = labels_count - 1;
+            int c;
+            if (labels[a].prgm == f_prgm) {
+                c = a;
+            } else if (labels[b].prgm = f_prgm) {
+                c = b;
+            } else {
+                while (true) {
+                    c = (a + b) >> 1;
+                    if (c == a || c == b)
+                        break;
+                    int p = labels[c].prgm;
+                    if (p == f_prgm)
+                        break;
+                    if (p > f_prgm)
+                        b = c;
+                    else
+                        a = c;
+                }
+            }
+            while (c > 0 && labels[c - 1].prgm == f_prgm)
+                c--;
+            if (labels[c].prgm == f_prgm && labels[c].length > 0) {
+                tb_write(&tb, "\"", 1);
+                tb_write(&tb, labels[c].name, labels[c].length);
+                tb_write(&tb, "\"\n", 2);
+            } else if (f_prgm == prgms_count - 1) {
+                tb_write(&tb, ".END.\n", 6);
+            } else {
+                tb_write(&tb, "END\n", 4);
+            }
+            prev_prgm = f_prgm;
+        }
+        int4 line = global_pc2line(f_prgm, f_pc) - 1;
+        if (no_error && i == rtn_level)
+            line++;
+        f_pc = global_line2pc(f_prgm, line);
+        tb_print_program_line(&tb, f_prgm, f_pc, line);
+    }
+
+    if (trap_trace != NULL) {
+        vartype_string *s = (vartype_string *) trap_trace;
+        tb_write(&tb, s->txt(), s->length);
+        free_vartype(trap_trace);
+        trap_trace = NULL;
+    } else {
+        tb.size--;
+    }
+
+    if (tb.buf != NULL) {
+        trap_trace = new_string(tb.buf, tb.size);
+        free(tb.buf);
+    }
+}
+
+int print_backtrace() {
+    if (!flags.f.printer_exists)
+        return ERR_PRINTING_IS_DISABLED;
+
+    vartype *t;
+    if (trap_trace == NULL) {
+        create_stack_trace(-1);
+        if (trap_trace == NULL)
+            return ERR_INSUFFICIENT_MEMORY;
+        t = trap_trace;
+        trap_trace = NULL;
+    } else {
+        t = trap_trace;
+    }
+    vartype_string *s = (vartype_string *) t;
+
+    bool prev_double_wide = flags.f.double_wide_print;
+    bool prev_lowercase = flags.f.lowercase_print;
+    flags.f.double_wide_print = false;
+    flags.f.lowercase_print = false;
+    print_text(NULL, 0, true);
+    pra_helper(true, s->txt(), s->length);
+    flags.f.double_wide_print = prev_double_wide;
+    flags.f.lowercase_print = prev_lowercase;
+
+    if (trap_trace == NULL)
+        free_vartype(t);
+    return ERR_NONE;
+}
+
+bool unwind_stack_until_level(int level, bool save_stack_trace) {
+    if (save_stack_trace)
+        create_stack_trace(level);
+
     bool stop;
     int st_mode = -1;
     while (rtn_level > level) {
@@ -3782,6 +3919,7 @@ bool unwind_stack_until_level(int level) {
     } else if (st_mode == 1) {
         docmd_nstk(NULL);
     }
+
     return stop;
 }
 
@@ -4449,6 +4587,14 @@ void hard_reset(int reason) {
     rtn_stop_level = -1;
     rtn_solve_active = false;
     rtn_integ_active = false;
+
+    /* Error trapping */
+    trap_flags = 0;
+    trap_level = 0;
+    trap_deeper_flags = 0;
+    trap_caught = false;
+    free_vartype(trap_trace);
+    trap_trace = NULL;
 
     /* Clear programs */
     if (prgms != NULL) {

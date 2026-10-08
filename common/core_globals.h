@@ -593,7 +593,8 @@ bool solve_active();
 bool integ_active();
 int solve_level();
 bool unwind_stack_until_solve();
-bool unwind_stack_until_level(int level);
+bool unwind_stack_until_level(int level, bool save_stack_trace);
+int print_backtrace();
 
 bool read_bool(bool *b);
 bool write_bool(bool b);

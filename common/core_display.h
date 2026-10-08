@@ -67,6 +67,7 @@ void tb_write(textbuf *tb, const char *data, size_t size);
 void tb_write_null(textbuf *tb);
 void tb_indent(textbuf *tb, int indent);
 void tb_print_current_program(textbuf *tb);
+void tb_print_program_line(textbuf *tb, int prgm, int4 pc, int4 line);
 
 #define MENULEVEL_COMMAND   0
 #define MENULEVEL_ALPHA     1

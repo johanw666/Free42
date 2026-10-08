@@ -1270,6 +1270,10 @@ int docmd_catch_t(arg_struct *arg) {
     return get_caught() ? ERR_YES : ERR_NO;
 }
 
+int docmd_prtrace(arg_struct *arg) {
+    return print_backtrace();
+}
+
 /////////////////////
 ///// Big Stack /////
 /////////////////////

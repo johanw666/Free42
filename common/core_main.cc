@@ -5460,9 +5460,9 @@ static bool handle_error(int error) {
             } else if (trap) {
                 trap_level = get_trap_rtn_level(error);
                 do_trap:
-                bool stop = unwind_stack_until_level(trap_level);
-                set_caught(true);
                 set_last_err(error);
+                bool stop = unwind_stack_until_level(trap_level, true);
+                set_caught(true);
                 if (stop)
                     set_running(false);
                 return false;
@@ -5519,9 +5519,9 @@ static bool handle_error(int error) {
             } else if (trap) {
                 trap_level = get_trap_rtn_level(error);
                 do_trap_2:
-                bool stop = unwind_stack_until_level(trap_level);
-                set_caught(true);
                 set_last_err(error);
+                bool stop = unwind_stack_until_level(trap_level, true);
+                set_caught(true);
                 error = stop ? ERR_STOP : ERR_NONE;
                 goto noerr;
             }

@@ -1164,6 +1164,26 @@ void tb_print_current_program(textbuf *tb) {
     } while (!end);
 }
 
+void tb_print_program_line(textbuf *tb, int prgm, int4 pc, int4 line) {
+    int prev_prgm = current_prgm;
+    current_prgm = prgm;
+
+    int cmd;
+    arg_struct arg;
+    const char *orig_num;
+    get_next_command(&pc, &cmd, &arg, 0, &orig_num);
+
+    char buf[100];
+    char *xstr = NULL;
+    int len = prgmline2buf(buf, 100, line, false, cmd, &arg, orig_num, false, true, &xstr);
+    char *buf2 = xstr == NULL ? buf : xstr;
+    tb_write(tb, buf2, len);
+    tb_write(tb, "\n", 1);
+    free(xstr);
+
+    current_prgm = prev_prgm;
+}
+
 void display_prgm_line(int row, int line_offset) {
     int4 tmppc = pc;
     int4 tmpline = pc2line(pc);
@@ -1609,11 +1629,11 @@ static int ext_base_cat[] = {
 };
 
 static int ext_prgm_cat[] = {
-    CMD_FUNC,    CMD_RTNERR,  CMD_RTNYES,   CMD_RTNNO,   CMD_ERRMSG, CMD_ERRNO,
-    CMD_TRY,     CMD_TRYX,    CMD_CATCH_T,  CMD_LSTO,    CMD_LASTO,  CMD_LCLV,
-    CMD_GETKEY1, CMD_GETKEYA, CMD_MENU1,    CMD_VARMNU1, CMD_SST_RT, CMD_SST_UP,
-    -2 /* 0? */, -3 /* X? */, CMD_CPXMAT_T, CMD_TYPE_T,  CMD_CSLD_T, CMD_PGMMENU,
-    CMD_PGMVAR,  CMD_SKIP,    CMD_NOP,      CMD_NULL,    CMD_NULL,   CMD_NULL
+    CMD_FUNC,    CMD_RTNYES,  CMD_RTNNO,    CMD_RTNERR,  CMD_ERRMSG,  CMD_ERRNO,
+    CMD_TRY,     CMD_TRYX,    CMD_CATCH_T,  CMD_PRTRACE, CMD_SST_RT,  CMD_SST_UP,
+    CMD_GETKEY1, CMD_GETKEYA, CMD_MENU1,    CMD_VARMNU1, CMD_PGMMENU, CMD_PGMVAR,
+    -2 /* 0? */, -3 /* X? */, CMD_CPXMAT_T, CMD_TYPE_T,  CMD_CSLD_T,  CMD_SKIP,
+    CMD_LSTO,    CMD_LASTO,   CMD_LCLV,     CMD_NOP,     CMD_NULL,    CMD_NULL
 };
 
 static int ext_str_cat[] = {

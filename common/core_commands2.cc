@@ -1413,7 +1413,7 @@ int docmd_prstk(arg_struct *arg) {
     return ERR_NONE;
 }
 
-static int pra_helper(bool trace, const char *text, int length) {
+int pra_helper(bool trace, const char *text, int length) {
     if (!trace && !flags.f.printer_enable && program_running())
         return ERR_NONE;
     if (!flags.f.printer_exists)
