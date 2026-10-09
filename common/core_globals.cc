@@ -3859,7 +3859,7 @@ static void create_stack_trace(int level) {
     }
 
     if (tb.buf != NULL) {
-        trap_trace = new_string(tb.buf, tb.size);
+        trap_trace = new_string(tb.buf, (int) tb.size);
         free(tb.buf);
     }
 }
