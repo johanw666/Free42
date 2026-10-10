@@ -168,6 +168,8 @@ void core_cleanup() {
         return;
 
     initialized = false;
+    reset_math();
+    reset_display();
     for (int i = 0; i <= sp; i++)
         free_vartype(stack[i]);
     sp = -1;

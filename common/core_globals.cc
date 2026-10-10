@@ -4731,10 +4731,8 @@ void hard_reset(int reason) {
     mode_menu_static = false;
 
     reset_math();
+    reset_display();
 
-    clear_display();
-    clear_custom_menu();
-    clear_prgm_menu();
     switch (reason) {
         case 0:
             draw_string(0, 0, "Memory Clear", 12);

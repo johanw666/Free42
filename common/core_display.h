@@ -24,6 +24,7 @@
 
 bool persist_display();
 bool unpersist_display(int version);
+void reset_display();
 void clear_display();
 void flush_display();
 void repaint_display();

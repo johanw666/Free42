@@ -709,6 +709,13 @@ bool unpersist_display(int version) {
     return true;
 }
 
+void reset_display() {
+    clear_display();
+    clear_custom_menu();
+    clear_prgm_menu();
+    appmenu_exitcallback = 0;
+}
+
 void clear_display() {
     int i;
     for (i = 0; i < 272; i++)
