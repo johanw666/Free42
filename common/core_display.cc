@@ -1560,7 +1560,7 @@ void draw_varmenu() {
     }
 }
 
-static int fcn_cat[] = {
+static const int fcn_cat[] = {
     CMD_ABS,      CMD_ACOS,      CMD_ACOSH,    CMD_ADV,        CMD_AGRAPH,  CMD_AIP,
     CMD_ALENG,    CMD_ALL,       CMD_ALLSIGMA, CMD_AND,        CMD_AOFF,    CMD_AON,
     CMD_ARCL,     CMD_AROT,      CMD_ASHF,     CMD_ASIN,       CMD_ASINH,   CMD_ASSIGNa,
@@ -1606,17 +1606,17 @@ static int fcn_cat[] = {
     CMD_FIND,     CMD_MAX,       CMD_MIN,      CMD_NULL,       CMD_NULL,    CMD_NULL
 };
 
-static int ext_time_cat[] = {
+static const int ext_time_cat[] = {
     CMD_ADATE,     CMD_ATIME, CMD_ATIME24, CMD_CLK12, CMD_CLK24, CMD_DATE,
     CMD_DATE_PLUS, CMD_DDAYS, CMD_DMY,     CMD_DOW,   CMD_MDY,   CMD_TIME,
     CMD_YMD,       CMD_NULL,  CMD_NULL,    CMD_NULL,  CMD_NULL,  CMD_NULL
 };
 
-static int ext_xfcn_cat[] = {
+static const int ext_xfcn_cat[] = {
     CMD_ANUM, CMD_RCLFLAG, CMD_STOFLAG, CMD_X_SWAP_F, CMD_NULL, CMD_NULL
 };
 
-static int ext_base_cat[] = {
+static const int ext_base_cat[] = {
     CMD_SL,      CMD_SR,      CMD_RL,      CMD_RR,      CMD_RLC,     CMD_RRC,
     CMD_LJ,      CMD_ASR,     CMD_RLN,     CMD_RRN,     CMD_RLCN,    CMD_RRCN,
     CMD_SB,      CMD_CB,      CMD_B_T,     CMD_NUM_B,   CMD_MASKL,   CMD_MASKR,
@@ -1628,7 +1628,7 @@ static int ext_base_cat[] = {
     CMD_DECINT,  CMD_NULL,    CMD_HEXSEP,  CMD_DECSEP,  CMD_OCTSEP,  CMD_BINSEP
 };
 
-static int ext_prgm_cat[] = {
+static const int ext_prgm_cat[] = {
     CMD_FUNC,    CMD_RTNYES,  CMD_RTNNO,    CMD_RTNERR,  CMD_ERRMSG,  CMD_ERRNO,
     CMD_TRY,     CMD_TRYX,    CMD_CATCH_T,  CMD_PRTRACE, CMD_SST_RT,  CMD_SST_UP,
     CMD_GETKEY1, CMD_GETKEYA, CMD_MENU1,    CMD_VARMNU1, CMD_PGMMENU, CMD_PGMVAR,
@@ -1636,20 +1636,20 @@ static int ext_prgm_cat[] = {
     CMD_LSTO,    CMD_LASTO,   CMD_LCLV,     CMD_NOP,     CMD_NULL,    CMD_NULL
 };
 
-static int ext_str_cat[] = {
+static const int ext_str_cat[] = {
     CMD_APPEND,  CMD_EXTEND,    CMD_POS,     CMD_LENGTH,  CMD_SUBSTR, CMD_XSTR,
     CMD_N_TO_S,  CMD_NN_TO_S,   CMD_IP_TO_S, CMD_S_TO_N,  CMD_N_TO_C, CMD_C_TO_N,
     CMD_TO_LIST, CMD_FROM_LIST, CMD_LIST_T,  CMD_NEWLIST, CMD_HEAD,   CMD_REV,
     CMD_XASTO,   CMD_LXASTO,    CMD_XVIEW,   CMD_NULL,    CMD_NULL,   CMD_NULL
 };
 
-static int ext_stk_cat[] = {
+static const int ext_stk_cat[] = {
     CMD_4STK,  CMD_NSTK,  CMD_DROP, CMD_DROPN, CMD_DUP,  CMD_DUPN,
     CMD_L4STK, CMD_LNSTK, CMD_RDNN, CMD_RUPN,  CMD_PICK, CMD_UNPICK,
     CMD_DEPTH, CMD_NULL,  CMD_NULL, CMD_NULL,  CMD_NULL, CMD_NULL
 };
 
-static int ext_stat_cat[] = {
+static const int ext_stat_cat[] = {
     CMD_SX,    CMD_SX2,   CMD_SY,   CMD_SY2,   CMD_SXY,     CMD_SN,
     CMD_SLNX,  CMD_SLNX2, CMD_SLNY, CMD_SLNY2, CMD_SLNXLNY, CMD_SXLNY,
     CMD_SYLNX, CMD_NULL,  CMD_NULL, CMD_NULL,  CMD_NULL,    CMD_NULL
@@ -1657,7 +1657,7 @@ static int ext_stat_cat[] = {
 
 #if defined(ANDROID) || defined(IPHONE)
 #ifdef FREE42_FPTEST
-static int ext_misc_cat[] = {
+static const int ext_misc_cat[] = {
     CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
     CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
     CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
@@ -1666,7 +1666,7 @@ static int ext_misc_cat[] = {
 };
 #define MISC_CAT_ROWS 5
 #else
-static int ext_misc_cat[] = {
+static const int ext_misc_cat[] = {
     CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
     CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
     CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
@@ -1677,7 +1677,7 @@ static int ext_misc_cat[] = {
 #endif
 #else
 #ifdef FREE42_FPTEST
-static int ext_misc_cat[] = {
+static const int ext_misc_cat[] = {
     CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
     CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
     CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
@@ -1685,7 +1685,7 @@ static int ext_misc_cat[] = {
 };
 #define MISC_CAT_ROWS 4
 #else
-static int ext_misc_cat[] = {
+static const int ext_misc_cat[] = {
     CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
     CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
     CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
@@ -1695,11 +1695,11 @@ static int ext_misc_cat[] = {
 #endif
 #endif
 
-static int ext_0_cmp_cat[] = {
+static const int ext_0_cmp_cat[] = {
     CMD_0_EQ_NN, CMD_0_NE_NN, CMD_0_LT_NN, CMD_0_GT_NN, CMD_0_LE_NN, CMD_0_GE_NN
 };
 
-static int ext_x_cmp_cat[] = {
+static const int ext_x_cmp_cat[] = {
     CMD_X_EQ_NN, CMD_X_NE_NN, CMD_X_LT_NN, CMD_X_GT_NN, CMD_X_LE_NN, CMD_X_GE_NN
 };
 
@@ -1792,7 +1792,7 @@ static void draw_catalog() {
         set_annunciators(mode_updown, -1, -1, -1, -1, -1);
     } else if (catsect == CATSECT_FCN
             || catsect >= CATSECT_EXT_TIME && catsect <= CATSECT_EXT_X_CMP) {
-        int *subcat;
+        const int *subcat;
         int subcat_rows;
         switch (catsect) {
             case CATSECT_FCN: subcat = fcn_cat; subcat_rows = 43; break;

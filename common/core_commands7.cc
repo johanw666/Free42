@@ -461,7 +461,7 @@ int docmd_clk24(arg_struct *arg) {
     return ERR_NONE;
 }
 
-static char weekdaynames[] = "SUNMONTUEWEDTHUFRISAT";
+static const char weekdaynames[] = "SUNMONTUEWEDTHUFRISAT";
 
 int docmd_date(arg_struct *arg) {
     uint4 date;
