@@ -168,24 +168,7 @@ void core_cleanup() {
         return;
 
     initialized = false;
-    reset_math();
-    reset_display();
-    for (int i = 0; i <= sp; i++)
-        free_vartype(stack[i]);
-    sp = -1;
-    free(stack);
-    stack = NULL;
-    stack_capacity = 0;
-    free_vartype(lastx);
-    lastx = NULL;
-    purge_all_vars();
-    clear_all_prgms();
-    if (vars != NULL) {
-        free(vars);
-        vars = NULL;
-        vars_capacity = 0;
-    }
-    clean_vartype_pools();
+    clean_state();
 }
 
 void set_annunciators(int updn, int shf, int prt, int run, int g, int rad) {

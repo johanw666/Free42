@@ -1830,23 +1830,63 @@ static bool unpersist_globals() {
             goto done;
         if (!read_bool(&trap_caught))
             goto done;
-    } else {
-        trap_flags = 0;
-        trap_level = 0;
-        trap_deeper_flags = 0;
-        trap_caught = false;
     }
     if (ver >= 56) {
         if (!unpersist_vartype(&trap_trace))
             goto done;
-    } else
-        trap_trace = NULL;
+    }
 
     ret = true;
 
     done:
     free(array_list);
     return ret;
+}
+
+void clean_state() {
+    reset_math();
+    reset_display();
+
+    for (int i = 0; i <= sp; i++)
+        free_vartype(stack[i]);
+    sp = -1;
+    free(stack);
+    stack = NULL;
+    stack_capacity = 0;
+    free_vartype(lastx);
+    lastx = NULL;
+    reg_alpha_length = 0;
+
+    matedit_mode = 0;
+    matedit_stack_depth = 0;
+    free(matedit_stack);
+    matedit_stack = NULL;
+    free_vartype(matedit_x);
+    matedit_x = NULL;
+
+    free(rtn_stack);
+    rtn_stack = NULL;
+    rtn_stack_capacity = 0;
+    rtn_level = 0;
+    rtn_stop_level = -1;
+    rtn_solve_active = false;
+    rtn_integ_active = false;
+
+    clear_all_prgms();
+    purge_all_vars();
+    if (vars != NULL) {
+        free(vars);
+        vars = NULL;
+        vars_capacity = 0;
+    }
+    clean_vartype_pools();
+
+    trap_flags = 0;
+    trap_level = 0;
+    trap_deeper_flags = 0;
+    trap_caught = false;
+    free_vartype(trap_trace);
+    trap_trace = NULL;
 }
 
 void clear_all_prgms() {
@@ -4556,13 +4596,10 @@ void save_state(bool *success) {
 // 1 = State File Corrupt
 // 2 = State File Too New
 void hard_reset(int reason) {
-    vartype *regs;
+    if (reason == 1)
+        core_cleanup();
 
-    /* Clear stack */
-    for (int i = 0; i <= sp; i++)
-        free_vartype(stack[i]);
-    free(stack);
-    free_vartype(lastx);
+    /* Create stack */
     sp = 3;
     stack_capacity = 4;
     stack = (vartype **) malloc(stack_capacity * sizeof(vartype *));
@@ -4570,53 +4607,19 @@ void hard_reset(int reason) {
         stack[i] = new_real(0);
     lastx = new_real(0);
 
-    /* Clear alpha */
-    reg_alpha_length = 0;
-
-    /* Clear variables */
-    purge_all_vars();
-    regs = new_realmatrix(25, 1);
+    /* Create REGS */
+    vartype *regs = new_realmatrix(25, 1);
     store_var("REGS", 4, regs);
 
-    /* Clear RTN stack */
-    if (rtn_stack != NULL)
-        free(rtn_stack);
+    /* Create RTN stack */
     rtn_stack_capacity = 16;
     rtn_stack = (rtn_stack_entry *) malloc(rtn_stack_capacity * sizeof(rtn_stack_entry));
-    rtn_level = 0;
-    rtn_stop_level = -1;
-    rtn_solve_active = false;
-    rtn_integ_active = false;
 
-    /* Error trapping */
-    trap_flags = 0;
-    trap_level = 0;
-    trap_deeper_flags = 0;
-    trap_caught = false;
-    free_vartype(trap_trace);
-    trap_trace = NULL;
-
-    /* Clear programs */
-    if (prgms != NULL) {
-        free(prgms);
-        prgms = NULL;
-        prgms_capacity = 0;
-        prgms_count = 0;
-    }
-    if (labels != NULL) {
-        free(labels);
-        labels = NULL;
-        labels_capacity = 0;
-        labels_count = 0;
-    }
+    /* Initialize PRGM memory */
     goto_dot_dot(false);
 
     pending_command = CMD_NONE;
 
-    matedit_mode = 0;
-    matedit_stack_depth = 0;
-    free(matedit_stack);
-    matedit_stack = NULL;
     input_length = 0;
     baseapp = 0;
     random_number_low = 0;
@@ -4729,9 +4732,6 @@ void hard_reset(int reason) {
     mode_hex_sep = false;
     mode_menu_caps = false;
     mode_menu_static = false;
-
-    reset_math();
-    reset_display();
 
     switch (reason) {
         case 0:
