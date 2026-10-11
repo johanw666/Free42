@@ -1621,10 +1621,14 @@ static bool unpersist_globals() {
     loading_state = true;
     core_import_programs(nprogs, NULL);
     loading_state = false;
-    if (ver >= 49)
+    if (ver >= 49) {
         for (i = 0; i < nprogs; i++)
             if (!read_bool(&prgms[i].locked))
                 goto done;
+    } else {
+        for (i = 0; i < nprogs; i++)
+            prgms[i].locked = false;
+    }
     if (!read_int(&current_prgm)) {
         current_prgm = 0;
         goto done;
@@ -1830,11 +1834,17 @@ static bool unpersist_globals() {
             goto done;
         if (!read_bool(&trap_caught))
             goto done;
+    } else {
+        trap_flags = 0;
+        trap_level = 0;
+        trap_deeper_flags = 0;
+        trap_caught = false;
     }
     if (ver >= 56) {
         if (!unpersist_vartype(&trap_trace))
             goto done;
-    }
+    } else
+        trap_trace = NULL;
 
     ret = true;
 
