@@ -43,18 +43,18 @@ extern FILE *gfile;
 #define ERR_TOO_FEW_ARGUMENTS       8
 #define ERR_SIZE_ERROR              9
 #define ERR_STACK_DEPTH_ERROR      10
-#define ERR_RESTRICTED_OPERATION   11
-#define ERR_YES                    12
-#define ERR_NO                     13
-#define ERR_STOP                   14
-#define ERR_LABEL_NOT_FOUND        15
-#define ERR_NO_REAL_VARIABLES      16
-#define ERR_NO_COMPLEX_VARIABLES   17
-#define ERR_NO_MATRIX_VARIABLES    18
-#define ERR_NO_MENU_VARIABLES      19
-#define ERR_STAT_MATH_ERROR        20
-#define ERR_INVALID_FORECAST_MODEL 21
-#define ERR_SINGULAR_MATRIX        22
+#define ERR_STAT_MATH_ERROR        11
+#define ERR_INVALID_FORECAST_MODEL 12
+#define ERR_SINGULAR_MATRIX        13
+#define ERR_RESTRICTED_OPERATION   14
+#define ERR_YES                    15
+#define ERR_NO                     16
+#define ERR_STOP                   17
+#define ERR_LABEL_NOT_FOUND        18
+#define ERR_NO_REAL_VARIABLES      19
+#define ERR_NO_COMPLEX_VARIABLES   20
+#define ERR_NO_MATRIX_VARIABLES    21
+#define ERR_NO_MENU_VARIABLES      22
 #define ERR_SOLVE_SOLVE            23
 #define ERR_INTEG_INTEG            24
 #define ERR_RUN                    25
@@ -75,7 +75,7 @@ extern FILE *gfile;
 #define ERR_PROGRAM_LOCKED         40
 #define ERR_NEXT_PROGRAM_LOCKED    41
 
-#define RTNERR_MAX 8
+#define RTNERR_MAX 13
 
 struct error_spec {
     const char *text;

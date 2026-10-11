@@ -3975,17 +3975,15 @@ static void paste_programs(const char *buf) {
                             if (tok_end - tok_start == 1 && isdigit(hpbuf[tok_start])) {
                                 arg.type = ARGTYPE_NUM;
                                 arg.val.num = hpbuf[tok_start] - '0';
-                                if (cmd == CMD_RTNERR && arg.val.num > 8)
-                                    goto line_done;
                                 goto store;
                             }
                             goto line_done;
                         }
-                        if (!ind && argtype == ARG_NUM11 && tok_end - tok_start == 1
-                                && isdigit(hpbuf[tok_start])) {
-                            // Special case for FIX/SCI/ENG with 1-digit
-                            // non-indirect argument; needed for parsing
-                            // HP-41 code.
+                        if (!ind && (argtype == ARG_NUM11 || cmd == CMD_RTNERR)
+                                && tok_end - tok_start == 1 && isdigit(hpbuf[tok_start])) {
+                            // Special case for FIX/SCI/ENG with 1-digit non-indirect argument;
+                            // needed for parsing HP-41 code; Special case for RTNERR with 1-digit
+                            // non-indirect argument, needed for parsing older Free42 code.
                             arg.type = ARGTYPE_NUM;
                             arg.val.num = hpbuf[tok_start] - '0';
                             goto store;
@@ -3997,6 +3995,8 @@ static void paste_programs(const char *buf) {
                             arg.type = ind ? ARGTYPE_IND_NUM : ARGTYPE_NUM;
                             sscanf(hpbuf + tok_start, "%02d", &arg.val.num);
                             if (!ind && argtype == ARG_NUM11 && arg.val.num > 11)
+                                goto line_done;
+                            if (!ind && cmd == CMD_RTNERR && arg.val.num > RTNERR_MAX)
                                 goto line_done;
                             goto store;
                         }

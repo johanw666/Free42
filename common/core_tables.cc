@@ -470,7 +470,7 @@ const command_spec cmd_array[] =
     { /* ERRNO */       docmd_errno,       "ERRNO",               0x00, 0x00, 0xa7, 0xf7,  5, ARG_NONE,   0, NA_T },
     { /* RTNYES */      docmd_rtnyes,      "RTNYES",              0x00, 0x00, 0xa7, 0xde,  6, ARG_NONE,   0, NA_T },
     { /* RTNNO */       docmd_rtnno,       "RTNNO",               0x00, 0x00, 0xa7, 0xdf,  5, ARG_NONE,   0, NA_T },
-    { /* RTNERR */      docmd_rtnerr,      "RTNERR",              0x01, 0xdc, 0xf2, 0xa0,  6, ARG_NUM9,   0, NA_T },
+    { /* RTNERR */      docmd_rtnerr,      "RTNERR",              0x01, 0xdc, 0xf2, 0xa0,  6, ARG_NUM99,  0, NA_T },
     { /* STRACE */      docmd_strace,      "STRACE",              0x00, 0x00, 0xa7, 0xe1,  6, ARG_NONE,   0, NA_T },
 
     /* Big Stack */
