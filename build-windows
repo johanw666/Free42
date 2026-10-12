@@ -36,7 +36,7 @@ fi
 if [ "$do64" = "1" ]; then
     sh ./build-intel-lib.sh 64
 fi
-cmd /c build-all-2.bat "$@"
+cmd /c build-all.bat "$@"
 cd ..
 
 if [ "$do32" = "1" ]; then
