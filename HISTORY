@@ -1,3 +1,32 @@
+2026-10-16: release 3.4
+
+* Implemented try/catch style error handling: TRY, TRYX, CATCH?, PRTRACE. See
+  the Free42 web site for details.
+* RTNERR supports five additional error numbers; see the Free42 web site for
+  details.
+* Keyboard mapping now uses a platform-independent syntax. The existing
+  keymap.txt is renamed to keymap.old, and a new keymap.txt is created, using
+  the new syntax. All the skins in the Free42 skins collection that contain
+  keyboard mappings have been updated to take advantage of the new syntax, but
+  the old syntax is also still supported, but only in skins, not in keymap.txt.
+* Direct XEQ mapping: Skins can now define macros that perform an XEQ that
+  works regardless of which menu is active, using the syntax `FOO` to perform
+  XEQ "FOO".
+* Implemented MENU1: This works just like MENU, i.e. it opens the Programmable
+  Menu, except MENU1 opens the menu as an application menu, rather than as a
+  regular menu. This means that MENU1 allows users to interact with command
+  menus without losing their place in the programmable menu.
+* Flag 33 is now automatically cleared whenever a non-programmable-menu key is
+  pressed. This can be used to implement VARMENU-like behavior using the
+  programmable menu.
+* Implemented IP→S, a function that converts the integer part of a number to a
+  string, like AIP, except the string is placed in the X register, not ALPHA.
+* Fixed NORM/TRACE output for programmable menu.
+* Added keyboard shortcut for Show Print-Out.
+* Windows and MacOS versions: When a skin is selected that is too large to fit
+  on the screen, it is now automatically scaled down to fit, while preserving
+  its aspect ratio.
+
 2026-05-04: release 3.3.12
 
 * Fixed RLN and RRN for negative numbers in BSIGNED mode.
