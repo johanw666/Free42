@@ -61,6 +61,8 @@
 		E94E3E9230712C510001FF08 /* shell_state.mm in Sources */ = {isa = PBXBuildFile; fileRef = E94E3E9030712C510001FF08 /* shell_state.mm */; };
 		E95273352D3A82CE00363585 /* ToastAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = E95273342D3A82CE00363585 /* ToastAlert.m */; };
 		E95273362D3A82CE00363585 /* ToastAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = E95273342D3A82CE00363585 /* ToastAlert.m */; };
+		E956218630642428003FDBB7 /* Free42SceneDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = E956218330642428003FDBB7 /* Free42SceneDelegate.mm */; };
+		E956218830642428003FDBB7 /* Free42SceneDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = E956218330642428003FDBB7 /* Free42SceneDelegate.mm */; };
 		E969A3A322D15AB100E6EBEB /* Matt42X.gif in Resources */ = {isa = PBXBuildFile; fileRef = E969A39F22D15AB100E6EBEB /* Matt42X.gif */; };
 		E969A3A422D15AB100E6EBEB /* Matt42X.layout in Resources */ = {isa = PBXBuildFile; fileRef = E969A3A022D15AB100E6EBEB /* Matt42X.layout */; };
 		E969A3A522D15AB100E6EBEB /* SGS-L.gif in Resources */ = {isa = PBXBuildFile; fileRef = E969A3A122D15AB100E6EBEB /* SGS-L.gif */; };
@@ -291,6 +293,8 @@
 		E94E3E9030712C510001FF08 /* shell_state.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = shell_state.mm; sourceTree = "<group>"; };
 		E95273332D3A82CE00363585 /* ToastAlert.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ToastAlert.h; sourceTree = "<group>"; };
 		E95273342D3A82CE00363585 /* ToastAlert.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ToastAlert.m; sourceTree = "<group>"; };
+		E956218230642428003FDBB7 /* Free42SceneDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Free42SceneDelegate.h; sourceTree = "<group>"; };
+		E956218330642428003FDBB7 /* Free42SceneDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = Free42SceneDelegate.mm; sourceTree = "<group>"; };
 		E969A39F22D15AB100E6EBEB /* Matt42X.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; name = Matt42X.gif; path = skins/Matt42X.gif; sourceTree = "<group>"; };
 		E969A3A022D15AB100E6EBEB /* Matt42X.layout */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Matt42X.layout; path = skins/Matt42X.layout; sourceTree = "<group>"; };
 		E969A3A122D15AB100E6EBEB /* SGS-L.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; name = "SGS-L.gif"; path = "skins/SGS-L.gif"; sourceTree = "<group>"; };
@@ -406,6 +410,8 @@
 				E935A89A22B542F9007C41DF /* DeleteSkinView.mm */,
 				E9200DF21699E1EC001BC4B5 /* Free42AppDelegate.h */,
 				E9200DF31699E1EC001BC4B5 /* Free42AppDelegate.mm */,
+				E956218230642428003FDBB7 /* Free42SceneDelegate.h */,
+				E956218330642428003FDBB7 /* Free42SceneDelegate.mm */,
 				E9BA0E7B0F92245E0087EBFB /* HTTPServerView.h */,
 				E977D0791698FB4E00AA3FD9 /* HTTPServerView.mm */,
 				E935A89E22B54ED4007C41DF /* LoadSkinView.h */,
@@ -860,6 +866,7 @@
 				E91005DA0F893F8900B68C27 /* core_keydown.cc in Sources */,
 				E91005DB0F893F8900B68C27 /* core_linalg1.cc in Sources */,
 				E9CC0ADD3062847200F118BB /* ShiftMap.cc in Sources */,
+				E956218630642428003FDBB7 /* Free42SceneDelegate.mm in Sources */,
 				E91005DC0F893F8900B68C27 /* core_linalg2.cc in Sources */,
 				E91005DD0F893F8900B68C27 /* core_main.cc in Sources */,
 				E91005DE0F893F8900B68C27 /* core_math1.cc in Sources */,
@@ -918,6 +925,7 @@
 				E9FC40E6260707AF00E52296 /* core_keydown.cc in Sources */,
 				E9FC40E7260707AF00E52296 /* core_linalg1.cc in Sources */,
 				E9CC0ADC3062847200F118BB /* ShiftMap.cc in Sources */,
+				E956218830642428003FDBB7 /* Free42SceneDelegate.mm in Sources */,
 				E9FC40E8260707AF00E52296 /* core_linalg2.cc in Sources */,
 				E9FC40E9260707AF00E52296 /* core_main.cc in Sources */,
 				E9FC40EA260707AF00E52296 /* core_math1.cc in Sources */,
