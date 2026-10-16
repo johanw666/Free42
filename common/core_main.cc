@@ -168,22 +168,7 @@ void core_cleanup() {
         return;
 
     initialized = false;
-    for (int i = 0; i <= sp; i++)
-        free_vartype(stack[i]);
-    sp = -1;
-    free(stack);
-    stack = NULL;
-    stack_capacity = 0;
-    free_vartype(lastx);
-    lastx = NULL;
-    purge_all_vars();
-    clear_all_prgms();
-    if (vars != NULL) {
-        free(vars);
-        vars = NULL;
-        vars_capacity = 0;
-    }
-    clean_vartype_pools();
+    clean_state();
 }
 
 void set_annunciators(int updn, int shf, int prt, int run, int g, int rad) {
@@ -1404,7 +1389,7 @@ void core_export_programs(int count, const int *indexes, const char *raw_file_na
     }
 }
 
-static int hp42tofree42[] = {
+static const int hp42tofree42[] = {
     /* Flag values: 0 = simple 1-byte command; 1 = 1-byte command with
      * embedded argument; 2 = 2-byte command, argument follows;
      * 3 = everything else, special case handling required.
@@ -1709,7 +1694,7 @@ static int hp42tofree42[] = {
     CMD_NULL  | 0x3000
 };
 
-static int hp42ext[] = {
+static const int hp42ext[] = {
     /* Flag values: 0 = string, 1 = IND string, 2 = suffix, 3 = special,
      * 4 = illegal
      * Values 80-ff are the space used on the HP-42S, that is, strings whose
@@ -3317,7 +3302,7 @@ struct text_alias {
     char text[8];
 };
 
-static text_alias aliases[] = {
+static const text_alias aliases[] = {
     { 5,    2, "\\sqrt"   },
     { 4,    3, "\\int"    },
     { 6,    4, "\\gray1"  },
@@ -3990,17 +3975,15 @@ static void paste_programs(const char *buf) {
                             if (tok_end - tok_start == 1 && isdigit(hpbuf[tok_start])) {
                                 arg.type = ARGTYPE_NUM;
                                 arg.val.num = hpbuf[tok_start] - '0';
-                                if (cmd == CMD_RTNERR && arg.val.num > 8)
-                                    goto line_done;
                                 goto store;
                             }
                             goto line_done;
                         }
-                        if (!ind && argtype == ARG_NUM11 && tok_end - tok_start == 1
-                                && isdigit(hpbuf[tok_start])) {
-                            // Special case for FIX/SCI/ENG with 1-digit
-                            // non-indirect argument; needed for parsing
-                            // HP-41 code.
+                        if (!ind && (argtype == ARG_NUM11 || cmd == CMD_RTNERR)
+                                && tok_end - tok_start == 1 && isdigit(hpbuf[tok_start])) {
+                            // Special case for FIX/SCI/ENG with 1-digit non-indirect argument;
+                            // needed for parsing HP-41 code; Special case for RTNERR with 1-digit
+                            // non-indirect argument, needed for parsing older Free42 code.
                             arg.type = ARGTYPE_NUM;
                             arg.val.num = hpbuf[tok_start] - '0';
                             goto store;
@@ -4012,6 +3995,8 @@ static void paste_programs(const char *buf) {
                             arg.type = ind ? ARGTYPE_IND_NUM : ARGTYPE_NUM;
                             sscanf(hpbuf + tok_start, "%02d", &arg.val.num);
                             if (!ind && argtype == ARG_NUM11 && arg.val.num > 11)
+                                goto line_done;
+                            if (!ind && cmd == CMD_RTNERR && arg.val.num > RTNERR_MAX)
                                 goto line_done;
                             goto store;
                         }
@@ -4999,7 +4984,7 @@ struct synonym_spec {
     int cmd_id;
 };
 
-static synonym_spec hp41_synonyms[] =
+static const synonym_spec hp41_synonyms[] =
 {
     { "*",      true,  1, CMD_MUL     },
     { "x",      false, 1, CMD_MUL     },
@@ -5398,7 +5383,7 @@ void set_old_pc(int4 pc) {
     oldpc = pc;
 }
 
-static void set_last_err(int error) {
+void set_last_err(int error) {
     if (error <= RTNERR_MAX) {
         lasterr = error;
     } else {
@@ -5425,30 +5410,49 @@ static bool handle_error(int error) {
         } else if (error == ERR_NUMBER_TOO_LARGE
                 || error == ERR_NUMBER_TOO_SMALL) {
             // Handling these separately because they shouldn't be
-            // suppressed by flag 25, nor trapped by SOLVE
-            goto handle_it;
+            // suppressed by flag 25, nor trapped by SOLVE or TRY
+            handle_it:
+            pc = oldpc;
+            display_error(error);
+            set_running(false);
+            return false;
         } else if (error != ERR_NONE && error != ERR_YES) {
             if (flags.f.error_ignore && error != ERR_SUSPICIOUS_OFF) {
                 flags.f.error_ignore = 0;
                 set_last_err(error);
                 return true;
             }
-            if (solve_active() && (error == ERR_OUT_OF_RANGE
-                                        || error == ERR_DIVIDE_BY_0
-                                        || error == ERR_INVALID_DATA
-                                        || error == ERR_STAT_MATH_ERROR)) {
+            bool solve_err = solve_active()
+                        && (error == ERR_OUT_OF_RANGE
+                         || error == ERR_DIVIDE_BY_0
+                         || error == ERR_INVALID_DATA
+                         || error == ERR_STAT_MATH_ERROR
+                         || error == ERR_INVALID_FORECAST_MODEL);
+            bool trap = should_trap(error);
+            int trap_level;
+            if (solve_err) {
+                if (trap) {
+                    trap_level = get_trap_rtn_level(error);
+                    if (trap_level > solve_level())
+                        goto do_trap;
+                }
                 bool stop = unwind_stack_until_solve();
                 error = return_to_solve(1, stop);
                 if (error == ERR_STOP)
                     set_running(false);
                 if (error == ERR_NONE || error == ERR_RUN || error == ERR_STOP)
                     return false;
+            } else if (trap) {
+                trap_level = get_trap_rtn_level(error);
+                do_trap:
+                set_last_err(error);
+                bool stop = unwind_stack_until_level(trap_level, true);
+                set_caught(true);
+                if (stop)
+                    set_running(false);
+                return false;
             }
-            handle_it:
-            pc = oldpc;
-            display_error(error);
-            set_running(false);
-            return false;
+            goto handle_it;
         }
         return true;
     } else if (pending_command == CMD_SST || pending_command == CMD_SST_RT) {
@@ -5469,26 +5473,44 @@ static bool handle_error(int error) {
         } else if (error == ERR_NUMBER_TOO_LARGE
                 || error == ERR_NUMBER_TOO_SMALL) {
             // Handling these separately because they shouldn't be
-            // suppressed by flag 25, nor trapped by SOLVE
-            goto handle_it_2;
+            // suppressed by flag 25, nor trapped by SOLVE or TRY
+            handle_it_2:
+            pc = oldpc;
+            display_error(error);
         } else {
             if (flags.f.error_ignore) {
                 flags.f.error_ignore = 0;
                 set_last_err(error);
                 goto noerr;
             }
-            if (solve_active() && (error == ERR_OUT_OF_RANGE
-                                      || error == ERR_DIVIDE_BY_0
-                                      || error == ERR_INVALID_DATA
-                                      || error == ERR_STAT_MATH_ERROR)) {
+            bool solve_err = solve_active()
+                        && (error == ERR_OUT_OF_RANGE
+                         || error == ERR_DIVIDE_BY_0
+                         || error == ERR_INVALID_DATA
+                         || error == ERR_STAT_MATH_ERROR
+                         || error == ERR_INVALID_FORECAST_MODEL);
+            bool trap = should_trap(error);
+            int trap_level;
+            if (solve_err) {
+                if (trap) {
+                    trap_level = get_trap_rtn_level(error);
+                    if (trap_level > solve_level())
+                        goto do_trap_2;
+                }
                 bool stop = unwind_stack_until_solve();
                 error = return_to_solve(1, stop);
                 if (error == ERR_NONE || error == ERR_RUN || error == ERR_STOP)
                     goto noerr;
+            } else if (trap) {
+                trap_level = get_trap_rtn_level(error);
+                do_trap_2:
+                set_last_err(error);
+                bool stop = unwind_stack_until_level(trap_level, true);
+                set_caught(true);
+                error = stop ? ERR_STOP : ERR_NONE;
+                goto noerr;
             }
-            handle_it_2:
-            pc = oldpc;
-            display_error(error);
+            goto handle_it_2;
         }
         return false;
     } else {

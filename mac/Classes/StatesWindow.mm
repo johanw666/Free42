@@ -22,6 +22,7 @@
 #import "Free42AppDelegate.h"
 #import "FileOpenPanel.h"
 #import "FileSavePanel.h"
+#import "shell_state.h"
 #import "core_main.h"
 
 @implementation StatesWindow

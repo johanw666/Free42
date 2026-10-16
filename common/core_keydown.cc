@@ -144,7 +144,7 @@ struct cmd_getkey_mapping_struct {
     int2 cmd;
 };
 
-static cmd_getkey_mapping_struct cmd_getkey_mapping[] = {
+static const cmd_getkey_mapping_struct cmd_getkey_mapping[] = {
     {  1, CMD_SIGMAADD },
     {  2, CMD_INV },
     {  3, CMD_SQRT },
@@ -185,7 +185,7 @@ static cmd_getkey_mapping_struct cmd_getkey_mapping[] = {
 };
 
 int find_cmd_getkey_mapping(int cmd) {
-    cmd_getkey_mapping_struct *gm = cmd_getkey_mapping;
+    const cmd_getkey_mapping_struct *gm = cmd_getkey_mapping;
     while (true) {
         if (gm->key == 0)
             // Command that's not on the standard keyboard
@@ -307,6 +307,8 @@ static void keydown2(int shift, int key) {
                 set_menu(MENULEVEL_APP, MENU_BASE1);
             else if (mode_plainmenu == MENU_PROGRAMMABLE)
                 set_menu(MENULEVEL_PLAIN, MENU_NONE);
+            else if (mode_appmenu == MENU_PROGRAMMABLE)
+                set_menu(MENULEVEL_APP, MENU_NONE);
             input_length = 0;
         }
         flags.f.message = 0;
@@ -1382,7 +1384,7 @@ void keydown_command_entry(int shift, int key) {
                 squeak();
                 return;
             }
-            if (incomplete_command == CMD_RTNERR && !incomplete_ind && digit > 8) {
+            if (incomplete_command == CMD_RTNERR && !incomplete_ind && incomplete_num * 10 + digit > RTNERR_MAX) {
                 squeak();
                 return;
             }

@@ -1004,9 +1004,17 @@ int docmd_getkey(arg_struct *arg) {
 int docmd_menu(arg_struct *arg) {
     if (!program_running())
         return ERR_RESTRICTED_OPERATION;
+    if (mode_appmenu == MENU_PROGRAMMABLE)
+        mode_appmenu = MENU_NONE;
     set_menu(MENULEVEL_PLAIN, MENU_PROGRAMMABLE);
     mode_plainmenu_sticky = true;
     return ERR_NONE;
+}
+
+int docmd_menu1(arg_struct *arg) {
+    if (!program_running())
+        return ERR_RESTRICTED_OPERATION;
+    return set_menu_return_err(MENULEVEL_APP, MENU_PROGRAMMABLE, false);
 }
 
 int docmd_x_eq_0(arg_struct *arg) {
@@ -1405,7 +1413,7 @@ int docmd_prstk(arg_struct *arg) {
     return ERR_NONE;
 }
 
-static int pra_helper(bool trace, const char *text, int length) {
+int pra_helper(bool trace, const char *text, int length) {
     if (!trace && !flags.f.printer_enable && program_running())
         return ERR_NONE;
     if (!flags.f.printer_exists)

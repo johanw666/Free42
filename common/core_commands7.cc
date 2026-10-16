@@ -461,7 +461,7 @@ int docmd_clk24(arg_struct *arg) {
     return ERR_NONE;
 }
 
-static char weekdaynames[] = "SUNMONTUEWEDTHUFRISAT";
+static const char weekdaynames[] = "SUNMONTUEWEDTHUFRISAT";
 
 int docmd_date(arg_struct *arg) {
     uint4 date;
@@ -920,7 +920,7 @@ int docmd_rtnerr(arg_struct *arg) {
     } else {
         return ERR_INTERNAL_ERROR;
     }
-    int err2 = pop_func_state(true);
+    int err2 = pop_func_state(err != ERR_NONE);
     if (err2 != ERR_NONE)
         return err2;
     if (err != ERR_NONE && flags.f.error_ignore) {
@@ -1253,6 +1253,25 @@ int docmd_putli(arg_struct *arg) {
     }
 
     return ERR_NONE;
+}
+
+int docmd_try(arg_struct *arg) {
+    return set_trap(-1);
+}
+
+int docmd_tryx(arg_struct *arg) {
+    phloat x = ((vartype_real *) stack[sp])->x;
+    if (x < 0 || x >= (1 << (RTNERR_MAX + 1)))
+        return ERR_INVALID_DATA;
+    return set_trap(to_int4(x));
+}
+
+int docmd_catch_t(arg_struct *arg) {
+    return get_caught() ? ERR_YES : ERR_NO;
+}
+
+int docmd_prtrace(arg_struct *arg) {
+    return print_backtrace();
 }
 
 /////////////////////

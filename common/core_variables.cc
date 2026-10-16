@@ -709,8 +709,9 @@ int matrix_copy(vartype *dst, const vartype *src) {
         return ERR_INVALID_TYPE;
 }
 
-static int lookup_private_var(const char *name, int namelength) {
-    int level = get_rtn_level();
+static int lookup_private_var(const char *name, int namelength, int level = -1) {
+    if (level == -1)
+        level = get_rtn_level();
     int i, j;
     for (i = vars_count - 1; i >= 0; i--) {
         int vlevel = vars[i].level;
@@ -733,6 +734,14 @@ static int lookup_private_var(const char *name, int namelength) {
 
 vartype *recall_private_var(const char *name, int namelength) {
     int varindex = lookup_private_var(name, namelength);
+    if (varindex == -1)
+        return NULL;
+    else
+        return vars[varindex].value;
+}
+
+vartype *recall_private_var_from_level(const char *name, int namelength, int level) {
+    int varindex = lookup_private_var(name, namelength, level);
     if (varindex == -1)
         return NULL;
     else

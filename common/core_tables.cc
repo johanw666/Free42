@@ -404,6 +404,10 @@ const command_spec cmd_array[] =
     { /* GETKEYA */     docmd_getkeya,     "G\305TK\305\331A",    0x00, 0x00, 0xa6, 0xee,  7, ARG_NONE,   0, NA_T },
     { /* LASTO */       docmd_lasto,       "LASTO",               0x00, 0xf5, 0xf2, 0xc8,  5, ARG_NAMED,  0, NA_T },
     { /* LCLV */        docmd_lclv,        "LCLV",                0x00, 0x71, 0xf2, 0x64,  4, ARG_NAMED,  0, NA_T },
+    { /* TRY */         docmd_try,         "TRY",                 0x00, 0x00, 0xa7, 0x78,  3, ARG_NONE,   0, NA_T },
+    { /* TRYX */        docmd_tryx,        "TRYX",                0x00, 0x00, 0xa7, 0x79,  4, ARG_NONE,   1, 0x01 },
+    { /* CATCH_T */     docmd_catch_t,     "CATCH?",              0x00, 0x00, 0xa7, 0x7a,  6, ARG_NONE,   0, NA_T },
+    { /* PRTRACE */     docmd_prtrace,     "PRTR\301C\305",       0x00, 0x00, 0xa7, 0x7b,  7, ARG_NONE,   0, NA_T },
 
     /* BASE enhancements */
     { /* SL */          docmd_sl,          "SL",                  0x00, 0x00, 0xa7, 0xdc,  2, ARG_NONE,   1, 0x01 },
@@ -466,7 +470,7 @@ const command_spec cmd_array[] =
     { /* ERRNO */       docmd_errno,       "ERRNO",               0x00, 0x00, 0xa7, 0xf7,  5, ARG_NONE,   0, NA_T },
     { /* RTNYES */      docmd_rtnyes,      "RTNYES",              0x00, 0x00, 0xa7, 0xde,  6, ARG_NONE,   0, NA_T },
     { /* RTNNO */       docmd_rtnno,       "RTNNO",               0x00, 0x00, 0xa7, 0xdf,  5, ARG_NONE,   0, NA_T },
-    { /* RTNERR */      docmd_rtnerr,      "RTNERR",              0x01, 0xdc, 0xf2, 0xa0,  6, ARG_NUM9,   0, NA_T },
+    { /* RTNERR */      docmd_rtnerr,      "RTNERR",              0x01, 0xdc, 0xf2, 0xa0,  6, ARG_NUM99,  0, NA_T },
     { /* STRACE */      docmd_strace,      "STRACE",              0x00, 0x00, 0xa7, 0xe1,  6, ARG_NONE,   0, NA_T },
 
     /* Big Stack */
@@ -491,6 +495,7 @@ const command_spec cmd_array[] =
     { /* PMEXEC */      NULL,              "",                    0x44, 0x00, 0x00, 0x00,  0, ARG_OTHER,  0, NA_T },
     { /* PGMVAR */      docmd_pgmvar,      "PGMVAR",              0x00, 0x40, 0xf2, 0x30,  6, ARG_PRGM,   0, NA_T },
     { /* VARMNU1 */     docmd_varmnu1,     "V\301\322MN\3251",    0x00, 0x42, 0xf2, 0x31,  7, ARG_PRGM,   0, NA_T },
+    { /* MENU1 */       docmd_menu1,       "M\305NU1",            0x00, 0x00, 0xa7, 0x77,  5, ARG_NONE,   0, NA_T },
     { /* X2LINE */      docmd_x2line,      "X2LINE",              0x42, 0x00, 0x00, 0x00,  6, ARG_NONE,   1, 0x13 },
     { /* A2LINE */      docmd_a2line,      "A2LINE",              0x42, 0x00, 0x00, 0x00,  6, ARG_NONE,   0, NA_T },
     { /* A2PLINE */     docmd_a2pline,     "A2+LINE",             0x42, 0x00, 0x00, 0x00,  7, ARG_NONE,   0, NA_T },

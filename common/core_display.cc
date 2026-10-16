@@ -709,6 +709,13 @@ bool unpersist_display(int version) {
     return true;
 }
 
+void reset_display() {
+    clear_display();
+    clear_custom_menu();
+    clear_prgm_menu();
+    appmenu_exitcallback = 0;
+}
+
 void clear_display() {
     int i;
     for (i = 0; i < 272; i++)
@@ -1164,6 +1171,26 @@ void tb_print_current_program(textbuf *tb) {
     } while (!end);
 }
 
+void tb_print_program_line(textbuf *tb, int prgm, int4 pc, int4 line) {
+    int prev_prgm = current_prgm;
+    current_prgm = prgm;
+
+    int cmd;
+    arg_struct arg;
+    const char *orig_num;
+    get_next_command(&pc, &cmd, &arg, 0, &orig_num);
+
+    char buf[100];
+    char *xstr = NULL;
+    int len = prgmline2buf(buf, 100, line, false, cmd, &arg, orig_num, false, true, &xstr);
+    char *buf2 = xstr == NULL ? buf : xstr;
+    tb_write(tb, buf2, len);
+    tb_write(tb, "\n", 1);
+    free(xstr);
+
+    current_prgm = prev_prgm;
+}
+
 void display_prgm_line(int row, int line_offset) {
     int4 tmppc = pc;
     int4 tmpline = pc2line(pc);
@@ -1540,7 +1567,7 @@ void draw_varmenu() {
     }
 }
 
-static int fcn_cat[] = {
+static const int fcn_cat[] = {
     CMD_ABS,      CMD_ACOS,      CMD_ACOSH,    CMD_ADV,        CMD_AGRAPH,  CMD_AIP,
     CMD_ALENG,    CMD_ALL,       CMD_ALLSIGMA, CMD_AND,        CMD_AOFF,    CMD_AON,
     CMD_ARCL,     CMD_AROT,      CMD_ASHF,     CMD_ASIN,       CMD_ASINH,   CMD_ASSIGNa,
@@ -1586,17 +1613,17 @@ static int fcn_cat[] = {
     CMD_FIND,     CMD_MAX,       CMD_MIN,      CMD_NULL,       CMD_NULL,    CMD_NULL
 };
 
-static int ext_time_cat[] = {
+static const int ext_time_cat[] = {
     CMD_ADATE,     CMD_ATIME, CMD_ATIME24, CMD_CLK12, CMD_CLK24, CMD_DATE,
     CMD_DATE_PLUS, CMD_DDAYS, CMD_DMY,     CMD_DOW,   CMD_MDY,   CMD_TIME,
     CMD_YMD,       CMD_NULL,  CMD_NULL,    CMD_NULL,  CMD_NULL,  CMD_NULL
 };
 
-static int ext_xfcn_cat[] = {
+static const int ext_xfcn_cat[] = {
     CMD_ANUM, CMD_RCLFLAG, CMD_STOFLAG, CMD_X_SWAP_F, CMD_NULL, CMD_NULL
 };
 
-static int ext_base_cat[] = {
+static const int ext_base_cat[] = {
     CMD_SL,      CMD_SR,      CMD_RL,      CMD_RR,      CMD_RLC,     CMD_RRC,
     CMD_LJ,      CMD_ASR,     CMD_RLN,     CMD_RRN,     CMD_RLCN,    CMD_RRCN,
     CMD_SB,      CMD_CB,      CMD_B_T,     CMD_NUM_B,   CMD_MASKL,   CMD_MASKR,
@@ -1608,27 +1635,28 @@ static int ext_base_cat[] = {
     CMD_DECINT,  CMD_NULL,    CMD_HEXSEP,  CMD_DECSEP,  CMD_OCTSEP,  CMD_BINSEP
 };
 
-static int ext_prgm_cat[] = {
-    CMD_CPXMAT_T, CMD_CSLD_T, CMD_ERRMSG,  CMD_ERRNO,   CMD_FUNC,    CMD_GETKEY1,
-    CMD_GETKEYA,  CMD_LSTO,   CMD_LASTO,   CMD_LCLV,    CMD_NOP,     CMD_PGMMENU,
-    CMD_PGMVAR,   CMD_RTNERR, CMD_RTNNO,   CMD_RTNYES,  CMD_SKIP,    CMD_SST_UP,
-    CMD_SST_RT,   CMD_TYPE_T, CMD_VARMNU1, -2 /* 0? */, -3 /* X? */, CMD_NULL
+static const int ext_prgm_cat[] = {
+    CMD_FUNC,    CMD_RTNYES,  CMD_RTNNO,    CMD_RTNERR,  CMD_ERRMSG,  CMD_ERRNO,
+    CMD_TRY,     CMD_TRYX,    CMD_CATCH_T,  CMD_PRTRACE, CMD_SST_RT,  CMD_SST_UP,
+    CMD_GETKEY1, CMD_GETKEYA, CMD_MENU1,    CMD_VARMNU1, CMD_PGMMENU, CMD_PGMVAR,
+    -2 /* 0? */, -3 /* X? */, CMD_CPXMAT_T, CMD_TYPE_T,  CMD_CSLD_T,  CMD_SKIP,
+    CMD_LSTO,    CMD_LASTO,   CMD_LCLV,     CMD_NOP,     CMD_NULL,    CMD_NULL
 };
 
-static int ext_str_cat[] = {
-    CMD_APPEND,  CMD_C_TO_N,    CMD_EXTEND, CMD_HEAD,   CMD_IP_TO_S, CMD_LENGTH,
-    CMD_TO_LIST, CMD_FROM_LIST, CMD_LIST_T, CMD_LXASTO, CMD_NEWLIST, CMD_N_TO_C,
-    CMD_N_TO_S,  CMD_NN_TO_S,   CMD_POS,    CMD_REV,    CMD_SUBSTR,  CMD_S_TO_N,
-    CMD_XASTO,   CMD_XSTR,      CMD_XVIEW,  CMD_NULL,   CMD_NULL,    CMD_NULL
+static const int ext_str_cat[] = {
+    CMD_APPEND,  CMD_EXTEND,    CMD_POS,     CMD_LENGTH,  CMD_SUBSTR, CMD_XSTR,
+    CMD_N_TO_S,  CMD_NN_TO_S,   CMD_IP_TO_S, CMD_S_TO_N,  CMD_N_TO_C, CMD_C_TO_N,
+    CMD_TO_LIST, CMD_FROM_LIST, CMD_LIST_T,  CMD_NEWLIST, CMD_HEAD,   CMD_REV,
+    CMD_XASTO,   CMD_LXASTO,    CMD_XVIEW,   CMD_NULL,    CMD_NULL,   CMD_NULL
 };
 
-static int ext_stk_cat[] = {
-    CMD_4STK,   CMD_DEPTH, CMD_DROP, CMD_DROPN, CMD_DUP,  CMD_DUPN,
-    CMD_L4STK,  CMD_LNSTK, CMD_NSTK, CMD_PICK,  CMD_RUPN, CMD_RDNN,
-    CMD_UNPICK, CMD_NULL,  CMD_NULL, CMD_NULL,  CMD_NULL, CMD_NULL
+static const int ext_stk_cat[] = {
+    CMD_4STK,  CMD_NSTK,  CMD_DROP, CMD_DROPN, CMD_DUP,  CMD_DUPN,
+    CMD_L4STK, CMD_LNSTK, CMD_RDNN, CMD_RUPN,  CMD_PICK, CMD_UNPICK,
+    CMD_DEPTH, CMD_NULL,  CMD_NULL, CMD_NULL,  CMD_NULL, CMD_NULL
 };
 
-static int ext_stat_cat[] = {
+static const int ext_stat_cat[] = {
     CMD_SX,    CMD_SX2,   CMD_SY,   CMD_SY2,   CMD_SXY,     CMD_SN,
     CMD_SLNX,  CMD_SLNX2, CMD_SLNY, CMD_SLNY2, CMD_SLNXLNY, CMD_SXLNY,
     CMD_SYLNX, CMD_NULL,  CMD_NULL, CMD_NULL,  CMD_NULL,    CMD_NULL
@@ -1636,49 +1664,49 @@ static int ext_stat_cat[] = {
 
 #if defined(ANDROID) || defined(IPHONE)
 #ifdef FREE42_FPTEST
-static int ext_misc_cat[] = {
-    CMD_A2LINE, CMD_A2PLINE, CMD_CAPS,   CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_DYNAMIC,
-    CMD_FMA,    CMD_GETLI,   CMD_GETMI,  CMD_HEIGHT,   CMD_IDENT,       CMD_LOCK,
-    CMD_MIXED,  CMD_PCOMPLX, CMD_PRREG,  CMD_PUTLI,    CMD_PUTMI,       CMD_RCOMPLX,
-    CMD_STATIC, CMD_STRACE,  CMD_UNLOCK, CMD_WIDTH,    CMD_X2LINE,      CMD_ACCEL,
-    CMD_LOCAT,  CMD_HEADING, CMD_FPTEST, CMD_NULL,     CMD_NULL,        CMD_NULL
+static const int ext_misc_cat[] = {
+    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
+    CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
+    CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
+    CMD_WIDTH,   CMD_HEIGHT,  CMD_IDENT,   CMD_PRREG,    CMD_STRACE,      CMD_ACCEL,
+    CMD_LOCAT,   CMD_HEADING, CMD_FPTEST,  CMD_NULL,     CMD_NULL,        CMD_NULL
 };
 #define MISC_CAT_ROWS 5
 #else
-static int ext_misc_cat[] = {
-    CMD_A2LINE, CMD_A2PLINE, CMD_CAPS,   CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_DYNAMIC,
-    CMD_FMA,    CMD_GETLI,   CMD_GETMI,  CMD_HEIGHT,   CMD_IDENT,       CMD_LOCK,
-    CMD_MIXED,  CMD_PCOMPLX, CMD_PRREG,  CMD_PUTLI,    CMD_PUTMI,       CMD_RCOMPLX,
-    CMD_STATIC, CMD_STRACE,  CMD_UNLOCK, CMD_WIDTH,    CMD_X2LINE,      CMD_ACCEL,
-    CMD_LOCAT,  CMD_HEADING, CMD_NULL,   CMD_NULL,     CMD_NULL,        CMD_NULL
+static const int ext_misc_cat[] = {
+    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
+    CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
+    CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
+    CMD_WIDTH,   CMD_HEIGHT,  CMD_IDENT,   CMD_PRREG,    CMD_STRACE,      CMD_ACCEL,
+    CMD_LOCAT,   CMD_HEADING, CMD_FPTEST,  CMD_NULL,     CMD_NULL,        CMD_NULL
 };
 #define MISC_CAT_ROWS 5
 #endif
 #else
 #ifdef FREE42_FPTEST
-static int ext_misc_cat[] = {
-    CMD_A2LINE, CMD_A2PLINE, CMD_CAPS,   CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_DYNAMIC,
-    CMD_FMA,    CMD_GETLI,   CMD_GETMI,  CMD_HEIGHT,   CMD_IDENT,       CMD_LOCK,
-    CMD_MIXED,  CMD_PCOMPLX, CMD_PRREG,  CMD_PUTLI,    CMD_PUTMI,       CMD_RCOMPLX,
-    CMD_STATIC, CMD_STRACE,  CMD_UNLOCK, CMD_WIDTH,    CMD_X2LINE,      CMD_FPTEST
+static const int ext_misc_cat[] = {
+    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
+    CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
+    CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
+    CMD_WIDTH,   CMD_HEIGHT,  CMD_IDENT,   CMD_PRREG,    CMD_STRACE,      CMD_FPTEST,
 };
 #define MISC_CAT_ROWS 4
 #else
-static int ext_misc_cat[] = {
-    CMD_A2LINE, CMD_A2PLINE, CMD_CAPS,   CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_DYNAMIC,
-    CMD_FMA,    CMD_GETLI,   CMD_GETMI,  CMD_HEIGHT,   CMD_IDENT,       CMD_LOCK,
-    CMD_MIXED,  CMD_PCOMPLX, CMD_PRREG,  CMD_PUTLI,    CMD_PUTMI,       CMD_RCOMPLX,
-    CMD_STATIC, CMD_STRACE,  CMD_UNLOCK, CMD_WIDTH,    CMD_X2LINE,      CMD_NULL
+static const int ext_misc_cat[] = {
+    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
+    CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
+    CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
+    CMD_WIDTH,   CMD_HEIGHT,  CMD_IDENT,   CMD_PRREG,    CMD_STRACE,      CMD_NULL,
 };
 #define MISC_CAT_ROWS 4
 #endif
 #endif
 
-static int ext_0_cmp_cat[] = {
+static const int ext_0_cmp_cat[] = {
     CMD_0_EQ_NN, CMD_0_NE_NN, CMD_0_LT_NN, CMD_0_GT_NN, CMD_0_LE_NN, CMD_0_GE_NN
 };
 
-static int ext_x_cmp_cat[] = {
+static const int ext_x_cmp_cat[] = {
     CMD_X_EQ_NN, CMD_X_NE_NN, CMD_X_LT_NN, CMD_X_GT_NN, CMD_X_LE_NN, CMD_X_GE_NN
 };
 
@@ -1771,14 +1799,14 @@ static void draw_catalog() {
         set_annunciators(mode_updown, -1, -1, -1, -1, -1);
     } else if (catsect == CATSECT_FCN
             || catsect >= CATSECT_EXT_TIME && catsect <= CATSECT_EXT_X_CMP) {
-        int *subcat;
+        const int *subcat;
         int subcat_rows;
         switch (catsect) {
             case CATSECT_FCN: subcat = fcn_cat; subcat_rows = 43; break;
             case CATSECT_EXT_TIME: subcat = ext_time_cat; subcat_rows = 3; break;
             case CATSECT_EXT_XFCN: subcat = ext_xfcn_cat; subcat_rows = 1; break;
             case CATSECT_EXT_BASE: subcat = ext_base_cat; subcat_rows = 9; break;
-            case CATSECT_EXT_PRGM: subcat = ext_prgm_cat; subcat_rows = 4; break;
+            case CATSECT_EXT_PRGM: subcat = ext_prgm_cat; subcat_rows = 5; break;
             case CATSECT_EXT_STR: subcat = ext_str_cat; subcat_rows = 4; break;
             case CATSECT_EXT_STK: subcat = ext_stk_cat; subcat_rows = 3; break;
             case CATSECT_EXT_STAT: subcat = ext_stat_cat; subcat_rows = 3; break;
@@ -3220,7 +3248,10 @@ void do_prgm_menu_key(int keynum) {
     int4 oldpc;
     keynum--;
     if (keynum == 8) {
-        set_menu(MENULEVEL_PLAIN, MENU_NONE);
+        if (mode_plainmenu == MENU_PROGRAMMABLE)
+            set_menu(MENULEVEL_PLAIN, MENU_NONE);
+        else
+            set_menu(MENULEVEL_APP, MENU_NONE);
         redisplay();
         print_menu_trace("EXIT", 4);
     }

@@ -18,6 +18,7 @@
 #import "CalcView.h"
 #import "Free42AppDelegate.h"
 #import "shell_skin.h"
+#import "shell_state.h"
 
 @implementation CalcView
 
@@ -85,6 +86,10 @@ static unsigned short keychar_normalize(unsigned char c) {
         return;
 
     NSUInteger flags = [theEvent modifierFlags];
+    if ((flags & NSEventModifierFlagCommand) != 0) {
+        [super keyDown:theEvent];
+        return;
+    }
     NSUInteger flags2 = flags
                 & NSEventModifierFlagDeviceIndependentFlagsMask
                 & ~(NSEventModifierFlagControl | NSEventModifierFlagOption);

@@ -5,22 +5,64 @@
 
 mkdir -p packages
 
+for arg in $@; do
+    case $arg in
+        32)
+            do32=1
+            ;;
+        64)
+            do64=1
+            ;;
+        bin)
+            dobin=1
+            ;;
+        dec)
+            dodec=1
+            ;;
+    esac
+done
+
+if [ "$do32" = "" -a "$do64" = "" ]; then
+    do32=1 ; do64=1
+fi
+if [ "$dobin" = "" -a "$dodec" = "" ]; then
+    dobin=1 ; dodec=1
+fi
+
 cd windows
-sh ./build-intel-lib.sh 32
-sh ./build-intel-lib.sh 64
-cmd /c build-all.bat
+if [ "$do32" = "1" ]; then
+    sh ./build-intel-lib.sh 32
+fi
+if [ "$do64" = "1" ]; then
+    sh ./build-intel-lib.sh 64
+fi
+cmd /c build-all.bat "$@"
 cd ..
-rm -rf Free42Windows-32bit
-mkdir Free42Windows-32bit
-cp windows/README.txt Free42Windows-32bit
-mv windows/32/Free42Binary.exe Free42Windows-32bit
-mv windows/32/Free42Decimal.exe Free42Windows-32bit
-rmdir windows/32
-zip -r packages/Free42Windows-32bit.zip Free42Windows-32bit
-rm -rf Free42Windows-32bit
-mkdir Free42Windows
-cp windows/README.txt Free42Windows
-mv windows/Free42Binary.exe Free42Windows
-mv windows/Free42Decimal.exe Free42Windows
-zip -r packages/Free42Windows.zip Free42Windows
-rm -rf Free42Windows
+
+if [ "$do32" = "1" ]; then
+    rm -rf Free42Windows-32bit
+    mkdir Free42Windows-32bit
+    cp windows/README.txt Free42Windows-32bit
+    if [ "$dobin" = "1" ]; then
+        mv windows/32/Free42Binary.exe Free42Windows-32bit
+    fi
+    if [ "$dodec" = "1" ]; then
+        mv windows/32/Free42Decimal.exe Free42Windows-32bit
+    fi
+    rmdir windows/32
+    zip -r packages/Free42Windows-32bit.zip Free42Windows-32bit
+    rm -rf Free42Windows-32bit
+fi
+if [ "$do64" = "1" ]; then
+    rm -rf Free42Windows
+    mkdir Free42Windows
+    cp windows/README.txt Free42Windows
+    if [ "$dobin" = "1" ]; then
+        mv windows/Free42Binary.exe Free42Windows
+    fi
+    if [ "$dodec" = "1" ]; then
+        mv windows/Free42Decimal.exe Free42Windows
+    fi
+    zip -r packages/Free42Windows.zip Free42Windows
+    rm -rf Free42Windows
+fi

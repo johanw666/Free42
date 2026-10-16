@@ -23,6 +23,7 @@
 #import "shell.h"
 #import "shell_skin.h"
 #import "shell_spool.h"
+#import "shell_state.h"
 #import "core_main.h"
 #import "core_display.h"
 #import "Free42AppDelegate.h"
@@ -42,11 +43,7 @@ static bool launchingWithPrintoutVisible;
 static bool scrollPrintoutToBottomInitially = true;
 static bool loadSkinsWindowMapped = false;
 
-#define SHELL_VERSION 8
-
-state_type state;
 char free42dirname[FILENAMELEN];
-static bool keymap_obsolete = false;
 
 static bool quit_flag = false;
 static bool enqueued;
@@ -56,7 +53,6 @@ static bool we_want_cpu = false;
 static char statefilename[FILENAMELEN];
 static char printfilename[FILENAMELEN];
 static char keymapfilename[FILENAMELEN];
-static FILE *statefile = NULL;
 
 static int ckey = 0;
 static int skey;
@@ -100,9 +96,6 @@ static int gif_lines;
 
 static void show_message(const char *title, const char *message);
 static void read_key_map(const char *keymapfilename);
-static void init_shell_state(int4 ver);
-static bool read_shell_state();
-static bool write_shell_state();
 static void shell_keydown(bool cshift, bool flip_shift);
 static void shell_keyup();
 
@@ -143,6 +136,10 @@ static bool is_file(const char *name);
 @synthesize skinListView;
 @synthesize skinListDataSource;
 @synthesize statesWindow;
+
+- (BOOL) applicationSupportsSecureRestorableState:(NSApplication*)app {
+    return YES;
+}
 
 static struct timeval runner_end_time;
 
@@ -1325,6 +1322,7 @@ void calc_mouseup() {
 }
 
 void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, NSUInteger flags, unsigned short keycode) {
+    just_pressed_shift = false;
     if (ckey != 0 && mouse_key)
         return;
     
@@ -1341,8 +1339,6 @@ void calc_keydown(unichar c, unichar shifted_c, unichar orig_c, NSUInteger flags
         // all character keys in ALPHA mode.
         printable = true;
 
-    just_pressed_shift = false;
-    
     if (ckey != 0) {
         shell_keyup();
         active_keycode = -1;
@@ -1709,7 +1705,7 @@ void shell_print(const char *text, int length,
             print_txt = fopen(state.printerTxtFileName, "a");
             if (print_txt == NULL) {
                 err = errno;
-                state.printerToTxtFile = 0;
+                state.printerToTxtFile = false;
                 snprintf(buf, 1000, "Can't open \"%s\" for output:\n%s (%d)\nPrinting to text file disabled.", state.printerTxtFileName, strerror(err), err);
                 show_message("Message", buf);
                 goto done_print_txt;
@@ -1771,13 +1767,13 @@ void shell_print(const char *text, int length,
             print_gif = fopen(print_gif_name, "w+");
             if (print_gif == NULL) {
                 err = errno;
-                state.printerToGifFile = 0;
+                state.printerToGifFile = false;
                 snprintf(buf, 1000, "Can't open \"%s\" for output:\n%s (%d)\nPrinting to GIF file disabled.", print_gif_name, strerror(err), err);
                 show_message("Message", buf);
                 goto done_print_gif;
             }
             if (!shell_start_gif(gif_writer, 143, state.printerGifMaxLength)) {
-                state.printerToGifFile = 0;
+                state.printerToGifFile = false;
                 show_message("Message", "Not enough memory for the GIF encoder.\nPrinting to GIF file disabled.");
                 goto done_print_gif;
             }
@@ -1877,116 +1873,6 @@ static void read_key_map(const char *keymapfilename) {
     fclose(keymapfile);
 }
 
-static void init_shell_state(int4 version) {
-    switch (version) {
-        case -1:
-            state.printerToTxtFile = 0;
-            state.printerToGifFile = 0;
-            state.printerTxtFileName[0] = 0;
-            state.printerGifFileName[0] = 0;
-            state.printerGifMaxLength = 256;
-            state.mainWindowKnown = 0;
-            state.printWindowKnown = 0;
-            state.skinName[0] = 0;
-            /* fall through */
-        case 0:
-            strcpy(state.coreName, "Untitled");
-            /* fall through */
-        case 1:
-            core_settings.matrix_singularmatrix = false;
-            core_settings.matrix_outofrange = false;
-            core_settings.auto_repeat = true;
-            /* fall through */
-        case 2:
-            core_settings.allow_big_stack = false;
-            /* fall through */
-        case 3:
-            /* fall through */
-        case 4:
-            core_settings.localized_copy_paste = true;
-            /* fall through */
-        case 5:
-            state.mainWindowWidth = 0;
-            state.mainWindowHeight = 0;
-            /* fall through */
-        case 6:
-            /* fall through */
-        case 7:
-            keymap_obsolete = true;
-            /* fall through */
-        case 8:
-            /* current version (SHELL_VERSION = 8),
-             * so nothing to do here since everything
-             * was initialized from the state file.
-             */
-            ;
-    }
-}
-
-static bool read_shell_state() {
-    int4 magic;
-    int4 state_size;
-    int4 state_version;
-    
-    if (fread(&magic, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (magic != FREE42_MAGIC)
-        return false;
-    int4 dummy;
-    if (fread(&dummy, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    
-    if (fread(&state_size, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (fread(&state_version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (state_version < 0 || state_version > SHELL_VERSION)
-    /* Unknown shell state version */
-        return false;
-    if (fread(&state, 1, state_size, statefile) != state_size)
-        return false;
-
-    if (state_version >= 2) {
-        core_settings.matrix_singularmatrix = state.matrix_singularmatrix;
-        core_settings.matrix_outofrange = state.matrix_outofrange;
-        core_settings.auto_repeat = state.auto_repeat;
-    }
-
-    if (state_version >= 3)
-        core_settings.allow_big_stack = state.allow_big_stack;
-
-    if (state_version >= 5)
-        core_settings.localized_copy_paste = state.localized_copy_paste;
-    
-    init_shell_state(state_version);
-    return true;
-}
-
-static bool write_shell_state() {
-    int4 magic = FREE42_MAGIC;
-    int4 version = 0;
-    int4 state_size = sizeof(state_type);
-    int4 state_version = SHELL_VERSION;
-    
-    if (fwrite(&magic, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (fwrite(&version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (fwrite(&state_size, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (fwrite(&state_version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    state.matrix_singularmatrix = core_settings.matrix_singularmatrix;
-    state.matrix_outofrange = core_settings.matrix_outofrange;
-    state.auto_repeat = core_settings.auto_repeat;
-    state.allow_big_stack = core_settings.allow_big_stack;
-    state.localized_copy_paste = core_settings.localized_copy_paste;
-    if (fwrite(&state, 1, sizeof(state_type), statefile) != sizeof(state_type))
-        return false;
-    
-    return true;
-}
-
 /* Callbacks used by shell_print() and shell_spool_txt() / shell_spool_gif() */
 
 static void txt_writer(const char *text, int length) {
@@ -1996,7 +1882,7 @@ static void txt_writer(const char *text, int length) {
     n = fwrite(text, 1, length, print_txt);
     if (n != length) {
         char buf[1000];
-        state.printerToTxtFile = 0;
+        state.printerToTxtFile = false;
         fclose(print_txt);
         print_txt = NULL;
         snprintf(buf, 1000, "Error while writing to \"%s\".\nPrinting to text file disabled", state.printerTxtFileName);
@@ -2017,7 +1903,7 @@ static void gif_seeker(int4 pos) {
         return;
     if (fseek(print_gif, pos, SEEK_SET) == -1) {
         char buf[1000];
-        state.printerToGifFile = 0;
+        state.printerToGifFile = false;
         fclose(print_gif);
         print_gif = NULL;
         snprintf(buf, 1000, "Error while seeking \"%s\".\nPrinting to GIF file disabled", print_gif_name);
@@ -2032,7 +1918,7 @@ static void gif_writer(const char *text, int length) {
     n = fwrite(text, 1, length, print_gif);
     if (n != length) {
         char buf[1000];
-        state.printerToGifFile = 0;
+        state.printerToGifFile = false;
         fclose(print_gif);
         print_gif = NULL;
         snprintf(buf, 1000, "Error while writing to \"%s\".\nPrinting to GIF file disabled", print_gif_name);

@@ -26,26 +26,27 @@ struct item {
     unsigned short sc;
 };
 
-ShiftMap::ShiftMap(const char *fn) : filename(NULL), data(NULL), size(0), capacity(0) {
-    if (fn == NULL)
-        return;
-    FILE *f = fopen(fn, "r");
-    if (f != NULL) {
-        if (fseek(f, 0, SEEK_END) == 0) {
-            size_t len = ftell(f);
-            if (len > 0 && (len & 3) == 0 && fseek(f, 0, SEEK_SET) == 0) {
-                char *d = (char *) malloc(len);
-                if (d != NULL) {
-                    size_t n = fread(d, 1, len, f);
-                    if (n == len) {
-                        data = d;
-                        size = capacity = n;
-                    } else
-                        free(d);
-                }
-            }
-        }
-        fclose(f);
+ShiftMap::ShiftMap() : data(NULL), size(0), capacity(0) {
+    //
+}
+
+bool ShiftMap::read(FILE *f, size_t len) {
+    bool success = false;
+    if (data != NULL) {
+        free(data);
+        data = NULL;
+        size = 0;
+        capacity = 0;
+    }
+    char *d = (char *) malloc(len);
+    if (d != NULL) {
+        size_t n = fread(d, 1, len, f);
+        if (n == len) {
+            data = d;
+            size = capacity = n;
+            success = true;
+        } else
+            free(d);
     }
     if (data != NULL) {
         item *sdata = (item *) data;
@@ -62,31 +63,19 @@ ShiftMap::ShiftMap(const char *fn) : filename(NULL), data(NULL), size(0), capaci
             last = current;
         }
     }
-    size_t namesize = strlen(fn) + 1;
-    filename = (char *) malloc(namesize);
-    if (filename != NULL)
-        strcpy(filename, fn);
+    return success;
 }
 
 ShiftMap::~ShiftMap() {
     free(data);
-    free(filename);
 }
 
-void ShiftMap::write() {
-    if (filename == NULL)
-        return;
-    if (size == 0) {
-        remove(filename);
-        return;
-    }
-    FILE *f = fopen(filename, "w");
-    if (f != NULL) {
-        size_t count = fwrite(data, 1, size, f);
-        fclose(f);
-        if (count != size)
-            remove(filename);
-    }
+size_t ShiftMap::nbytes() {
+    return size;
+}
+
+bool ShiftMap::write(FILE *f) {
+    return fwrite(data, 1, size, f) == size;
 }
 
 ssize_t ShiftMap::find(unsigned short c) {

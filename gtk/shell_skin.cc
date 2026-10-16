@@ -33,6 +33,7 @@
 #include "shell_skin.h"
 #include "shell_main.h"
 #include "shell_loadimage.h"
+#include "shell_state.h"
 #include "core_main.h"
 
 using std::string;

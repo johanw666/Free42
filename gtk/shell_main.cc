@@ -35,6 +35,7 @@
 #include "shell_main.h"
 #include "shell_skin.h"
 #include "shell_spool.h"
+#include "shell_state.h"
 #include "core_main.h"
 #include "core_display.h"
 
@@ -57,11 +58,7 @@ GtkWidget *mainwindow;
 bool allow_paint = false;
 int menu_bar_height = -1;
 
-#define SHELL_VERSION 13
-
-state_type state;
 char free42dirname[FILENAMELEN];
-static bool keymap_obsolete = false;
 
 
 /* PRINT_LINES is limited to an even lower value than in the Motif version.
@@ -123,7 +120,6 @@ static int keymap_length = 0;
 static keymap_entry *keymap = NULL;
 
 static guint reminder_id = 0;
-static FILE *statefile = NULL;
 static char statefilename[FILENAMELEN];
 static char printfilename[FILENAMELEN];
 static char keymapfilename[FILENAMELEN];
@@ -149,9 +145,6 @@ static GtkCheckMenuItem *keyboardShortcutsMenuItem;
 /* Private functions */
 
 static void read_key_map(const char *keymapfilename);
-static void init_shell_state(int4 version);
-static bool read_shell_state();
-static bool write_shell_state();
 static void int_term_handler(int sig);
 static gboolean gt_signal_handler(GIOChannel *source, GIOCondition condition,
                                                             gpointer data);
@@ -995,126 +988,6 @@ static void read_key_map(const char *keymapfilename) {
     fclose(keymapfile);
 }
 
-static void init_shell_state(int4 version) {
-    switch (version) {
-        case -1:
-            state.extras = 0;
-            /* fall through */
-        case 0:
-            state.printerToTxtFile = 0;
-            state.printerToGifFile = 0;
-            state.printerTxtFileName[0] = 0;
-            state.printerGifFileName[0] = 0;
-            state.printerGifMaxLength = 256;
-            /* fall through */
-        case 1:
-            state.mainWindowKnown = 0;
-            state.printWindowKnown = 0;
-            /* fall through */
-        case 2:
-            state.skinName[0] = 0;
-            /* fall through */
-        case 3:
-            state.singleInstance = 1;
-            /* fall through */
-        case 4:
-            strcpy(state.coreName, "Untitled");
-            /* fall through */
-        case 5:
-            core_settings.matrix_singularmatrix = false;
-            core_settings.matrix_outofrange = false;
-            core_settings.auto_repeat = true;
-            /* fall through */
-        case 6:
-            state.old_repaint = true;
-            /* fall through */
-        case 7:
-            core_settings.allow_big_stack = false;
-            /* fall through */
-        case 8:
-            /* fall through */
-        case 9:
-            core_settings.localized_copy_paste = true;
-            /* fall through */
-        case 10:
-            state.mainWindowWidth = 0;
-            state.mainWindowHeight = 0;
-            /* fall through */
-        case 11:
-            /* fall through */
-        case 12:
-            keymap_obsolete = true;
-            /* fall through */
-        case 13:
-            /* current version (SHELL_VERSION = 13),
-             * so nothing to do here since everything
-             * was initialized from the state file.
-             */
-            ;
-    }
-}
-
-static bool read_shell_state() {
-    int4 magic;
-    int4 state_size;
-    int4 state_version;
-
-    if (fread(&magic, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (magic != FREE42_MAGIC)
-        return false;
-    int4 dummy;
-    if (fread(&dummy, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    
-    if (fread(&state_size, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (fread(&state_version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (state_version < 0 || state_version > SHELL_VERSION)
-        /* Unknown shell state version */
-        return false;
-    if (fread(&state, 1, state_size, statefile) != (size_t) state_size)
-        return false;
-    if (state_version >= 6) {
-        core_settings.matrix_singularmatrix = state.matrix_singularmatrix;
-        core_settings.matrix_outofrange = state.matrix_outofrange;
-        core_settings.auto_repeat = state.auto_repeat;
-    }
-    if (state_version >= 7)
-        core_settings.allow_big_stack = state.allow_big_stack;
-    if (state_version >= 10)
-        core_settings.localized_copy_paste = state.localized_copy_paste;
-
-    init_shell_state(state_version);
-    return true;
-}
-
-static bool write_shell_state() {
-    int4 magic = FREE42_MAGIC;
-    int4 version = 0;
-    int4 state_size = sizeof(state_type);
-    int4 state_version = SHELL_VERSION;
-
-    if (fwrite(&magic, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (fwrite(&version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (fwrite(&state_size, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    if (fwrite(&state_version, 1, sizeof(int4), statefile) != sizeof(int4))
-        return false;
-    state.matrix_singularmatrix = core_settings.matrix_singularmatrix;
-    state.matrix_outofrange = core_settings.matrix_outofrange;
-    state.auto_repeat = core_settings.auto_repeat;
-    state.allow_big_stack = core_settings.allow_big_stack;
-    state.localized_copy_paste = core_settings.localized_copy_paste;
-    if (fwrite(&state, 1, sizeof(state_type), statefile) != sizeof(state_type))
-        return false;
-
-    return true;
-}
-
 static void int_term_handler(int sig) {
     write(pype[1], "1\n", 2);
 }
@@ -1198,7 +1071,7 @@ static void quit() {
 
     gint x, y;
     gtk_window_get_position(GTK_WINDOW(mainwindow), &x, &y);
-    state.mainWindowKnown = 1;
+    state.mainWindowKnown = true;
     state.mainWindowX = x;
     state.mainWindowY = y;
     int w, h;
@@ -1889,8 +1762,8 @@ static void statesCB() {
 static void showPrintOutCB() {
     gtk_window_present(GTK_WINDOW(printwindow));
     gdk_window_focus(gtk_widget_get_window(printwindow), GDK_CURRENT_TIME);
-    state.printWindowKnown = 1;
-    state.printWindowMapped = 1;
+    state.printWindowKnown = true;
+    state.printWindowMapped = true;
 }
 
 static void exportProgramCB() {
@@ -2582,8 +2455,8 @@ static gboolean delete_print_cb(GtkWidget *w, GdkEventAny *ev) {
     gtk_window_get_position(GTK_WINDOW(printwindow), &x, &y);
     state.printWindowX = x;
     state.printWindowY = y;
-    state.printWindowMapped = 0;
-    state.printWindowKnown = 1;
+    state.printWindowMapped = false;
+    state.printWindowKnown = true;
     gtk_widget_hide(GTK_WIDGET(printwindow));
     return TRUE;
 }

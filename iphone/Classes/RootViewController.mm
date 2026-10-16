@@ -32,6 +32,7 @@
 #import "RootViewController.h"
 #import "shell.h"
 #import "shell_skin_iphone.h"
+#import "shell_state.h"
 #import "core_main.h"
 
 static SystemSoundID soundIDs[20];
@@ -97,7 +98,7 @@ static RootViewController *instance;
     [self.view setBackgroundColor:UIColor.blackColor];
     
     [calcView setActive:true];
-    [window makeKeyAndVisible];
+    //[window makeKeyAndVisible];
     window.rootViewController = self;
 }
 
@@ -132,10 +133,10 @@ static RootViewController *instance;
 
 - (void) layoutSubViews {
     CGRect r;
-    if ([UIApplication sharedApplication].isStatusBarHidden)
+    if (window.windowScene.statusBarManager.statusBarHidden)
         r = self.view.bounds;
     else {
-        int sbh1 = [UIApplication sharedApplication].statusBarFrame.size.height;
+        int sbh1 = window.windowScene.statusBarManager.statusBarFrame.size.height;
         int sbh2 = window.bounds.size.height - self.view.bounds.size.height;
         int sbh = sbh1 - sbh2;
         r = CGRectMake(self.view.bounds.origin.x, self.view.bounds.origin.y + sbh, self.view.bounds.size.width, self.view.bounds.size.height - sbh);
@@ -165,6 +166,7 @@ static RootViewController *instance;
 
 - (void) leaveBackground {
     [CalcView leaveBackground];
+    [window makeKeyAndVisible];
 }
 
 - (void) quit {

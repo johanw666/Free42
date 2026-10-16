@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
     chdir([homedir UTF8String]);
     mkdir("skins", 0755);
 
-    int retVal = UIApplicationMain(argc, argv, nil, nil);
+    int retVal = UIApplicationMain(argc, argv, nil, @"Free42AppDelegate");
     [pool release];
     return retVal;
 }

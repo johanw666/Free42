@@ -54,6 +54,9 @@ const error_spec errors[] = {
     { /* TOO_FEW_ARGUMENTS */      "Too Few Arguments",       17 },
     { /* SIZE_ERROR */             "Size Error",              10 },
     { /* STACK_DEPTH_ERROR */      "Stack Depth Error",       17 },
+    { /* STAT_MATH_ERROR */        "Stat Math Error",         15 },
+    { /* INVALID_FORECAST_MODEL */ "Invalid Forecast Model",  22 },
+    { /* SINGULAR_MATRIX */        "Singular Matrix",         15 },
     { /* RESTRICTED_OPERATION */   "Restricted Operation",    20 },
     { /* YES */                    "Yes",                      3 },
     { /* NO */                     "No",                       2 },
@@ -63,9 +66,6 @@ const error_spec errors[] = {
     { /* NO_COMPLEX_VARIABLES */   "No Complex Variables",    20 },
     { /* NO_MATRIX_VARIABLES */    "No Matrix Variables",     19 },
     { /* NO_MENU_VARIABLES */      "No Menu Variables",       17 },
-    { /* STAT_MATH_ERROR */        "Stat Math Error",         15 },
-    { /* INVALID_FORECAST_MODEL */ "Invalid Forecast Model",  22 },
-    { /* SINGULAR_MATRIX */        "Singular Matrix",         15 },
     { /* SOLVE_SOLVE */            "Solve(Solve)",            12 },
     { /* INTEG_INTEG */            "Integ(Integ)",            12 },
     { /* RUN */                    NULL,                       0 },
@@ -836,9 +836,10 @@ bool no_keystrokes_yet;
  * Version 52: 3.3    BASE enhancements (carry; display modes)
  * Version 53: 3.3.3  STATIC/DYNAMIC for menus
  * Version 54: 3.3.11 Statistics sums menu
- * Version 55:        skipping this number because reasons
+ * Version 55: 3.4    Error trapping
+ * Version 56: 3.4    Error trapping: stack trace
  */
-#define FREE42_VERSION 54
+#define FREE42_VERSION 56
 
 
 /*******************/
@@ -849,13 +850,13 @@ struct rtn_stack_entry {
     int4 prgm;
     int4 pc;
     int4 get_prgm() {
-        int4 p = prgm & 0x1fffffff;
-        if ((p & 0x10000000) != 0)
-            p |= 0xe0000000;
+        int4 p = prgm & 0x0fffffff;
+        if ((p & 0x08000000) != 0)
+            p |= 0xf0000000;
         return p;
     }
     void set_prgm(int4 prgm) {
-        this->prgm = prgm & 0x1fffffff;
+        this->prgm = prgm & 0x0fffffff;
     }
     bool has_matrix() {
         return (prgm & 0x80000000) != 0;
@@ -884,6 +885,15 @@ struct rtn_stack_entry {
         else
             prgm &= 0xdfffffff;
     }
+    bool has_trap() {
+        return (prgm & 0x10000000) != 0;
+    }
+    void set_has_trap(bool state) {
+        if (state)
+            prgm |= 0x10000000;
+        else
+            prgm &= 0xefffffff;
+    }
 };
 
 #define MAX_RTN_LEVEL 1024
@@ -895,6 +905,12 @@ static bool rtn_level_0_has_func_state;
 static int rtn_stop_level = -1;
 static bool rtn_solve_active = false;
 static bool rtn_integ_active = false;
+
+static int4 trap_flags = 0;
+static int4 trap_level = 0;
+static int4 trap_deeper_flags = 0;
+static bool trap_caught = false;
+static vartype *trap_trace = NULL;
 
 #ifdef IPHONE
 /* For iPhone, we disable OFF by default, to satisfy App Store
@@ -1464,6 +1480,17 @@ static bool persist_globals() {
         goto done;
     if (!write_bool(rtn_integ_active))
         goto done;
+    if (!write_int4(trap_flags))
+        goto done;
+    if (!write_int4(trap_level))
+        goto done;
+    if (!write_int4(trap_deeper_flags))
+        goto done;
+    if (!write_bool(trap_caught))
+        goto done;
+    if (!persist_vartype(trap_trace))
+        goto done;
+
     ret = true;
 
     done:
@@ -1594,10 +1621,14 @@ static bool unpersist_globals() {
     loading_state = true;
     core_import_programs(nprogs, NULL);
     loading_state = false;
-    if (ver >= 49)
+    if (ver >= 49) {
         for (i = 0; i < nprogs; i++)
             if (!read_bool(&prgms[i].locked))
                 goto done;
+    } else {
+        for (i = 0; i < nprogs; i++)
+            prgms[i].locked = false;
+    }
     if (!read_int(&current_prgm)) {
         current_prgm = 0;
         goto done;
@@ -1794,12 +1825,78 @@ static bool unpersist_globals() {
         goto done;
     if (!read_bool(&rtn_integ_active))
         goto done;
+    if (ver >= 55) {
+        if (!read_int4(&trap_flags))
+            goto done;
+        if (!read_int4(&trap_level))
+            goto done;
+        if (!read_int4(&trap_deeper_flags))
+            goto done;
+        if (!read_bool(&trap_caught))
+            goto done;
+    } else {
+        trap_flags = 0;
+        trap_level = 0;
+        trap_deeper_flags = 0;
+        trap_caught = false;
+    }
+    if (ver >= 56) {
+        if (!unpersist_vartype(&trap_trace))
+            goto done;
+    } else
+        trap_trace = NULL;
 
     ret = true;
 
     done:
     free(array_list);
     return ret;
+}
+
+void clean_state() {
+    reset_math();
+    reset_display();
+
+    for (int i = 0; i <= sp; i++)
+        free_vartype(stack[i]);
+    sp = -1;
+    free(stack);
+    stack = NULL;
+    stack_capacity = 0;
+    free_vartype(lastx);
+    lastx = NULL;
+    reg_alpha_length = 0;
+
+    matedit_mode = 0;
+    matedit_stack_depth = 0;
+    free(matedit_stack);
+    matedit_stack = NULL;
+    free_vartype(matedit_x);
+    matedit_x = NULL;
+
+    free(rtn_stack);
+    rtn_stack = NULL;
+    rtn_stack_capacity = 0;
+    rtn_level = 0;
+    rtn_stop_level = -1;
+    rtn_solve_active = false;
+    rtn_integ_active = false;
+
+    clear_all_prgms();
+    purge_all_vars();
+    if (vars != NULL) {
+        free(vars);
+        vars = NULL;
+        vars_capacity = 0;
+    }
+    clean_vartype_pools();
+
+    trap_flags = 0;
+    trap_level = 0;
+    trap_deeper_flags = 0;
+    trap_caught = false;
+    free_vartype(trap_trace);
+    trap_trace = NULL;
 }
 
 void clear_all_prgms() {
@@ -3334,6 +3431,113 @@ int pop_func_state(bool error) {
     return err;
 }
 
+int set_trap(int4 flags) {
+    if (trap_level > rtn_level) {
+        return ERR_INTERNAL_ERROR;
+    } else if (trap_level == rtn_level) {
+        trap_flags = flags;
+    } else {
+        int8 re = trap_level | (trap_deeper_flags & (int8) 0xffff) << 32;
+        int8 im = trap_flags | (trap_deeper_flags & (int8) 0xffff0000) << 16;
+        #ifdef BCD_MATH
+        vartype *v = new_complex(re, im);
+        #else
+        /* Silence warning about possible loss of precision in VS2022.
+         * The warning is correct, in that we're assigning 64-bit integers
+         * to floating-point types with only 53-bit mantissas; but it just
+         * happens to be the case that we know we're only using 48 bits
+         * so this really is okay.
+         */
+        vartype *v = new_complex((double) re, (double) im);
+        #endif
+        if (v == NULL)
+            return ERR_INSUFFICIENT_MEMORY;
+        int err = store_private_var("TRAP", 4, v);
+        if (err != ERR_NONE) {
+            free_vartype(v);
+            return err;
+        }
+        rtn_stack[rtn_level - 1].set_has_trap(true);
+        trap_deeper_flags |= trap_flags;
+        trap_flags = flags;
+        trap_level = rtn_level;
+    }
+    return ERR_NONE;
+}
+
+bool should_trap(int err) {
+    if (err == ERR_NONE)
+        return false;
+    int4 mask = err == -1 || err > RTNERR_MAX ? 1 : 1 << err;
+    // TRY doesn't affect the level in which it is called;
+    // its scope is the duration of the first subroutine to
+    // be called after the TRY. If no subroutine is called
+    // before the end of the routine containing the TRY, the
+    // trap expires when the routine returns.
+    if (trap_level < rtn_level)
+        return (mask & (trap_flags | trap_deeper_flags)) != 0;
+    else
+        return (mask & trap_deeper_flags) != 0;
+}
+
+int get_trap_rtn_level(int err) {
+    if (err == ERR_NONE)
+        return -1;
+    int4 mask = err == -1 || err > RTNERR_MAX ? 1 : 1 << err;
+    // TRY doesn't affect the level in which it is called;
+    // see the comment in should_trap()
+    if (trap_level < rtn_level && (mask & trap_flags) != 0)
+        return trap_level;
+    if ((mask & trap_deeper_flags) == 0)
+        return -1;
+    for (int i = rtn_level; i > 0; i--)
+        if (rtn_stack[i - 1].has_trap()) {
+            vartype *v = recall_private_var_from_level("TRAP", 4, i);
+            if (v == NULL)
+                continue;
+            vartype_complex *c = (vartype_complex *) v;
+            int4 t_level = (int4) to_int8(c->re);
+            int4 t_flags = (int4) to_int8(c->im);
+            if ((mask & t_flags) != 0)
+                return t_level;
+        }
+    return -1;
+}
+
+void set_caught(bool caught) {
+    trap_caught = caught;
+    if (!caught && trap_trace != NULL) {
+        free_vartype(trap_trace);
+        trap_trace = NULL;
+    }
+}
+
+bool get_caught() {
+    return trap_caught;
+}
+
+static void pop_trap() {
+    if (rtn_level > trap_level)
+        return;
+    if (rtn_level == 0 || !rtn_stack[rtn_level - 1].has_trap()) {
+        no_more_traps:
+        trap_level = 0;
+        trap_flags = 0;
+        trap_deeper_flags = 0;
+        return;
+    }
+    vartype *v = recall_private_var("TRAP", 4);
+    if (v == NULL)
+        // Shouldn't happen
+        goto no_more_traps;
+    vartype_complex *c = (vartype_complex *) v;
+    int8 re = to_int8(c->re);
+    int8 im = to_int8(c->im);
+    trap_level = (int4) re;
+    trap_flags = (int4) im;
+    trap_deeper_flags = (re >> 32) | (im >> 16) & 0xffff0000;
+}
+
 void step_out() {
     if (rtn_level > 0)
         rtn_stop_level = rtn_level - 1;
@@ -3351,9 +3555,16 @@ bool should_i_stop_at_this_level() {
     return stop;
 }
 
+void returning_from_solve_or_integ() {
+    if (trap_level == rtn_level)
+        trap_flags = 0;
+    set_caught(false);
+}
+
 static void remove_locals() {
     if (matedit_mode == 3 && matedit_level >= rtn_level)
         leave_matrix_editor();
+    pop_trap();
     int last = -1;
     for (int i = vars_count - 1; i >= 0; i--) {
         if (vars[i].level == -1)
@@ -3400,6 +3611,7 @@ int rtn(int err) {
     // NOTE: 'err' should be one of ERR_NONE, ERR_YES, or ERR_NO.
     // For any actual *error*, i.e. anything that should actually
     // stop program execution, use rtn_with_error() instead.
+    set_caught(false);
     int newprgm;
     int4 newpc;
     bool stop;
@@ -3431,12 +3643,30 @@ int rtn(int err) {
 
 int rtn_with_error(int err) {
     bool stop;
-    if (solve_active() && (err == ERR_OUT_OF_RANGE
-                            || err == ERR_DIVIDE_BY_0
-                            || err == ERR_INVALID_DATA
-                            || err == ERR_STAT_MATH_ERROR)) {
+    bool solve_err = solve_active()
+                && (err == ERR_OUT_OF_RANGE
+                 || err == ERR_DIVIDE_BY_0
+                 || err == ERR_INVALID_DATA
+                 || err == ERR_STAT_MATH_ERROR
+                 || err == ERR_INVALID_FORECAST_MODEL);
+    bool trap = should_trap(err);
+    int t_level;
+    if (solve_err) {
+        if (trap) {
+            t_level = get_trap_rtn_level(err);
+            if (t_level > solve_level())
+                goto do_trap;
+        }
         stop = unwind_stack_until_solve();
+        set_caught(false);
         return return_to_solve(1, stop);
+    } else if (trap) {
+        t_level = get_trap_rtn_level(err);
+        do_trap:
+        set_last_err(err);
+        stop = unwind_stack_until_level(t_level, true);
+        set_caught(true);
+        return stop ? ERR_STOP : ERR_NONE;
     }
     int newprgm;
     int4 newpc;
@@ -3447,6 +3677,7 @@ int rtn_with_error(int err) {
         int line = pc2line(newpc);
         set_old_pc(line2pc(line - 1));
     }
+    set_caught(false);
     return err;
 }
 
@@ -3498,6 +3729,8 @@ void pop_rtn_addr(int *prgm, int4 *pc, bool *stop) {
         else if (*prgm == -3)
             rtn_integ_active = false;
     }
+    if (trap_level == rtn_level && *prgm != -2 && *prgm != -3)
+        trap_flags = 0;
 }
 
 static void get_saved_stack_mode(int *m) {
@@ -3534,6 +3767,8 @@ void clear_all_rtns() {
     }
     if (mode_plainmenu == MENU_PROGRAMMABLE)
         set_menu(MENULEVEL_PLAIN, MENU_NONE);
+    else if (mode_appmenu == MENU_PROGRAMMABLE)
+        set_menu(MENULEVEL_APP, MENU_NONE);
     if (varmenu_role == 3)
         varmenu_role = 0;
 }
@@ -3564,6 +3799,13 @@ bool integ_active() {
     return rtn_integ_active;
 }
 
+int solve_level() {
+    for (int i = 0; i < rtn_level; i++)
+        if (rtn_stack[i].get_prgm() == -2)
+            return i;
+    return -1;
+}
+
 bool unwind_stack_until_solve() {
     int prgm;
     int4 pc;
@@ -3579,6 +3821,155 @@ bool unwind_stack_until_solve() {
     } else if (st_mode == 1) {
         docmd_nstk(NULL);
     }
+    return stop;
+}
+
+static void create_stack_trace(int level) {
+    textbuf tb;
+    tb.buf = NULL;
+    tb.size = 0;
+    tb.capacity = 0;
+    tb.fail = false;
+    
+    bool no_error = level == -1;
+
+    if (no_error) {
+        tb_write(&tb, "No Error", 8);
+        level = 0;
+    } else if (lasterr == -1)
+        tb_write(&tb, lasterr_text, lasterr_length);
+    else
+        tb_write(&tb, errors[lasterr].text, errors[lasterr].length);
+    tb_write(&tb, "\n", 1);
+
+    int f_prgm, prev_prgm = -1;
+    int4 f_pc;
+    for (int i = rtn_level; i >= level; i--) {
+        if (i == rtn_level) {
+            f_prgm = current_prgm;
+            f_pc = pc;
+        } else {
+            f_prgm = rtn_stack[i].get_prgm();
+            if (f_prgm == -2)
+                get_solve_caller(&f_prgm, &f_pc);
+            else if (f_prgm == -3)
+                get_integ_caller(&f_prgm, &f_pc);
+            else
+                f_pc = rtn_stack[i].pc;
+        }
+        if (f_prgm != prev_prgm) {
+            int a = 0;
+            int b = labels_count - 1;
+            int c;
+            if (labels[a].prgm == f_prgm) {
+                c = a;
+            } else if (labels[b].prgm = f_prgm) {
+                c = b;
+            } else {
+                while (true) {
+                    c = (a + b) >> 1;
+                    if (c == a || c == b)
+                        break;
+                    int p = labels[c].prgm;
+                    if (p == f_prgm)
+                        break;
+                    if (p > f_prgm)
+                        b = c;
+                    else
+                        a = c;
+                }
+            }
+            while (c > 0 && labels[c - 1].prgm == f_prgm)
+                c--;
+            if (labels[c].prgm == f_prgm && labels[c].length > 0) {
+                tb_write(&tb, "\"", 1);
+                tb_write(&tb, labels[c].name, labels[c].length);
+                tb_write(&tb, "\"\n", 2);
+            } else if (f_prgm == prgms_count - 1) {
+                tb_write(&tb, ".END.\n", 6);
+            } else {
+                tb_write(&tb, "END\n", 4);
+            }
+            prev_prgm = f_prgm;
+        }
+        int4 line = global_pc2line(f_prgm, f_pc) - 1;
+        if (no_error && i == rtn_level)
+            line++;
+        f_pc = global_line2pc(f_prgm, line);
+        tb_print_program_line(&tb, f_prgm, f_pc, line);
+    }
+
+    if (trap_trace != NULL) {
+        vartype_string *s = (vartype_string *) trap_trace;
+        tb_write(&tb, s->txt(), s->length);
+        free_vartype(trap_trace);
+        trap_trace = NULL;
+    } else {
+        tb.size--;
+    }
+
+    if (tb.buf != NULL) {
+        trap_trace = new_string(tb.buf, (int) tb.size);
+        free(tb.buf);
+    }
+}
+
+int print_backtrace() {
+    if (!flags.f.printer_exists)
+        return ERR_PRINTING_IS_DISABLED;
+
+    vartype *t;
+    if (trap_trace == NULL) {
+        create_stack_trace(-1);
+        if (trap_trace == NULL)
+            return ERR_INSUFFICIENT_MEMORY;
+        t = trap_trace;
+        trap_trace = NULL;
+    } else {
+        t = trap_trace;
+    }
+    vartype_string *s = (vartype_string *) t;
+
+    bool prev_double_wide = flags.f.double_wide_print;
+    bool prev_lowercase = flags.f.lowercase_print;
+    flags.f.double_wide_print = false;
+    flags.f.lowercase_print = false;
+    print_text(NULL, 0, true);
+    pra_helper(true, s->txt(), s->length);
+    flags.f.double_wide_print = prev_double_wide;
+    flags.f.lowercase_print = prev_lowercase;
+
+    if (trap_trace == NULL)
+        free_vartype(t);
+    return ERR_NONE;
+}
+
+bool unwind_stack_until_level(int level, bool save_stack_trace) {
+    if (save_stack_trace)
+        create_stack_trace(level);
+
+    bool stop;
+    int st_mode = -1;
+    while (rtn_level > level) {
+        get_saved_stack_mode(&st_mode);
+        pop_rtn_addr(&current_prgm, &pc, &stop);
+    }
+    if (current_prgm == -2) {
+        get_solve_caller(&current_prgm, &pc);
+        if (trap_level == rtn_level)
+            trap_flags = 0;
+    } else if (current_prgm == -3) {
+        get_integ_caller(&current_prgm, &pc);
+        if (trap_level == rtn_level)
+            trap_flags = 0;
+    }
+    if (st_mode == 0) {
+        arg_struct dummy_arg;
+        docmd_4stk(&dummy_arg);
+    } else if (st_mode == 1) {
+        docmd_nstk(NULL);
+    }
+
     return stop;
 }
 
@@ -3886,7 +4277,7 @@ static bool load_state2(bool *clear, bool *too_new) {
         return false;
     }
 
-    if (ver > FREE42_VERSION && ver != 55) {
+    if (ver > FREE42_VERSION) {
         *too_new = true;
         return false;
     }
@@ -3949,8 +4340,6 @@ static bool load_state2(bool *clear, bool *too_new) {
     else if (!read_bool(&mode_caller_stack_lift_disabled))
         return false;
     if (!read_bool(&mode_varmenu)) return false;
-    if (ver == 55)
-        if (!read_bool(&bdummy)) return false;
     if (!read_bool(&mode_updown)) return false;
 
     if (!read_bool(&mode_getkey))
@@ -4217,13 +4606,10 @@ void save_state(bool *success) {
 // 1 = State File Corrupt
 // 2 = State File Too New
 void hard_reset(int reason) {
-    vartype *regs;
+    if (reason == 1)
+        core_cleanup();
 
-    /* Clear stack */
-    for (int i = 0; i <= sp; i++)
-        free_vartype(stack[i]);
-    free(stack);
-    free_vartype(lastx);
+    /* Create stack */
     sp = 3;
     stack_capacity = 4;
     stack = (vartype **) malloc(stack_capacity * sizeof(vartype *));
@@ -4231,45 +4617,19 @@ void hard_reset(int reason) {
         stack[i] = new_real(0);
     lastx = new_real(0);
 
-    /* Clear alpha */
-    reg_alpha_length = 0;
-
-    /* Clear variables */
-    purge_all_vars();
-    regs = new_realmatrix(25, 1);
+    /* Create REGS */
+    vartype *regs = new_realmatrix(25, 1);
     store_var("REGS", 4, regs);
 
-    /* Clear RTN stack */
-    if (rtn_stack != NULL)
-        free(rtn_stack);
+    /* Create RTN stack */
     rtn_stack_capacity = 16;
     rtn_stack = (rtn_stack_entry *) malloc(rtn_stack_capacity * sizeof(rtn_stack_entry));
-    rtn_level = 0;
-    rtn_stop_level = -1;
-    rtn_solve_active = false;
-    rtn_integ_active = false;
 
-    /* Clear programs */
-    if (prgms != NULL) {
-        free(prgms);
-        prgms = NULL;
-        prgms_capacity = 0;
-        prgms_count = 0;
-    }
-    if (labels != NULL) {
-        free(labels);
-        labels = NULL;
-        labels_capacity = 0;
-        labels_count = 0;
-    }
+    /* Initialize PRGM memory */
     goto_dot_dot(false);
 
     pending_command = CMD_NONE;
 
-    matedit_mode = 0;
-    matedit_stack_depth = 0;
-    free(matedit_stack);
-    matedit_stack = NULL;
     input_length = 0;
     baseapp = 0;
     random_number_low = 0;
@@ -4383,11 +4743,6 @@ void hard_reset(int reason) {
     mode_menu_caps = false;
     mode_menu_static = false;
 
-    reset_math();
-
-    clear_display();
-    clear_custom_menu();
-    clear_prgm_menu();
     switch (reason) {
         case 0:
             draw_string(0, 0, "Memory Clear", 12);

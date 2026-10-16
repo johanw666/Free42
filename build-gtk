@@ -3,6 +3,19 @@
 # This script builds the GTK version.
 
 PKGNAME=Free42`uname -s`
+if [ $# -eq 0 ]; then
+  DO_BIN=1
+  DO_DEC=1
+elif [ $1 = dec ]; then
+  DO_BIN=0
+  DO_DEC=1
+elif [ $1 = bin ]; then
+  DO_BIN=1
+  DO_DEC=0
+else
+  echo "Usage: $0 [bin|dec]"
+  exit 1
+fi
 
 if [ -f /usr/include/alsa/asoundlib.h ]; then
   ALSA='AUDIO_ALSA=1'
@@ -21,20 +34,28 @@ export MK
 
 unset BCD_MATH
 cd gtk
-$MK clean
-$MK $ALSA
-$MK clean
-$MK BCD_MATH=1 $ALSA
+if [ $DO_BIN -eq 1 ]; then
+  $MK clean
+  $MK $ALSA
+fi
+if [ $DO_DEC -eq 1 ]; then
+  $MK clean
+  $MK BCD_MATH=1 $ALSA
+fi
 cd ..
 
 rm -rf $PKGNAME
 mkdir $PKGNAME
 cp gtk/README.txt $PKGNAME
-cp gtk/free42bin $PKGNAME
-cp gtk/free42dec $PKGNAME
+if [ $DO_BIN -eq 1 ]; then
+  cp gtk/free42bin $PKGNAME
+  strip $PKGNAME/free42bin
+fi
+if [ $DO_DEC -eq 1 ]; then
+  cp gtk/free42dec $PKGNAME
+  strip $PKGNAME/free42dec
+fi
 cp gtk/icon-128x128.png $PKGNAME/free42icon-128x128.png
-strip $PKGNAME/free42bin
-strip $PKGNAME/free42dec
 mkdir -p packages
 tar cvfz packages/$PKGNAME.tgz $PKGNAME
 rm -rf $PKGNAME

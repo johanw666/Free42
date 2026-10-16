@@ -43,18 +43,18 @@ extern FILE *gfile;
 #define ERR_TOO_FEW_ARGUMENTS       8
 #define ERR_SIZE_ERROR              9
 #define ERR_STACK_DEPTH_ERROR      10
-#define ERR_RESTRICTED_OPERATION   11
-#define ERR_YES                    12
-#define ERR_NO                     13
-#define ERR_STOP                   14
-#define ERR_LABEL_NOT_FOUND        15
-#define ERR_NO_REAL_VARIABLES      16
-#define ERR_NO_COMPLEX_VARIABLES   17
-#define ERR_NO_MATRIX_VARIABLES    18
-#define ERR_NO_MENU_VARIABLES      19
-#define ERR_STAT_MATH_ERROR        20
-#define ERR_INVALID_FORECAST_MODEL 21
-#define ERR_SINGULAR_MATRIX        22
+#define ERR_STAT_MATH_ERROR        11
+#define ERR_INVALID_FORECAST_MODEL 12
+#define ERR_SINGULAR_MATRIX        13
+#define ERR_RESTRICTED_OPERATION   14
+#define ERR_YES                    15
+#define ERR_NO                     16
+#define ERR_STOP                   17
+#define ERR_LABEL_NOT_FOUND        18
+#define ERR_NO_REAL_VARIABLES      19
+#define ERR_NO_COMPLEX_VARIABLES   20
+#define ERR_NO_MATRIX_VARIABLES    21
+#define ERR_NO_MENU_VARIABLES      22
 #define ERR_SOLVE_SOLVE            23
 #define ERR_INTEG_INTEG            24
 #define ERR_RUN                    25
@@ -75,7 +75,7 @@ extern FILE *gfile;
 #define ERR_PROGRAM_LOCKED         40
 #define ERR_NEXT_PROGRAM_LOCKED    41
 
-#define RTNERR_MAX 8
+#define RTNERR_MAX 13
 
 struct error_spec {
     const char *text;
@@ -573,9 +573,15 @@ void maybe_pop_indexed_matrix(const char *name, int len);
 int push_func_state(int n);
 int push_stack_state(bool big);
 int pop_func_state(bool error);
+int set_trap(int4 flags);
+bool should_trap(int err);
+int get_trap_rtn_level(int err);
+void set_caught(bool caught);
+bool get_caught();
 void step_out();
 void step_over();
 bool should_i_stop_at_this_level();
+void returning_from_solve_or_integ();
 int rtn(int err);
 int rtn_with_error(int err);
 void pop_rtn_addr(int *prgm, int4 *pc, bool *stop);
@@ -585,7 +591,10 @@ void save_csld();
 bool is_csld();
 bool solve_active();
 bool integ_active();
+int solve_level();
 bool unwind_stack_until_solve();
+bool unwind_stack_until_level(int level, bool save_stack_trace);
+int print_backtrace();
 
 bool read_bool(bool *b);
 bool write_bool(bool b);
@@ -606,6 +615,7 @@ bool write_arg(const arg_struct *arg);
 
 bool load_state(bool *clear, bool *too_new);
 void save_state(bool *success);
+void clean_state();
 // Reason:
 // 0 = Memory Clear
 // 1 = State File Corrupt
