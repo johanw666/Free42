@@ -3893,7 +3893,7 @@ static void create_stack_trace(int level) {
             prev_prgm = f_prgm;
         }
         int4 line = global_pc2line(f_prgm, f_pc) - 1;
-        if (no_error && i == rtn_level)
+        if (no_error && i == rtn_level && !program_running())
             line++;
         f_pc = global_line2pc(f_prgm, line);
         tb_print_program_line(&tb, f_prgm, f_pc, line);
