@@ -17,13 +17,9 @@
 
 #import <UIKit/UIKit.h>
 
-@class RootViewController;
-
 @interface Free42AppDelegate : NSObject <UIApplicationDelegate> {
-    RootViewController *rootViewController;
+    //
 }
-
-@property (nonatomic, retain) IBOutlet RootViewController *rootViewController;
 
 + (const char *) getVersion;
 

@@ -19,7 +19,6 @@
 #import <dirent.h>
 
 #import "Free42SceneDelegate.h"
-#import "Free42AppDelegate.h"
 #import "RootViewController.h"
 #import "RootWindow.h"
 #import "StatesView.h"
@@ -27,32 +26,45 @@
 
 @implementation Free42SceneDelegate
 
+@synthesize rootViewController;
+
 - (void) scene:(UIScene *) scene willConnectToSession:(UISceneSession *) session options:(UISceneConnectionOptions *) connectionOptions {
-    UIApplication *app = UIApplication.sharedApplication;
-    NSArray *objs = [[NSBundle mainBundle] loadNibNamed:@"MainWindow" owner:app options:nil];
-    [objs retain];
-    for (int i = 0; i < [objs count]; i++) {
-        NSObject *obj = [objs objectAtIndex:i];
-        if ([obj class] == [RootViewController class]) {
-            rootViewController = (RootViewController *) obj;
-        } else if ([obj class] == [RootWindow class]) {
+    uiObjects = [[NSBundle mainBundle] loadNibNamed:@"MainWindow" owner:scene options:nil];
+    [uiObjects retain];
+    for (int i = 0; i < [uiObjects count]; i++) {
+        NSObject *obj = [uiObjects objectAtIndex:i];
+        if ([obj class] == [RootWindow class])
             ((RootWindow *) obj).windowScene = (UIWindowScene *) scene;
-        }
     }
 }
 
-- (void) sceneDidEnterBackground:(UIScene *) scene {
-    [rootViewController enterBackground];
+- (void) sceneDidDisconnect:(UIScene *) scene {
+    for (int i = 0; i < [uiObjects count]; i++) {
+        NSObject *obj = [uiObjects objectAtIndex:i];
+        if ([obj class] == [RootWindow class])
+            ((RootWindow *) obj).windowScene = nil;
+    }
+    [uiObjects release];
+    uiObjects = nil;
+    self.rootViewController = nil;
 }
 
 - (void) sceneWillEnterForeground:(UIScene *) scene {
-    if (![[UIDevice currentDevice] isBatteryMonitoringEnabled]) {
-        [[UIDevice currentDevice] setBatteryMonitoringEnabled:YES];
-        [[NSNotificationCenter defaultCenter] addObserver:rootViewController selector:@selector(batteryLevelChanged) name:UIDeviceBatteryLevelDidChangeNotification object:nil];
-    }
-
+    [[UIDevice currentDevice] setBatteryMonitoringEnabled:YES];
+    [[NSNotificationCenter defaultCenter] addObserver:rootViewController
+                                          selector:@selector(batteryLevelChanged)
+                                          name:UIDeviceBatteryLevelDidChangeNotification
+                                          object:nil];
     [rootViewController batteryLevelChanged];
     [rootViewController leaveBackground];
+}
+
+- (void) sceneDidEnterBackground:(UIScene *) scene {
+    [[UIDevice currentDevice] setBatteryMonitoringEnabled:NO];
+    [[NSNotificationCenter defaultCenter] removeObserver:rootViewController
+                                          name:UIDeviceBatteryLevelDidChangeNotification
+                                          object:nil];
+    [rootViewController enterBackground];
 }
 
 static BOOL urlInInbox(NSURL *url) {

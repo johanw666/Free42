@@ -19,7 +19,6 @@
 #import "CalcView.h"
 #import "AlphaKeyboardView.h"
 #import "RootViewController.h"
-#import "Free42AppDelegate.h"
 #import "shell.h"
 #import "shell_spool.h"
 #import "shell_state.h"
@@ -118,8 +117,8 @@ int print_text_pixel_height;
     }
     UIGestureRecognizerState gstate = [panrec state];
     CGPoint p = [panrec translationInView:[self superview]];
-    CalcView *calc = ((Free42AppDelegate *) UIApplication.sharedApplication.delegate).rootViewController.calcView;
-    AlphaKeyboardView *alpha = ((Free42AppDelegate *) UIApplication.sharedApplication.delegate).rootViewController.alphaKeyboardView;
+    CalcView *calc = ((RootViewController *) self.window.rootViewController).calcView;
+    AlphaKeyboardView *alpha = ((RootViewController *) self.window.rootViewController).alphaKeyboardView;
     CGRect pf = self.frame;
     CGRect cf = calc.frame;
     CGRect af = alpha.frame;

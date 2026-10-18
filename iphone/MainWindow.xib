@@ -8,13 +8,13 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
-        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="UIApplication">
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="UIWindowScene">
             <connections>
                 <outlet property="delegate" destination="3" id="4"/>
             </connections>
         </placeholder>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
-        <customObject id="3" customClass="Free42AppDelegate">
+        <customObject id="3" customClass="Free42SceneDelegate">
             <connections>
                 <outlet property="rootViewController" destination="GBu-Jd-r3E" id="s5Z-6z-zDk"/>
             </connections>
