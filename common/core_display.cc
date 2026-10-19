@@ -3269,7 +3269,7 @@ static void save_keyx_info(int keynum) {
             break;
         case ARGTYPE_STR:
         case ARGTYPE_IND_STR:
-            s[10] = arg->length;
+            s[10] = (char) arg->length;
             memcpy(s + 11, arg->val.text, s[10]);
             break;
         case ARGTYPE_LCLBL:
