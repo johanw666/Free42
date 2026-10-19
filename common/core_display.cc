@@ -3243,6 +3243,41 @@ void assign_prgm_key(int keynum, bool is_gto, const arg_struct *arg) {
     }
 }
 
+static void save_keyx_info(int keynum) {
+    vartype *keyx = new_string(NULL, 18);
+    if (keyx == NULL)
+        return;
+    if (store_private_var("KEYX", 4, keyx) != ERR_NONE) {
+        free_vartype(keyx);
+        return;
+    }
+    char *s = ((vartype_string *) keyx)->txt();
+    s[0] = keynum;
+    if (keynum < 6) {
+        s[1] = progmenu_length[keynum];
+        memcpy(s + 2, progmenu_label[keynum], s[1]);
+    }
+    arg_struct *arg = progmenu_arg + keynum;
+    s[9] = arg->type;
+    switch (arg->type) {
+        case ARGTYPE_NUM:
+        case ARGTYPE_IND_NUM:
+            s[10] = arg->val.num;
+            break;
+        case ARGTYPE_IND_STK:
+            s[10] = arg->val.stk;
+            break;
+        case ARGTYPE_STR:
+        case ARGTYPE_IND_STR:
+            s[10] = arg->length;
+            memcpy(s + 11, arg->val.text, s[10]);
+            break;
+        case ARGTYPE_LCLBL:
+            s[10] = arg->val.lclbl;
+            break;
+    }
+}
+
 void do_prgm_menu_key(int keynum) {
     int err, oldprgm;
     int4 oldpc;
@@ -3285,7 +3320,9 @@ void do_prgm_menu_key(int keynum) {
             display_error(err);
             flush_display();
             return;
-        } else
+        } else {
+            save_keyx_info(keynum);
             save_csld();
+        }
     }
 }
