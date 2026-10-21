@@ -976,6 +976,12 @@ int docmd_editn(arg_struct *arg) {
     if (v == NULL)
         return ERR_INSUFFICIENT_MEMORY;
 
+    /* Don't allow editing a global matrix if a local matrix is already
+     * indexed.
+     */
+    if (matedit_mode == 1 && matedit_level != -1 && vars[mi].level == -1)
+        return ERR_RESTRICTED_OPERATION;
+
     /* If the matrix we're about to edit is local, and another matrix
      * is already indexed, and that other matrix is not a local at the same
      * level, then we push the IJ pointers, so the previous indexing is
@@ -1449,6 +1455,12 @@ int docmd_index(arg_struct *arg) {
             && m->type != TYPE_COMPLEXMATRIX
             && m->type != TYPE_LIST)
         return ERR_INVALID_TYPE;
+
+    /* Don't allow indexing a global matrix if a local matrix is already
+     * indexed.
+     */
+    if (matedit_mode == 1 && matedit_level != -1 && vars[mi].level == -1)
+        return ERR_RESTRICTED_OPERATION;
 
     /* If the matrix we're about to index is local, and another matrix
      * is already indexed, and that other matrix is not a local at the same
