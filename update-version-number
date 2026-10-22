@@ -135,8 +135,14 @@ if do_ios:
 if do_android:
     vc = int(os.popen("grep versionCode android/app/build.gradle").read().split()[1]);
     vc += 1
-    subprocess.call(["sed", "-i", "", "s/versionCode [0-9]*/versionCode " + str(vc) + "/", "android/app/build.gradle"])
-    subprocess.call(["sed", "-i", "", "s/versionName \"[^\"]*\"/versionName \"" + version_name + "\"/", "android/app/build.gradle"])
+    args1 = ["sed", "-i", "s/versionCode [0-9]*/versionCode " + str(vc) + "/", "android/app/build.gradle"]
+    args2 = ["sed", "-i", "s/versionName \"[^\"]*\"/versionName \"" + version_name + "\"/", "android/app/build.gradle"]
+    if sys.platform == "darwin":
+        # In Linux, it's -i'suffix', but in MacOS, it's -i 'suffix'
+        args1.insert(2, "")
+        args2.insert(2, "")
+    subprocess.call(args1);
+    subprocess.call(args2);
 
 # Insert version for Linux
 
