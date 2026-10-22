@@ -3916,7 +3916,7 @@ static void create_stack_trace(int level) {
             int c;
             if (labels[a].prgm == f_prgm) {
                 c = a;
-            } else if (labels[b].prgm = f_prgm) {
+            } else if (labels[b].prgm == f_prgm) {
                 c = b;
             } else {
                 while (true) {
