@@ -2871,7 +2871,7 @@ int4 find_local_label(const arg_struct *arg) {
                 // Allow GTO ST T and GTO 112
                 char stk = prgm->text[search_pc + 2];
                 if (arg->type == ARGTYPE_STK) {
-                    if (stk = arg->val.stk)
+                    if (stk == arg->val.stk)
                         return search_pc;
                 } else if (arg->type == ARGTYPE_NUM) {
                     int num = 0;
