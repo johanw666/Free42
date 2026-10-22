@@ -1,3 +1,14 @@
+2026-10-22: release 3.4.1
+
+* PRTRACE bug fix: it could corrupt the global LBL table.
+* PRTRACE improvements:
+  1. When there is a RTN that was caused by a KEYX, now shows the details of
+     the menu keystroke, after the line that had caused program execution to
+     halt.
+  2. When invoked from a program without an error having been caught, the first
+     line in the stack trace now shows the PRTRACE line, rather than the line
+     after the PRTRACE.
+
 2026-10-16: release 3.4
 
 * Implemented try/catch style error handling: TRY, TRYX, CATCH?, PRTRACE. See
