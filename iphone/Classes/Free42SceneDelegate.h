@@ -21,6 +21,9 @@
 
 @interface Free42SceneDelegate : NSObject <UIWindowSceneDelegate> {
     RootViewController *rootViewController;
+    NSArray *uiObjects;
 }
+
+@property (nonatomic, retain) IBOutlet RootViewController *rootViewController;
 
 @end

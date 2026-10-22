@@ -16,20 +16,17 @@
  *****************************************************************************/
 
 #import "Free42AppDelegate.h"
-#import "RootViewController.h"
 
 static char version[32] = "";
 
 @implementation Free42AppDelegate
-
-@synthesize rootViewController;
 
 - (void) applicationDidFinishLaunching:(UIApplication *)application {
     // Override point for customization after application launch
 }
 
 - (void) applicationWillTerminate:(UIApplication *)application {
-    [rootViewController quit];
+    //
 }
 
 + (const char *) getVersion {

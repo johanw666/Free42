@@ -486,8 +486,8 @@ static struct timeval runner_end_time;
     }
     UIGestureRecognizerState gstate = [panrec state];
     CGPoint p = [panrec translationInView:[self superview]];
-    PrintView *print = ((Free42AppDelegate *) UIApplication.sharedApplication.delegate).rootViewController.printView;
-    AlphaKeyboardView *alpha = ((Free42AppDelegate *) UIApplication.sharedApplication.delegate).rootViewController.alphaKeyboardView;
+    PrintView *print = ((RootViewController *) self.window.rootViewController).printView;
+    AlphaKeyboardView *alpha = ((RootViewController *) self.window.rootViewController).alphaKeyboardView;
     CGRect cf = self.frame;
     CGRect af = alpha.frame;
     CGRect pf = print.frame;

@@ -2871,7 +2871,7 @@ int4 find_local_label(const arg_struct *arg) {
                 // Allow GTO ST T and GTO 112
                 char stk = prgm->text[search_pc + 2];
                 if (arg->type == ARGTYPE_STK) {
-                    if (stk = arg->val.stk)
+                    if (stk == arg->val.stk)
                         return search_pc;
                 } else if (arg->type == ARGTYPE_NUM) {
                     int num = 0;
@@ -3824,6 +3824,59 @@ bool unwind_stack_until_solve() {
     return stop;
 }
 
+static void write_keyx_info(textbuf *tb, vartype *keyx) {
+    tb_write(tb, "  KEY ", 6);
+    char *s = ((vartype_string *) keyx)->txt();
+    switch (s[0]) {
+        case 6:
+            tb_write(tb, "\136", 1);
+            break;
+        case 7:
+            tb_write(tb, "\16", 1);
+            break;
+        case 8:
+            tb_write(tb, "EXIT", 4);
+            break;
+        default:
+            tb_write(tb, s + 2, s[1]);
+            break;
+    }
+    tb_write(tb, ": XEQ ", 6);
+    switch (s[9]) {
+        case ARGTYPE_IND_NUM:
+        case ARGTYPE_IND_STK:
+        case ARGTYPE_IND_STR:
+            tb_write(tb, "IND ", 4);
+            break;
+    }
+    switch (s[9]) {
+        case ARGTYPE_NUM:
+        case ARGTYPE_IND_NUM: {
+            char n[2];
+            n[0] = '0' + s[10] / 10;
+            n[1] = '0' + s[10] % 10;
+            tb_write(tb, n, 2);
+            break;
+        }
+        case ARGTYPE_IND_STK: {
+            char st[4] = "ST ";
+            st[3] = s[10];
+            tb_write(tb, st, 4);
+            break;
+        }
+        case ARGTYPE_LCLBL:
+            tb_write(tb, s + 10, 1);
+            break;
+        case ARGTYPE_STR:
+        case ARGTYPE_IND_STR:
+            tb_write(tb, "\"", 1);
+            tb_write(tb, s + 11, s[10]);
+            tb_write(tb, "\"", 1);
+            break;
+    }
+    tb_write(tb, "\n", 1);
+}
+
 static void create_stack_trace(int level) {
     textbuf tb;
     tb.buf = NULL;
@@ -3863,7 +3916,7 @@ static void create_stack_trace(int level) {
             int c;
             if (labels[a].prgm == f_prgm) {
                 c = a;
-            } else if (labels[b].prgm = f_prgm) {
+            } else if (labels[b].prgm == f_prgm) {
                 c = b;
             } else {
                 while (true) {
@@ -3893,10 +3946,17 @@ static void create_stack_trace(int level) {
             prev_prgm = f_prgm;
         }
         int4 line = global_pc2line(f_prgm, f_pc) - 1;
-        if (no_error && i == rtn_level)
+        if (no_error && i == rtn_level && !program_running())
             line++;
-        f_pc = global_line2pc(f_prgm, line);
+        vartype *keyx = i < rtn_level ? recall_private_var_from_level("KEYX", 4, i + 1) : NULL;
+        if (keyx != NULL && line == 0) {
+            f_pc = prgms[f_prgm].size - 2;
+            line = global_pc2line(f_prgm, f_pc);
+        } else
+            f_pc = global_line2pc(f_prgm, line);
         tb_print_program_line(&tb, f_prgm, f_pc, line);
+        if (keyx != NULL)
+            write_keyx_info(&tb, keyx);
     }
 
     if (trap_trace != NULL) {
