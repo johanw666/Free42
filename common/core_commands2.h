@@ -53,6 +53,7 @@ int docmd_beep(arg_struct *arg);
 int docmd_tone(arg_struct *arg);
 int docmd_mvar(arg_struct *arg);
 int docmd_varmenu(arg_struct *arg);
+int docmd_params(arg_struct *arg);
 int docmd_getkey(arg_struct *arg);
 int docmd_menu(arg_struct *arg);
 int docmd_menu1(arg_struct *arg);

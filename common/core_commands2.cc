@@ -994,6 +994,54 @@ int docmd_varmenu(arg_struct *arg) {
     return set_menu_return_err(MENULEVEL_APP, MENU_VARMENU, false);
 }
 
+int docmd_params(arg_struct *arg) {
+    vartype_string *name = (vartype_string *) stack[sp];
+    if (name->length == 0)
+        return ERR_RESTRICTED_OPERATION;
+    if (name->length > 7)
+        return ERR_NAME_TOO_LONG;
+    arg_struct arg2;
+    arg2.type = ARGTYPE_STR;
+    int length;
+    string_copy(arg2.val.text, &length, name->txt(), name->length);
+    arg2.length = length;
+    int prgm;
+    int4 pc;
+    if (!find_global_label(&arg2, &prgm, &pc))
+        return ERR_LABEL_NOT_FOUND;
+    pc += get_command_length(prgm, pc);
+    int saved_prgm = current_prgm;
+    current_prgm = prgm;
+    int count = 0;
+    int4 pc2 = pc;
+    int cmd;
+    while (true) {
+        get_next_command(&pc2, &cmd, &arg2, 0, NULL);
+        if (cmd == CMD_MVAR)
+            count++;
+        else
+            break;
+    }
+    vartype_list *res = (vartype_list *) new_list(count);
+    if (res == NULL) {
+        current_prgm = saved_prgm;
+        return ERR_INSUFFICIENT_MEMORY;
+    }
+    for (int i = 0; i < count; i++) {
+        get_next_command(&pc, &cmd, &arg2, 0, NULL);
+        vartype *s = new_string(arg2.val.text, arg2.length);
+        if (s == NULL) {
+            free_vartype((vartype *) res);
+            current_prgm = saved_prgm;
+            return ERR_INSUFFICIENT_MEMORY;
+        }
+        res->array->data[i] = s;
+    }
+    current_prgm = saved_prgm;
+    unary_result((vartype *) res);
+    return ERR_NONE;
+}
+
 int docmd_getkey(arg_struct *arg) {
     mode_getkey = true;
     mode_getkey1 = false;

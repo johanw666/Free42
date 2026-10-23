@@ -1640,7 +1640,7 @@ static const int ext_prgm_cat[] = {
     CMD_TRY,     CMD_TRYX,    CMD_CATCH_T,  CMD_PRTRACE, CMD_SST_RT,  CMD_SST_UP,
     CMD_GETKEY1, CMD_GETKEYA, CMD_MENU1,    CMD_VARMNU1, CMD_PGMMENU, CMD_PGMVAR,
     -2 /* 0? */, -3 /* X? */, CMD_CPXMAT_T, CMD_TYPE_T,  CMD_CSLD_T,  CMD_SKIP,
-    CMD_LSTO,    CMD_LASTO,   CMD_LCLV,     CMD_NOP,     CMD_NULL,    CMD_NULL
+    CMD_LSTO,    CMD_LASTO,   CMD_LCLV,     CMD_PARAMS,  CMD_NULL,    CMD_NULL
 };
 
 static const int ext_str_cat[] = {
