@@ -777,24 +777,40 @@ int docmd_rdxcomma(arg_struct *arg) {
 
 int docmd_clsigma(arg_struct *arg) {
     vartype *regs = recall_var("REGS", 4);
-    vartype_realmatrix *r;
-    int4 first = mode_sigma_reg;
-    int4 last = first + (flags.f.all_sigma ? 13 : 6);
-    int4 size, i;
     if (regs == NULL)
         return ERR_SIZE_ERROR;
-    if (regs->type != TYPE_REALMATRIX)
+    int4 first = mode_sigma_reg;
+    int4 last = first + (flags.f.all_sigma ? 13 : 6);
+    if (regs->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *r = (vartype_realmatrix *) regs;
+        int4 size = r->rows * r->columns;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++) {
+            if (r->array->is_string[i] == 2)
+                free(*(void **) &r->array->data[i]);
+            r->array->is_string[i] = 0;
+            r->array->data[i] = 0;
+        }
+    } else if (regs->type == TYPE_LIST) {
+        vartype_list *list = (vartype_list *) regs;
+        int4 size = list->size;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++) {
+            vartype *v = list->array->data[i];
+            if (v->type == TYPE_REAL) {
+                ((vartype_real *) v)->x = 0;
+            } else {
+                v = new_real(0);
+                if (v == NULL)
+                    return ERR_INSUFFICIENT_MEMORY;
+                free_vartype(list->array->data[i]);
+                list->array->data[i] = v;
+            }
+        }
+    } else
         return ERR_INVALID_TYPE;
-    r = (vartype_realmatrix *) regs;
-    size = r->rows * r->columns;
-    if (last > size)
-        return ERR_SIZE_ERROR;
-    for (i = first; i < last; i++) {
-        if (r->array->is_string[i] == 2)
-            free(*(void **) &r->array->data[i]);
-        r->array->is_string[i] = 0;
-        r->array->data[i] = 0;
-    }
     flags.f.log_fit_invalid = 0;
     flags.f.exp_fit_invalid = 0;
     flags.f.pwr_fit_invalid = 0;
@@ -857,27 +873,36 @@ int docmd_clrg(arg_struct *arg) {
     if (regs == NULL)
         return ERR_NONEXISTENT;
     if (regs->type == TYPE_REALMATRIX) {
-        vartype_realmatrix *rm;
-        int4 sz, i;
         if (!disentangle(regs))
             return ERR_INSUFFICIENT_MEMORY;
-        rm = (vartype_realmatrix *) regs;
-        sz = rm->rows * rm->columns;
+        vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+        int4 sz = rm->rows * rm->columns;
         free_long_strings(rm->array->is_string, rm->array->data, sz);
-        for (i = 0; i < sz; i++)
+        for (int4 i = 0; i < sz; i++)
             rm->array->data[i] = 0;
-        for (i = 0; i < sz; i++)
+        for (int4 i = 0; i < sz; i++)
             rm->array->is_string[i] = 0;
         return ERR_NONE;
     } else if (regs->type == TYPE_COMPLEXMATRIX) {
-        vartype_complexmatrix *cm;
-        int4 sz, i;
         if (!disentangle(regs))
             return ERR_INSUFFICIENT_MEMORY;
-        cm = (vartype_complexmatrix *) regs;
-        sz = 2 * cm->rows * cm->columns;
-        for (i = 0; i < sz; i++)
+        vartype_complexmatrix *cm = (vartype_complexmatrix *) regs;
+        int4 sz = 2 * cm->rows * cm->columns;
+        for (int4 i = 0; i < sz; i++)
             cm->array->data[i] = 0;
+        return ERR_NONE;
+    } else if (regs->type == TYPE_LIST) {
+        if (!disentangle(regs))
+            return ERR_INSUFFICIENT_MEMORY;
+        vartype_list *list = (vartype_list *) regs;
+        int4 sz = list->size;
+        for (int4 i = 0; i < sz; i++) {
+            vartype *v = new_real(0);
+            if (v == NULL)
+                return ERR_INSUFFICIENT_MEMORY;
+            free_vartype(list->array->data[i]);
+            list->array->data[i] = v;
+        }
         return ERR_NONE;
     } else {
         /* Should not happen; STO does not allow anything other

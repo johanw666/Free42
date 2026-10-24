@@ -111,6 +111,15 @@ int generic_rcl(arg_struct *arg, vartype **dst) {
                 if (*dst == NULL)
                     return ERR_INSUFFICIENT_MEMORY;
                 return ERR_NONE;
+            } else if (regs->type == TYPE_LIST) {
+                vartype_list *list = (vartype_list *) regs;
+                int4 size = list->size;
+                if (arg->val.num >= size)
+                    return ERR_SIZE_ERROR;
+                *dst = dup_vartype(list->array->data[arg->val.num]);
+                if (*dst == NULL)
+                    return ERR_INSUFFICIENT_MEMORY;
+                return ERR_NONE;
             } else {
                 /* This should never happen; STO should prevent
                  * "REGS" from being any other type than a real or
@@ -158,7 +167,12 @@ static arg_struct temp_arg;
 static int generic_sto_completion(int error, vartype *res) {
     if (error != ERR_NONE)
         return error;
-    if (temp_arg.type == ARGTYPE_STK) {
+    if (temp_arg.type == ARGTYPE_NUM) {
+        // REGS is a list
+        vartype_list *regs = (vartype_list *) recall_var("REGS", 4);
+        free_vartype(regs->array->data[temp_arg.val.num]);
+        regs->array->data[temp_arg.val.num] = res;
+    } else if (temp_arg.type == ARGTYPE_STK) {
         // Note: at this point, it has already been verified
         // that the destination stack level exists.
         int idx;
@@ -346,6 +360,23 @@ int generic_sto(arg_struct *arg, char operation) {
                     cm->array->data[num * 2 + 1] = nim;
                 }
                 return ERR_NONE;
+            } else if (regs->type == TYPE_LIST) {
+                vartype_list *list = (vartype_list *) regs;
+                int4 size = list->size;
+                int4 num = arg->val.num;
+                if (num >= size)
+                    return ERR_SIZE_ERROR;
+                if (operation == 0) {
+                    vartype *v = dup_vartype(stack[sp]);
+                    if (v == NULL)
+                        return ERR_INSUFFICIENT_MEMORY;
+                    free_vartype(list->array->data[num]);
+                    list->array->data[num] = v;
+                    return ERR_NONE;
+                } else {
+                    temp_arg = *arg;
+                    return apply_sto_operation(operation, list->array->data[num], false);
+                }
             } else {
                 /* This should never happen; STO should prevent
                  * "REGS" from being any other type than a real or
@@ -421,10 +452,11 @@ int generic_sto(arg_struct *arg, char operation) {
         case ARGTYPE_STR: {
             if (operation == 0) {
                 vartype *newval;
-                /* Only allow matrices to be stored in "REGS" */
+                /* Only allow matrices and lists to be stored in "REGS" */
                 if (string_equals(arg->val.text, arg->length, "REGS", 4)
                         && stack[sp]->type != TYPE_REALMATRIX
-                        && stack[sp]->type != TYPE_COMPLEXMATRIX)
+                        && stack[sp]->type != TYPE_COMPLEXMATRIX
+                        && stack[sp]->type != TYPE_LIST)
                     return ERR_RESTRICTED_OPERATION;
                 /* When EDITN is active, don't allow the matrix being
                  * edited to be overwritten. */

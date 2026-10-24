@@ -766,10 +766,11 @@ int docmd_lsto(arg_struct *arg) {
     }
     if (arg->type != ARGTYPE_STR)
         return ERR_INVALID_TYPE;
-    /* Only allow matrices to be stored in "REGS" */
+    /* Only allow matrices and lists to be stored in "REGS" */
     if (string_equals(arg->val.text, arg->length, "REGS", 4)
             && stack[sp]->type != TYPE_REALMATRIX
-            && stack[sp]->type != TYPE_COMPLEXMATRIX)
+            && stack[sp]->type != TYPE_COMPLEXMATRIX
+            && stack[sp]->type != TYPE_LIST)
         return ERR_RESTRICTED_OPERATION;
     vartype *newval = dup_vartype(stack[sp]);
     if (newval == NULL)
@@ -1712,23 +1713,29 @@ int docmd_0_ge_nn(arg_struct *arg) {
 ///////////////////////////
 
 static int get_sum(int n) {
+    n += mode_sigma_reg;
     vartype *v = recall_var("REGS", 4);
     if (v == NULL)
         return ERR_SIZE_ERROR;
-    else if (v->type != TYPE_REALMATRIX)
+    if (v->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *rm = (vartype_realmatrix *) v;
+        if (n >= rm->rows * rm->columns)
+            return ERR_SIZE_ERROR;
+        if (rm->array->is_string[n]) {
+            char *text;
+            int length;
+            get_matrix_string(rm, n, &text, &length);
+            v = new_string(text, length);
+        } else {
+            v = new_real(rm->array->data[n]);
+        }
+    } else if (v->type == TYPE_LIST) {
+        vartype_list *list = (vartype_list *) v;
+        if (n >= list->size)
+            return ERR_SIZE_ERROR;
+        v = dup_vartype(list->array->data[n]);
+    } else
         return ERR_INVALID_TYPE;
-    vartype_realmatrix *rm = (vartype_realmatrix *) v;
-    n += mode_sigma_reg;
-    if (n >= rm->rows * rm->columns)
-        return ERR_SIZE_ERROR;
-    if (rm->array->is_string[n]) {
-        char *text;
-        int length;
-        get_matrix_string(rm, n, &text, &length);
-        v = new_string(text, length);
-    } else {
-        v = new_real(rm->array->data[n]);
-    }
     if (v == NULL)
         return ERR_INSUFFICIENT_MEMORY;
     return recall_result(v);

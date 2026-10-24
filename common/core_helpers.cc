@@ -35,9 +35,7 @@ int resolve_ind_arg(arg_struct *arg, char *buf, int *buflen) {
             vartype *regs = recall_var("REGS", 4);
             if (regs == NULL)
                 return ERR_SIZE_ERROR;
-            if (regs->type != TYPE_REALMATRIX)
-                return ERR_INVALID_TYPE;
-            else {
+            if (regs->type == TYPE_REALMATRIX) {
                 vartype_realmatrix *rm = (vartype_realmatrix *) regs;
                 int4 size = rm->rows * rm->columns;
                 int4 num = arg->val.num;
@@ -71,7 +69,16 @@ int resolve_ind_arg(arg_struct *arg, char *buf, int *buflen) {
                     arg->type = ARGTYPE_STR;
                 }
                 return ERR_NONE;
-            }
+            } else if (regs->type == TYPE_LIST) {
+                vartype_list *list = (vartype_list *) regs;
+                int4 size = list->size;
+                int4 num = arg->val.num;
+                if (num >= size)
+                    return ERR_SIZE_ERROR;
+                v = list->array->data[num];
+                goto finish_resolve;
+            } else
+                return ERR_INVALID_TYPE;
         }
         case ARGTYPE_IND_STK: {
             int idx;

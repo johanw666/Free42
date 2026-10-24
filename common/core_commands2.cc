@@ -1901,13 +1901,17 @@ int docmd_mat_t(arg_struct *arg) {
 }
 
 int docmd_dim_t(arg_struct *arg) {
+    vartype *v = stack[sp];
     int4 rows, columns;
-    if (stack[sp]->type == TYPE_REALMATRIX) {
-        rows = ((vartype_realmatrix *) stack[sp])->rows;
-        columns = ((vartype_realmatrix *) stack[sp])->columns;
+    if (v->type == TYPE_REALMATRIX) {
+        rows = ((vartype_realmatrix *) v)->rows;
+        columns = ((vartype_realmatrix *) v)->columns;
+    } else if (v->type == TYPE_COMPLEXMATRIX) {
+        rows = ((vartype_complexmatrix *) v)->rows;
+        columns = ((vartype_complexmatrix *) v)->columns;
     } else {
-        rows = ((vartype_complexmatrix *) stack[sp])->rows;
-        columns = ((vartype_complexmatrix *) stack[sp])->columns;
+        rows = ((vartype_list *) v)->size;
+        columns = 1;
     }
     vartype *new_y = new_real(rows);
     vartype *new_x = new_real(columns);

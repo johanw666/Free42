@@ -217,7 +217,7 @@ const command_spec cmd_array[] =
     { /* CPX_T */       docmd_cpx_t,       "CPX?",                0x00, 0x00, 0xa2, 0x67,  4, ARG_NONE,   1, 0, ALLT },
     { /* STR_T */       docmd_str_t,       "STR?",                0x00, 0x00, 0xa2, 0x68,  4, ARG_NONE,   1, 0, ALLT },
     { /* MAT_T */       docmd_mat_t,       "MAT?",                0x00, 0x00, 0xa2, 0x66,  4, ARG_NONE,   1, 0, ALLT },
-    { /* DIM_T */       docmd_dim_t,       "DIM?",                0x00, 0x00, 0xa6, 0xe7,  4, ARG_NONE,   1, 0, 0x0c },
+    { /* DIM_T */       docmd_dim_t,       "DIM?",                0x00, 0x00, 0xa6, 0xe7,  4, ARG_NONE,   1, 0, 0x2c },
     { /* ASSIGNa */     NULL,              "AS\323\311GN",        0x40, 0x00, 0x00, 0x00,  6, ARG_NAMED,  0, 0, NA_T },
     { /* ASSIGNb */     NULL,              "",                    0x44, 0x00, 0x00, 0x00,  0, ARG_CKEY,   0, 0, NA_T },
     { /* ASGN01 */      docmd_asgn01,      "",                    0x24, 0x00, 0x00, 0x00,  0, ARG_OTHER,  0, 0, NA_T },
