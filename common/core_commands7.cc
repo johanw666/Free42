@@ -2052,32 +2052,41 @@ int docmd_head(arg_struct *arg) {
             vartype *regs = recall_var("REGS", 4);
             if (regs == NULL)
                 return ERR_SIZE_ERROR;
-            if (regs->type != TYPE_REALMATRIX)
+            if (regs->type == TYPE_REALMATRIX) {
+                vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+                int4 sz = rm->rows * rm->columns;
+                int4 n = arg->val.num;
+                if (n >= sz)
+                    return ERR_SIZE_ERROR;
+                if (rm->array->is_string[n] == 0)
+                    return ERR_INVALID_TYPE;
+                char *text;
+                int len;
+                get_matrix_string(rm, n, &text, &len);
+                if (len == 0)
+                    return ERR_NO;
+                if (!disentangle(regs))
+                    return ERR_INSUFFICIENT_MEMORY;
+                get_matrix_string(rm, n, &text, &len);
+                v = new_string(text, 1);
+                if (v == NULL)
+                    return ERR_INSUFFICIENT_MEMORY;
+                if (!put_matrix_string(rm, n, text + 1, len - 1)) {
+                    free_vartype(v);
+                    return ERR_INSUFFICIENT_MEMORY;
+                }
+                err = recall_result(v);
+                return err == ERR_NONE ? ERR_YES : err;
+            } else if (regs->type == TYPE_LIST) {
+                vartype_list *list = (vartype_list *) regs;
+                int4 sz = list->size;
+                int n = arg->val.num;
+                if (n >= sz)
+                    return ERR_SIZE_ERROR;
+                s = list->array->data[n];
+                goto doit;
+            } else
                 return ERR_INVALID_TYPE;
-            vartype_realmatrix *rm = (vartype_realmatrix *) regs;
-            int4 sz = rm->rows * rm->columns;
-            int4 n = arg->val.num;
-            if (n >= sz)
-                return ERR_SIZE_ERROR;
-            if (rm->array->is_string[n] == 0)
-                return ERR_INVALID_TYPE;
-            char *text;
-            int len;
-            get_matrix_string(rm, n, &text, &len);
-            if (len == 0)
-                return ERR_NO;
-            if (!disentangle(regs))
-                return ERR_INSUFFICIENT_MEMORY;
-            get_matrix_string(rm, n, &text, &len);
-            v = new_string(text, 1);
-            if (v == NULL)
-                return ERR_INSUFFICIENT_MEMORY;
-            if (!put_matrix_string(rm, n, text + 1, len - 1)) {
-                free_vartype(v);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            err = recall_result(v);
-            return err == ERR_NONE ? ERR_YES : err;
         }
         case ARGTYPE_STK: {
             int idx;

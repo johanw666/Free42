@@ -725,10 +725,23 @@ static int generic_loop(arg_struct *arg, bool isg) {
                 }
             } else if (regs->type == TYPE_COMPLEXMATRIX) {
                 return ERR_INVALID_TYPE;
+            } else if (regs->type == TYPE_LIST) {
+                vartype_list *list = (vartype_list *) regs;
+                int4 size = list->size;
+                int4 index = arg->val.num;
+                if (index >= size)
+                    return ERR_SIZE_ERROR;
+                vartype *v = list->array->data[index];
+                if (v->type == TYPE_REAL)
+                    return generic_loop_helper(&((vartype_real *) v)->x, isg);
+                else if (v->type == TYPE_STRING)
+                    return ERR_ALPHA_DATA_IS_INVALID;
+                else
+                    return ERR_INVALID_TYPE;
             } else {
                 /* This should never happen; STO should prevent
                  * "REGS" from being any other type than a real or
-                 * complex matrix.
+                 * complex matrix or a list.
                  */
                 return ERR_INTERNAL_ERROR;
             }
@@ -1148,20 +1161,21 @@ static const sigma_label_spec sigma_labels[] = {
 
 int docmd_prsigma(arg_struct *arg) {
     vartype *regs = recall_var("REGS", 4);
-    vartype_realmatrix *rm;
-    int nr;
-    int4 size, max, i;
-    char buf[100];
-    int bufptr;
-
     if (regs == NULL)
         return ERR_NONEXISTENT;
-    if (regs->type != TYPE_REALMATRIX)
+
+    int4 size;
+    if (regs->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+        size = rm->rows * rm->columns;
+    } else if (regs->type == TYPE_LIST) {
+        vartype_list *list = (vartype_list *) regs;
+        size = list->size;
+    } else
         return ERR_INVALID_TYPE;
-    rm = (vartype_realmatrix *) regs;
-    nr = flags.f.all_sigma ? 13 : 6;
-    size = rm->rows * rm->columns;
-    max = mode_sigma_reg + nr;
+
+    int nr = flags.f.all_sigma ? 13 : 6;
+    int4 max = mode_sigma_reg + nr;
     if (max > size)
         return ERR_SIZE_ERROR;
     if (!flags.f.printer_enable && program_running())
@@ -1171,25 +1185,53 @@ int docmd_prsigma(arg_struct *arg) {
 
     set_annunciators(-1, -1, 1, -1, -1, -1);
     print_text(NULL, 0, true);
-    for (i = 0; i < nr; i++) {
-        int4 j = i + mode_sigma_reg;
-        if (rm->array->is_string[j] != 0) {
-            char *text;
-            int4 len;
-            get_matrix_string(rm, j, &text, &len);
-            char *sbuf = (char *) malloc(len + 2);
-            if (sbuf == NULL) {
-                print_wide(sigma_labels[i].text, sigma_labels[i].length, "<Low Mem>", 9);
+    char buf[100];
+    int bufptr;
+
+    if (regs->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+        for (int4 i = 0; i < nr; i++) {
+            int4 j = i + mode_sigma_reg;
+            if (rm->array->is_string[j] != 0) {
+                char *text;
+                int4 len;
+                get_matrix_string(rm, j, &text, &len);
+                char *sbuf = (char *) malloc(len + 2);
+                if (sbuf == NULL) {
+                    print_wide(sigma_labels[i].text, sigma_labels[i].length, "<Low Mem>", 9);
+                } else {
+                    sbuf[0] = '"';
+                    memcpy(sbuf + 1, text, len);
+                    sbuf[len + 1] = '"';
+                    print_wide(sigma_labels[i].text, sigma_labels[i].length, sbuf, len + 2);
+                    free(sbuf);
+                }
             } else {
-                sbuf[0] = '"';
-                memcpy(sbuf + 1, text, len);
-                sbuf[len + 1] = '"';
-                print_wide(sigma_labels[i].text, sigma_labels[i].length, sbuf, len + 2);
-                free(sbuf);
+                bufptr = easy_phloat2string(rm->array->data[j], buf, 100, 0);
+                print_wide(sigma_labels[i].text, sigma_labels[i].length, buf, bufptr);
             }
-        } else {
-            bufptr = easy_phloat2string(rm->array->data[j], buf, 100, 0);
-            print_wide(sigma_labels[i].text, sigma_labels[i].length, buf, bufptr);
+        }
+    } else {
+        vartype_list *list = (vartype_list *) regs;
+        for (int4 i = 0; i < nr; i++) {
+            int4 j = i + mode_sigma_reg;
+            vartype *v = list->array->data[j];
+            if (v->type == TYPE_STRING) {
+                vartype_string *s = (vartype_string *) v;
+                char *sbuf = (char *) malloc(s->length + 2);
+                if (sbuf == NULL) {
+                    print_wide(sigma_labels[i].text, sigma_labels[i].length, "<Low Mem>", 9);
+                } else {
+                    sbuf[0] = '"';
+                    memcpy(sbuf + 1, s->txt(), s->length);
+                    sbuf[s->length + 1] = '"';
+                    print_wide(sigma_labels[i].text, sigma_labels[i].length, sbuf, s->length + 2);
+                    free(sbuf);
+                }
+            } else {
+                bufptr = vartype2string(v, buf, 100);
+                print_wide(sigma_labels[i].text, sigma_labels[i].length, buf, bufptr);
+            }
         }
     }
     set_annunciators(-1, -1, 0, -1, -1, -1);
@@ -1350,8 +1392,16 @@ static int prv_worker(bool interrupted) {
         vartype_list *list = (vartype_list *) prv_var;
         i = prv_index;
         sz = list->size;
-        llen = int2string(i + 1, lbuf, 32);
-        char2buf(lbuf, 32, &llen, '=');
+        if (prv_prreg) {
+            char2buf(lbuf, 32, &llen, 'R');
+            if (prv_index < 10)
+                char2buf(lbuf, 32, &llen, '0');
+            llen += int2string(prv_index, lbuf + llen, 32 - llen);
+            char2buf(lbuf, 32, &llen, '=');
+        } else {
+            llen = int2string(i + 1, lbuf, 32);
+            char2buf(lbuf, 32, &llen, '=');
+        }
         vartype *v = list->array->data[i];
         if (v->type == TYPE_STRING) {
             vartype_string *s = (vartype_string *) v;

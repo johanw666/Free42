@@ -90,37 +90,61 @@ static int get_summation() {
     /* Check if summation registers are OK */
     int4 first = mode_sigma_reg;
     int4 last = first + (flags.f.all_sigma ? 13 : 6);
-    int4 size, i;
     vartype *regs = recall_var("REGS", 4);
-    vartype_realmatrix *r;
-    phloat *sigmaregs;
     if (regs == NULL)
         return ERR_SIZE_ERROR;
-    if (regs->type != TYPE_REALMATRIX)
+    if (regs->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *r = (vartype_realmatrix *) regs;
+        int4 size = r->rows * r->columns;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++)
+            if (r->array->is_string[i] != 0)
+                return ERR_ALPHA_DATA_IS_INVALID;
+        phloat *sigmaregs = r->array->data + first;
+        sum.x = sigmaregs[0];
+        sum.x2 = sigmaregs[1];
+        sum.y = sigmaregs[2];
+        sum.y2 = sigmaregs[3];
+        sum.xy = sigmaregs[4];
+        sum.n = sigmaregs[5];
+        if (flags.f.all_sigma) {
+            sum.lnx = sigmaregs[6];
+            sum.lnx2 = sigmaregs[7];
+            sum.lny = sigmaregs[8];
+            sum.lny2 = sigmaregs[9];
+            sum.lnxlny = sigmaregs[10];
+            sum.xlny = sigmaregs[11];
+            sum.ylnx = sigmaregs[12];
+        }
+    } else if (regs->type == TYPE_LIST) {
+        vartype_list *list = (vartype_list *) regs;
+        int4 size = list->size;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++) {
+            int type = list->array->data[i]->type;
+            if (type != TYPE_REAL)
+                return type == TYPE_STRING ? ERR_ALPHA_DATA_IS_INVALID : ERR_INVALID_TYPE;
+        }
+        vartype_real **sigmaregs = (vartype_real **) (list->array->data + first);
+        sum.x = sigmaregs[0]->x;
+        sum.x2 = sigmaregs[1]->x;
+        sum.y = sigmaregs[2]->x;
+        sum.y2 = sigmaregs[3]->x;
+        sum.xy = sigmaregs[4]->x;
+        sum.n = sigmaregs[5]->x;
+        if (flags.f.all_sigma) {
+            sum.lnx = sigmaregs[6]->x;
+            sum.lnx2 = sigmaregs[7]->x;
+            sum.lny = sigmaregs[8]->x;
+            sum.lny2 = sigmaregs[9]->x;
+            sum.lnxlny = sigmaregs[10]->x;
+            sum.xlny = sigmaregs[11]->x;
+            sum.ylnx = sigmaregs[12]->x;
+        }
+    } else
         return ERR_INVALID_TYPE;
-    r = (vartype_realmatrix *) regs;
-    size = r->rows * r->columns;
-    if (last > size)
-        return ERR_SIZE_ERROR;
-    for (i = first; i < last; i++)
-        if (r->array->is_string[i] != 0)
-            return ERR_ALPHA_DATA_IS_INVALID;
-    sigmaregs = r->array->data + first;
-    sum.x = sigmaregs[0];
-    sum.x2 = sigmaregs[1];
-    sum.y = sigmaregs[2];
-    sum.y2 = sigmaregs[3];
-    sum.xy = sigmaregs[4];
-    sum.n = sigmaregs[5];
-    if (flags.f.all_sigma) {
-        sum.lnx = sigmaregs[6];
-        sum.lnx2 = sigmaregs[7];
-        sum.lny = sigmaregs[8];
-        sum.lny2 = sigmaregs[9];
-        sum.lnxlny = sigmaregs[10];
-        sum.xlny = sigmaregs[11];
-        sum.ylnx = sigmaregs[12];
-    }
     return ERR_NONE;
 }
 
@@ -1988,7 +2012,8 @@ int docmd_to_oct(arg_struct *arg) {
     return ERR_NONE;
 }
 
-static void accum(phloat *sum, phloat term, int weight) {
+static void accum(void *sigmaregs, bool regs_is_matrix, int idx, phloat term, int weight) {
+    phloat *sum = regs_is_matrix ? ((phloat *) sigmaregs) + idx : &((vartype_real **) sigmaregs)[idx]->x;
     int inf;
     phloat s;
     if (weight == 1)
@@ -2000,38 +2025,37 @@ static void accum(phloat *sum, phloat term, int weight) {
     *sum = s;
 }
 
-static phloat sigma_helper_2(phloat *sigmaregs,
-                             phloat x, phloat y, int weight) {
+static phloat sigma_helper_2(void *sigmaregs, bool regs_is_matrix, phloat x, phloat y, int weight) {
 
-    accum(&sigmaregs[0], x, weight);
-    accum(&sigmaregs[1], x * x, weight);
-    accum(&sigmaregs[2], y, weight);
-    accum(&sigmaregs[3], y * y, weight);
-    accum(&sigmaregs[4], x * y, weight);
-    accum(&sigmaregs[5], 1, weight);
+    accum(sigmaregs, regs_is_matrix, 0, x, weight);
+    accum(sigmaregs, regs_is_matrix, 1, x * x, weight);
+    accum(sigmaregs, regs_is_matrix, 2, y, weight);
+    accum(sigmaregs, regs_is_matrix, 3, y * y, weight);
+    accum(sigmaregs, regs_is_matrix, 4, x * y, weight);
+    accum(sigmaregs, regs_is_matrix, 5, 1, weight);
 
     if (flags.f.all_sigma) {
         if (x > 0) {
             phloat lnx = log(x);
             if (y > 0) {
                 phloat lny = log(y);
-                accum(&sigmaregs[8], lny, weight);
-                accum(&sigmaregs[9], lny * lny, weight);
-                accum(&sigmaregs[10], lnx * lny, weight);
-                accum(&sigmaregs[11], x * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 8, lny, weight);
+                accum(sigmaregs, regs_is_matrix, 9, lny * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 10, lnx * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 11, x * lny, weight);
             } else {
                 flags.f.exp_fit_invalid = 1;
                 flags.f.pwr_fit_invalid = 1;
             }
-            accum(&sigmaregs[6], lnx, weight);
-            accum(&sigmaregs[7], lnx * lnx, weight);
-            accum(&sigmaregs[12], lnx * y, weight);
+            accum(sigmaregs, regs_is_matrix, 6, lnx, weight);
+            accum(sigmaregs, regs_is_matrix, 7, lnx * lnx, weight);
+            accum(sigmaregs, regs_is_matrix, 12, lnx * y, weight);
         } else {
             if (y > 0) {
                 phloat lny = log(y);
-                accum(&sigmaregs[8], lny, weight);
-                accum(&sigmaregs[9], lny * lny, weight);
-                accum(&sigmaregs[11], x * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 8, lny, weight);
+                accum(sigmaregs, regs_is_matrix, 9, lny * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 11, x * lny, weight);
             } else
                 flags.f.exp_fit_invalid = 1;
             flags.f.log_fit_invalid = 1;
@@ -2043,29 +2067,45 @@ static phloat sigma_helper_2(phloat *sigmaregs,
         flags.f.pwr_fit_invalid = 1;
     }
 
-    return sigmaregs[5];
+    return regs_is_matrix ? ((phloat *) sigmaregs)[5] : ((vartype_real **) sigmaregs)[5]->x;
 }
 
 static int sigma_helper_1(int weight) {
     /* Check if summation registers are OK */
     int4 first = mode_sigma_reg;
     int4 last = first + (flags.f.all_sigma ? 13 : 6);
-    int4 size, i;
     vartype *regs = recall_var("REGS", 4);
-    vartype_realmatrix *r;
-    phloat *sigmaregs;
     if (regs == NULL)
         return ERR_SIZE_ERROR;
-    if (regs->type != TYPE_REALMATRIX)
+    bool regs_is_matrix;
+    void *sigmaregs;
+    if (regs->type == TYPE_REALMATRIX)
+        regs_is_matrix = true;
+    else if (regs->type == TYPE_LIST)
+        regs_is_matrix = false;
+    else
         return ERR_INVALID_TYPE;
-    r = (vartype_realmatrix *) regs;
-    size = r->rows * r->columns;
-    if (last > size)
-        return ERR_SIZE_ERROR;
-    for (i = first; i < last; i++)
-        if (r->array->is_string[i] != 0)
-            return ERR_ALPHA_DATA_IS_INVALID;
-    sigmaregs = r->array->data + first;
+    if (regs_is_matrix) {
+        vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+        int4 size = rm->rows * rm->columns;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++)
+            if (rm->array->is_string[i] != 0)
+                return ERR_ALPHA_DATA_IS_INVALID;
+        sigmaregs = rm->array->data + first;
+    } else {
+        vartype_list *list = (vartype_list *) regs;
+        int4 size = list->size;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++) {
+            int type = list->array->data[i]->type;
+            if (type != TYPE_REAL)
+                return type == TYPE_STRING ? ERR_ALPHA_DATA_IS_INVALID : ERR_INVALID_TYPE;
+        }
+        sigmaregs = list->array->data + first;
+    }
 
     /* All summation registers present, real-valued, non-string. */
     if (stack[sp]->type == TYPE_REALMATRIX) {
@@ -2081,10 +2121,10 @@ static int sigma_helper_1(int weight) {
         if (x == NULL)
             return ERR_INSUFFICIENT_MEMORY;
         for (i = 0; i < rm->rows; i++)
-            x->x = sigma_helper_2(sigmaregs,
-                                    rm->array->data[i * 2],
-                                    rm->array->data[i * 2 + 1],
-                                    weight);
+            x->x = sigma_helper_2(sigmaregs, regs_is_matrix,
+                                  rm->array->data[i * 2],
+                                  rm->array->data[i * 2 + 1],
+                                  weight);
         free_vartype(lastx);
         lastx = stack[sp];
         stack[sp] = (vartype *) x;
@@ -2097,10 +2137,10 @@ static int sigma_helper_1(int weight) {
             if (x == NULL)
                 return ERR_INSUFFICIENT_MEMORY;
             phloat y = sp == 0 ? 0 : ((vartype_real *) stack[sp - 1])->x;
-            x->x = sigma_helper_2(sigmaregs,
-                                    ((vartype_real *) stack[sp])->x,
-                                    y,
-                                    weight);
+            x->x = sigma_helper_2(sigmaregs, regs_is_matrix,
+                                  ((vartype_real *) stack[sp])->x,
+                                  y,
+                                  weight);
             free_vartype(lastx);
             lastx = stack[sp];
             stack[sp] = (vartype *) x;

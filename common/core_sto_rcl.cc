@@ -123,7 +123,7 @@ int generic_rcl(arg_struct *arg, vartype **dst) {
             } else {
                 /* This should never happen; STO should prevent
                  * "REGS" from being any other type than a real or
-                 * complex matrix.
+                 * complex matrix or a list.
                  */
                 return ERR_INTERNAL_ERROR;
             }
@@ -380,7 +380,7 @@ int generic_sto(arg_struct *arg, char operation) {
             } else {
                 /* This should never happen; STO should prevent
                  * "REGS" from being any other type than a real or
-                 * complex matrix.
+                 * complex matrix or a list.
                  */
                 return ERR_INTERNAL_ERROR;
             }

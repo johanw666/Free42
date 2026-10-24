@@ -906,7 +906,7 @@ int docmd_clrg(arg_struct *arg) {
         return ERR_NONE;
     } else {
         /* Should not happen; STO does not allow anything other
-         * than a matrix to be stored in 'REGS'.
+         * than matrices or lists to be stored in 'REGS'.
          */
         return ERR_INTERNAL_ERROR;
     }
