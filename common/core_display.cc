@@ -2123,6 +2123,17 @@ void show() {
                 draw_string(4, 1, buf, bufptr);
                 break;
             }
+            case TYPE_LIST: {
+                vartype_list *list = (vartype_list *) rx;
+                bufptr = vartype2string(rx, buf, 22);
+                draw_string(0, 0, buf, bufptr);
+                if (list->size > 0) {
+                    draw_string(0, 1, "1=", 2);
+                    bufptr = vartype2string(list->array->data[0], buf, 20);
+                    draw_string(2, 1, buf, bufptr);
+                }
+                break;
+            }
         }
     }
     flush_display();
