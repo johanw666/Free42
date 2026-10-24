@@ -133,6 +133,8 @@ bool purge_var(const char *name, int namelength, bool global = true, bool local 
 void purge_all_vars();
 bool vars_exist(int section);
 bool contains_strings(const vartype_realmatrix *rm);
+bool is_real(vartype *v, bool *str, bool allow_list = true);
+bool is_complex(vartype *v, bool *str, bool allow_list = true);
 int matrix_copy(vartype *dst, const vartype *src);
 vartype *recall_private_var(const char *name, int namelength);
 vartype *recall_private_var_from_level(const char *name, int namelength, int level);

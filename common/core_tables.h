@@ -631,7 +631,8 @@ struct command_spec {
     unsigned char code2;
     unsigned char name_length;
     unsigned char argtype;
-    signed char argcount;
+    signed char argcount : 7;
+    bool listable : 1;
     unsigned char rttypes;
 };
 
