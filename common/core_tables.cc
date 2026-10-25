@@ -285,13 +285,13 @@ const command_spec cmd_array[] =
     { /* BST */         NULL,              "BST",                 0x40, 0x00, 0x00, 0x00,  3, ARG_NONE,   0, 0, NA_T },
     { /* CORR */        docmd_corr,        "CORR",                0x00, 0x00, 0xa0, 0xa7,  4, ARG_NONE,   0, 0, NA_T },
     { /* COSH */        docmd_cosh,        "COSH",                0x00, 0x00, 0xa0, 0x62,  4, ARG_NONE,   1, 1, 0x0f },
-    { /* CROSS */       docmd_cross,       "CROSS",               0x00, 0x00, 0xa6, 0xca,  5, ARG_NONE,   2, 0, FUNC },
+    { /* CROSS */       docmd_cross,       "CROSS",               0x00, 0x00, 0xa6, 0xca,  5, ARG_NONE,   2, 1, FUNC },
     { /* CUSTOM */      docmd_custom,      "CUST\317\315",        0x00, 0x00, 0xa2, 0x6f,  6, ARG_NONE,   0, 0, NA_T },
     { /* DECM */        docmd_decm,        "DECM",                0x00, 0x00, 0xa0, 0xe3,  4, ARG_NONE,   0, 0, NA_T },
     { /* DELR */        docmd_delr,        "DELR",                0x00, 0x00, 0xa0, 0xab,  4, ARG_NONE,   0, 0, NA_T },
-    { /* DET */         docmd_det,         "DET",                 0x00, 0x00, 0xa6, 0xcc,  3, ARG_NONE,   1, 0, 0x0c },
+    { /* DET */         docmd_det,         "DET",                 0x00, 0x00, 0xa6, 0xcc,  3, ARG_NONE,   1, 1, 0x0c },
     { /* DIM */         docmd_dim,         "DIM",                 0x00, 0xc4, 0xf2, 0xec,  3, ARG_MAT,    2, 0, 0x01 },
-    { /* DOT */         docmd_dot,         "DOT",                 0x00, 0x00, 0xa6, 0xcb,  3, ARG_NONE,   2, 0, FUNC },
+    { /* DOT */         docmd_dot,         "DOT",                 0x00, 0x00, 0xa6, 0xcb,  3, ARG_NONE,   2, 1, FUNC },
     { /* EDIT */        docmd_edit,        "EDIT",                0x00, 0x00, 0xa6, 0xe1,  4, ARG_NONE,   1, 0, FUNC },
     { /* EDITN */       docmd_editn,       "EDITN",               0x00, 0xc6, 0xf2, 0xef,  5, ARG_MAT,    0, 0, NA_T },
     { /* EXITALL */     docmd_exitall,     "EXITA\314\314",       0x00, 0x00, 0xa2, 0x6c,  7, ARG_NONE,   0, 0, NA_T },
@@ -299,7 +299,7 @@ const command_spec cmd_array[] =
     { /* E_POW_X_1 */   docmd_e_pow_x_1,   "E^X-\261",            0x00, 0x00, 0x00, 0x58,  5, ARG_NONE,   1, 1, 0x05 },
     { /* FCSTX */       docmd_fcstx,       "FCSTX",               0x00, 0x00, 0xa0, 0xa8,  5, ARG_NONE,   1, 1, FUNC },
     { /* FCSTY */       docmd_fcsty,       "FCSTY",               0x00, 0x00, 0xa0, 0xa9,  5, ARG_NONE,   1, 1, FUNC },
-    { /* FNRM */        docmd_fnrm,        "FNRM",                0x00, 0x00, 0xa6, 0xcf,  4, ARG_NONE,   1, 0, 0x0c },
+    { /* FNRM */        docmd_fnrm,        "FNRM",                0x00, 0x00, 0xa6, 0xcf,  4, ARG_NONE,   1, 1, 0x0c },
     { /* GETM */        docmd_getm,        "GETM",                0x00, 0x00, 0xa6, 0xe8,  4, ARG_NONE,   2, 0, FUNC },
     { /* GROW */        docmd_grow,        "GROW",                0x00, 0x00, 0xa6, 0xe3,  4, ARG_NONE,   0, 0, NA_T },
     { /* HEXM */        docmd_hexm,        "HEXM",                0x00, 0x00, 0xa0, 0xe2,  4, ARG_NONE,   0, 0, NA_T },
@@ -310,7 +310,7 @@ const command_spec cmd_array[] =
     { /* INDEX */       docmd_index,       "INDEX",               0x00, 0x87, 0xf2, 0xda,  5, ARG_MAT,    0, 0, NA_T },
     { /* INSR */        docmd_insr,        "INSR",                0x00, 0x00, 0xa0, 0xaa,  4, ARG_NONE,   0, 0, NA_T },
     { /* INTEG */       docmd_integ,       "INTEG",               0x00, 0xb6, 0xf2, 0xea,  5, ARG_RVAR,   0, 0, NA_T },
-    { /* INVRT */       docmd_invrt,       "INV\322\324",         0x00, 0x00, 0xa6, 0xce,  5, ARG_NONE,   1, 0, 0x0c },
+    { /* INVRT */       docmd_invrt,       "INV\322\324",         0x00, 0x00, 0xa6, 0xce,  5, ARG_NONE,   1, 1, 0x0c },
     { /* J_ADD */       docmd_j_add,       "J+",                  0x00, 0x00, 0xa6, 0xd4,  2, ARG_NONE,   0, 0, NA_T },
     { /* J_SUB */       docmd_j_sub,       "J-",                  0x00, 0x00, 0xa6, 0xd5,  2, ARG_NONE,   0, 0, NA_T },
     { /* LINF */        docmd_linf,        "LINF",                0x00, 0x00, 0xa0, 0xa1,  4, ARG_NONE,   0, 0, NA_T },
@@ -329,9 +329,9 @@ const command_spec cmd_array[] =
     { /* PWRF */        docmd_pwrf,        "PWRF",                0x00, 0x00, 0xa0, 0xa3,  4, ARG_NONE,   0, 0, NA_T },
     { /* RCLEL */       docmd_rclel,       "RCLEL",               0x00, 0x00, 0xa6, 0xd7,  5, ARG_NONE,   0, 0, NA_T },
     { /* RCLIJ */       docmd_rclij,       "RCLIJ",               0x00, 0x00, 0xa6, 0xd9,  5, ARG_NONE,   0, 0, NA_T },
-    { /* RNRM */        docmd_rnrm,        "RNRM",                0x00, 0x00, 0xa6, 0xed,  4, ARG_NONE,   1, 0, 0x0c },
+    { /* RNRM */        docmd_rnrm,        "RNRM",                0x00, 0x00, 0xa6, 0xed,  4, ARG_NONE,   1, 1, 0x0c },
     { /* ROTXY */       docmd_rotxy,       "ROTXY",               0x00, 0x00, 0xa5, 0x8b,  5, ARG_NONE,   2, 1, 0x01 },
-    { /* RSUM */        docmd_rsum,        "RSUM",                0x00, 0x00, 0xa6, 0xd0,  4, ARG_NONE,   1, 0, 0x0c },
+    { /* RSUM */        docmd_rsum,        "RSUM",                0x00, 0x00, 0xa6, 0xd0,  4, ARG_NONE,   1, 1, 0x0c },
     { /* SWAP_R */      docmd_swap_r,      "R<>R",                0x00, 0x00, 0xa6, 0xd1,  4, ARG_NONE,   2, 0, FUNC },
     { /* SDEV */        docmd_sdev,        "SDEV",                0x00, 0x00, 0x00, 0x7d,  4, ARG_NONE,   0, 0, NA_T },
     { /* SINH */        docmd_sinh,        "SINH",                0x00, 0x00, 0xa0, 0x61,  4, ARG_NONE,   1, 1, 0x0f },
@@ -341,8 +341,8 @@ const command_spec cmd_array[] =
     { /* STOIJ */       docmd_stoij,       "STOIJ",               0x00, 0x00, 0xa6, 0xd8,  5, ARG_NONE,   2, 0, FUNC },
     { /* SUM */         docmd_sum,         "SUM",                 0x00, 0x00, 0xa0, 0xa5,  3, ARG_NONE,   0, 0, NA_T },
     { /* TANH */        docmd_tanh,        "TANH",                0x00, 0x00, 0xa0, 0x63,  4, ARG_NONE,   1, 1, 0x0f },
-    { /* TRANS */       docmd_trans,       "TRANS",               0x00, 0x00, 0xa6, 0xc9,  5, ARG_NONE,   1, 0, 0x0c },
-    { /* UVEC */        docmd_uvec,        "UVEC",                0x00, 0x00, 0xa6, 0xcd,  4, ARG_NONE,   1, 0, 0x06 },
+    { /* TRANS */       docmd_trans,       "TRANS",               0x00, 0x00, 0xa6, 0xc9,  5, ARG_NONE,   1, 1, 0x0c },
+    { /* UVEC */        docmd_uvec,        "UVEC",                0x00, 0x00, 0xa6, 0xcd,  4, ARG_NONE,   1, 1, 0x06 },
     { /* WMEAN */       docmd_wmean,       "WM\305\301N",         0x00, 0x00, 0xa0, 0xac,  5, ARG_NONE,   0, 0, NA_T },
     { /* WRAP */        docmd_wrap,        "WRAP",                0x00, 0x00, 0xa6, 0xe2,  4, ARG_NONE,   0, 0, NA_T },
     { /* X_SWAP */      docmd_x_swap,      "X<>",                 0x00, 0x86, 0x00, 0xce,  3, ARG_VAR,    1, 0, ALLT },
@@ -945,14 +945,47 @@ XROM         A[0-7] nn (bits 2-0 of byte 1 plus bits 7-6 of byte 2 are the ROM
 ===============================================================================
 */
 
-struct stack_saver {
+struct listify_data;
+
+static listify_data *listifier = NULL;
+
+static int listify_worker(bool interrupted);
+
+
+struct listify_data {
     vartype *saved_0;
     vartype *saved_1;
     vartype *saved_lastx;
     int saved_sp;
     bool saved_nstk;
+    bool saved_norm_print;
+    bool saved_trace_print;
+    vartype *a, *b;
+    vartype_list *la, *lb, *r;
+    int cmd;
+    arg_struct arg;
+    int4 size, i;
+    int (*saved_interruptible)(bool);
 
-    stack_saver(int levels) {
+    bool init(int cmd, vartype *a, vartype *b) {
+        this->cmd = cmd;
+        this->a = a;
+        this->b = b;
+        this->la = a->type == TYPE_LIST ? (vartype_list *) a : NULL;
+        this->lb = b->type == TYPE_LIST ? (vartype_list *) b : NULL;
+        size = la != NULL ? la->size : lb->size;
+        i = 0;
+        arg.type = ARGTYPE_NONE;
+        saved_interruptible = NULL;
+
+        r = (vartype_list *) new_list(size);
+        if (r == NULL)
+            return false;
+        save_stack(b == NULL ? 1 : 2);
+        return true;
+    }
+
+    void save_stack(int levels) {
         if (sp >= 0) {
             saved_0 = stack[0];
             stack[0] = NULL;
@@ -969,8 +1002,62 @@ struct stack_saver {
         lastx = NULL;
         saved_nstk = flags.f.big_stack;
         flags.f.big_stack = 1;
+        saved_norm_print = flags.f.normal_print;
+        flags.f.normal_print = 0;
+        saved_trace_print = flags.f.trace_print;
+        flags.f.trace_print = 0;
     }
-    ~stack_saver() {
+
+    int step() {
+        if (b == NULL) {
+            stack[0] = la->array->data[i];
+            sp = 0;
+        } else {
+            stack[0] = dup_vartype(lb != NULL ? lb->array->data[i] : b);
+            if (stack[0] == NULL)
+                return ERR_INSUFFICIENT_MEMORY;
+            stack[1] = la != NULL ? la->array->data[i] : a;
+            sp = 1;
+        }
+        lastx = NULL;
+        int err = handle(cmd, &arg);
+        if (err == ERR_INTERRUPTIBLE) {
+            saved_interruptible = mode_interruptible;
+            mode_interruptible = listify_worker;
+            return ERR_INTERRUPTIBLE;
+        }
+        if (err == ERR_NONE)
+            r->array->data[i++] = stack[0];
+        else if (b != NULL)
+            free_vartype(stack[0]);
+        return err;
+    }
+
+    int work(bool interrupted) {
+        int err = ERR_NONE;
+        if (saved_interruptible != NULL) {
+            err = saved_interruptible(interrupted);
+            if (err == ERR_INTERRUPTIBLE)
+                return ERR_INTERRUPTIBLE;
+            saved_interruptible = NULL;
+            if (err != ERR_NONE) {
+                if (b != NULL)
+                    free_vartype(stack[0]);
+                return finish(err);
+            }
+            r->array->data[i++] = stack[0];
+        }
+        while (i < size) {
+            err = step();
+            if (err == ERR_INTERRUPTIBLE)
+                return ERR_INTERRUPTIBLE;
+            if (err != ERR_NONE)
+                break;
+        }
+        return finish(err);
+    }
+
+    void restore_stack() {
         sp = saved_sp;
         if (saved_0 != NULL)
             stack[0] = saved_0;
@@ -978,75 +1065,70 @@ struct stack_saver {
             stack[1] = saved_1;
         lastx = saved_lastx;
         flags.f.big_stack = saved_nstk;
+        flags.f.normal_print = saved_norm_print;
+        flags.f.trace_print = saved_trace_print;
+    }
+
+    int finish(int err) {
+        vartype *res;
+        if (err == ERR_NONE)
+            res = (vartype *) r;
+        else
+            free_vartype((vartype *) r);
+        bool unary = b == NULL;
+        restore_stack();
+        free(listifier); // i.e. free(this) !
+        listifier = NULL;
+        if (err == ERR_NONE)
+            if (unary)
+                unary_result(res);
+            else
+                return binary_result(res);
+        return err;
     }
 };
+
+static int listify_worker(bool interrupted) {
+    return listifier->work(interrupted);
+}
 
 static int listify(int cmd, vartype *a, vartype *b) {
     const command_spec *cmdspec = cmd_array + cmd;
     if (!cmdspec->listable || cmdspec->argcount != 1 && cmdspec->argcount != 2)
         return ERR_INTERNAL_ERROR;
-    arg_struct arg;
-    arg.type = ARGTYPE_NONE;
-    vartype_list *r = NULL;
 
     if (cmd_array[cmd].argcount == 1) {
         if (a->type != TYPE_LIST)
             return ERR_INTERNAL_ERROR;
-        vartype_list *la = (vartype_list *) a;
-        r = (vartype_list *) new_list(la->size);
-        if (r == NULL)
-            return ERR_INSUFFICIENT_MEMORY;
-        if (true) {
-            stack_saver saver(1);
-            for (int4 i = 0; i < la->size; i++) {
-                stack[0] = la->array->data[i];
-                sp = 0;
-                lastx = NULL;
-                int err = handle(cmd, &arg);
-                if (err != ERR_NONE) {
-                    free_vartype((vartype *) r);
-                    return err;
-                }
-                r->array->data[i] = stack[0];
-            }
-        }
-        unary_result((vartype *) r);
-        return ERR_NONE;
+    } else {
+        bool a_list = a->type == TYPE_LIST;
+        bool b_list = b->type == TYPE_LIST;
+        if (!a_list && !b_list)
+            return ERR_INTERNAL_ERROR;
+        vartype_list *la = a_list ? (vartype_list *) a : NULL;
+        vartype_list *lb = b_list ? (vartype_list *) b : NULL;
+        if (a_list && b_list && la->size != lb->size)
+            return ERR_DIMENSION_ERROR;
     }
 
-    bool a_list = a->type == TYPE_LIST;
-    bool b_list = b->type == TYPE_LIST;
-    if (!a_list && !b_list)
-        return ERR_INTERNAL_ERROR;
-    vartype_list *la = a_list ? (vartype_list *) a : NULL;
-    vartype_list *lb = b_list ? (vartype_list *) b : NULL;
-    if (a_list && b_list && la->size != lb->size)
-        return ERR_DIMENSION_ERROR;
-    int4 sz = a_list ? la->size : lb->size;
-    r = (vartype_list *) new_list(sz);
-    if (r == NULL)
+    listifier = (listify_data *) malloc(sizeof(listify_data));
+    if (listifier == NULL)
         return ERR_INSUFFICIENT_MEMORY;
-    if (true) {
-        stack_saver saver(2);
-        for (int4 i = 0; i < sz; i++) {
-            stack[0] = dup_vartype(b_list ? lb->array->data[i] : b);
-            if (stack[0] == NULL) {
-                free_vartype((vartype *) r);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            stack[1] = a_list ? la->array->data[i] : a;
-            lastx = NULL;
-            sp = 1;
-            int err = handle(cmd, &arg);
-            if (err != ERR_NONE) {
-                free_vartype(stack[0]);
-                free_vartype((vartype *) r);
-                return err;
-            }
-            r->array->data[i] = stack[0];
-        }
+    if (!listifier->init(cmd, a, b)) {
+        free(listifier);
+        listifier = NULL;
+        return ERR_INSUFFICIENT_MEMORY;
     }
-    return binary_result((vartype *) r);
+
+    int err = ERR_NONE;
+    while (listifier->i < listifier->size) {
+        err = listifier->step();
+        if (err == ERR_INTERRUPTIBLE)
+            return ERR_INTERRUPTIBLE;
+        if (err != ERR_NONE)
+            break;
+    }
+    return listifier->finish(err);
 }
 
 int handle(int cmd, arg_struct *arg) {
