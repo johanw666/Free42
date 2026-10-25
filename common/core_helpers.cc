@@ -2041,7 +2041,7 @@ int ip2revstring(phloat d, char *buf, int buflen) {
     return bufpos;
 }
 
-int matedit_get(vartype **res) {
+int matedit_get(vartype **res, bool dsntngl) {
     if (matedit_mode == 0)
         return ERR_NONEXISTENT;
 
@@ -2067,6 +2067,10 @@ int matedit_get(vartype **res) {
             leave_matrix_editor();
         return err;
     }
+    if (dsntngl && !disentangle(m)) {
+        err = ERR_INSUFFICIENT_MEMORY;
+        goto bad_matrix;
+    }
 
     for (int i = 0; i < matedit_stack_depth; i++) {
         if (m->type != TYPE_LIST) {
@@ -2079,6 +2083,10 @@ int matedit_get(vartype **res) {
             goto bad_matrix;
         }
         m = list->array->data[matedit_stack[i]];
+        if (dsntngl && !disentangle(m)) {
+            err = ERR_INSUFFICIENT_MEMORY;
+            goto bad_matrix;
+        }
     }
 
     if (m->type != TYPE_REALMATRIX && m->type != TYPE_COMPLEXMATRIX && m->type != TYPE_LIST) {
