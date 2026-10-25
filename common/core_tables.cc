@@ -972,7 +972,7 @@ struct listify_data {
         this->a = a;
         this->b = b;
         this->la = a->type == TYPE_LIST ? (vartype_list *) a : NULL;
-        this->lb = b->type == TYPE_LIST ? (vartype_list *) b : NULL;
+        this->lb = b != NULL && b->type == TYPE_LIST ? (vartype_list *) b : NULL;
         size = la != NULL ? la->size : lb->size;
         i = 0;
         arg.type = ARGTYPE_NONE;
