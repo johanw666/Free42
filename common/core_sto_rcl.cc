@@ -170,6 +170,10 @@ static int generic_sto_completion(int error, vartype *res) {
     if (temp_arg.type == ARGTYPE_NUM) {
         // REGS is a list
         vartype_list *regs = (vartype_list *) recall_var("REGS", 4);
+        if (!disentangle((vartype *) regs)) {
+            free_vartype(res);
+            return ERR_INSUFFICIENT_MEMORY;
+        }
         free_vartype(regs->array->data[temp_arg.val.num]);
         regs->array->data[temp_arg.val.num] = res;
     } else if (temp_arg.type == ARGTYPE_STK) {
@@ -367,6 +371,8 @@ int generic_sto(arg_struct *arg, char operation) {
                 if (num >= size)
                     return ERR_SIZE_ERROR;
                 if (operation == 0) {
+                    if (!disentangle(regs))
+                        return ERR_INSUFFICIENT_MEMORY;
                     vartype *v = dup_vartype(stack[sp]);
                     if (v == NULL)
                         return ERR_INSUFFICIENT_MEMORY;

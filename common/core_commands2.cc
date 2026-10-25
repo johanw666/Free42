@@ -732,9 +732,12 @@ static int generic_loop(arg_struct *arg, bool isg) {
                 if (index >= size)
                     return ERR_SIZE_ERROR;
                 vartype *v = list->array->data[index];
-                if (v->type == TYPE_REAL)
+                if (v->type == TYPE_REAL) {
+                    if (!disentangle(regs))
+                        return ERR_INSUFFICIENT_MEMORY;
+                    v = list->array->data[index];
                     return generic_loop_helper(&((vartype_real *) v)->x, isg);
-                else if (v->type == TYPE_STRING)
+                } else if (v->type == TYPE_STRING)
                     return ERR_ALPHA_DATA_IS_INVALID;
                 else
                     return ERR_INVALID_TYPE;

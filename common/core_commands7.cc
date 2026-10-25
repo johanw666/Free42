@@ -2083,6 +2083,8 @@ int docmd_head(arg_struct *arg) {
                 int n = arg->val.num;
                 if (n >= sz)
                     return ERR_SIZE_ERROR;
+                if (!disentangle(regs))
+                    return ERR_INSUFFICIENT_MEMORY;
                 s = list->array->data[n];
                 goto doit;
             } else
