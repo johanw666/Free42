@@ -306,7 +306,8 @@ static bool core_keydown_2(int key, bool *enqueued, int *repeat) {
             int menuid = get_front_menu();
             if (menuid == MENU_TOP_FCN || menuid == MENU_PGM_FCN1 || menuid == MENU_STAT1
                     || menuid == MENU_BASE2 || menuid == MENU_BASE3
-                    || menuid == MENU_CUSTOM1 || menuid == MENU_CUSTOM2 || menuid == MENU_CUSTOM3)
+                    || menuid == MENU_CUSTOM1 || menuid == MENU_CUSTOM2 || menuid == MENU_CUSTOM3
+                    || menuid == MENU_PROGRAMMABLE)
                 redisplay();
         }
         return (mode_running && !mode_getkey && !mode_pause) || keybuf_head != keybuf_tail;
@@ -1050,28 +1051,15 @@ static void export_hp42s(int index) {
                     cmdbuf[cmdlen++] = 0xf0 + arg.length;
                     for (i = 0; i < arg.length; i++)
                         cmdbuf[cmdlen++] = arg.val.text[i];
-                } else if (cmd >= CMD_ASGN01 && cmd <= CMD_ASGN18) {
-                    if (arg.type == ARGTYPE_STR) {
-                        cmdbuf[cmdlen++] = 0xf2 + arg.length;
-                        cmdbuf[cmdlen++] = (char) 0xc0;
-                        for (i = 0; i < arg.length; i++)
-                            cmdbuf[cmdlen++] = arg.val.text[i];
-                    } else {
-                        /* arg.type == ARGTYPE_COMMAND; we don't use that
-                         * any more, but just to be safe (in case anyone ever
-                         * actually used this in a program), we handle it
-                         * anyway.
-                         */
-                        const command_spec *cs = &cmd_array[arg.val.cmd];
-                        cmdbuf[cmdlen++] = 0xf2 + cs->name_length;
-                        cmdbuf[cmdlen++] = (char) 0xc0;
-                        for (i = 0; i < cs->name_length; i++)
-                            cmdbuf[cmdlen++] = cs->name[i];
-                    }
+                } else if (cmd >= CMD_ASGN01 && cmd <= CMD_ASGNn18) {
+                    cmdbuf[cmdlen++] = 0xf2 + arg.length;
+                    cmdbuf[cmdlen++] = (char) 0xc0;
+                    for (i = 0; i < arg.length; i++)
+                        cmdbuf[cmdlen++] = arg.val.text[i];
                     cmdbuf[cmdlen++] = cmd - CMD_ASGN01;
-                } else if ((cmd >= CMD_KEY1G && cmd <= CMD_KEY9G)
-                            || (cmd >= CMD_KEY1X && cmd <= CMD_KEY9X)) {
-                    int keyg = cmd <= CMD_KEY9G;
+                } else if ((cmd >= CMD_KEY1G && cmd <= CMD_KEYn6G)
+                            || (cmd >= CMD_KEY1X && cmd <= CMD_KEYn6X)) {
+                    int keyg = cmd <= CMD_KEYn6G;
                     int keynum = cmd - (keyg ? CMD_KEY1G : CMD_KEY1X) + 1;
                     if (arg.type == ARGTYPE_STR || arg.type == ARGTYPE_IND_STR){
                         cmdbuf[cmdlen++] = 0xf2 + arg.length;
@@ -1194,8 +1182,7 @@ static void export_hp42s(int index) {
                              * which is converted to ARGTYPE_NUM by
                              * get_next_command(); ARGTYPE_DOUBLE, which only
                              * occurs with CMD_NUMBER, which is handled in the
-                             * special-case section, above; ARGTYPE_COMMAND,
-                             * which is handled in the special-case section;
+                             * special-case section, above;
                              * and ARGTYPE_LBLINDEX, which is converted to
                              * ARGTYPE_STR before being stored in a program.
                              */
@@ -1301,18 +1288,10 @@ int4 core_program_size(int prgm_index) {
                     size += (int4) strlen(p) + 1;
                 } else if (cmd == CMD_STRING) {
                     size += arg.length + 1;
-                } else if (cmd >= CMD_ASGN01 && cmd <= CMD_ASGN18) {
-                    if (arg.type == ARGTYPE_STR)
-                        size += arg.length + 3;
-                    else
-                        /* arg.type == ARGTYPE_COMMAND; we don't use that
-                         * any more, but just to be safe (in case anyone ever
-                         * actually used this in a program), we handle it
-                         * anyway.
-                         */
-                        size += cmd_array[arg.val.cmd].name_length + 3;
-                } else if ((cmd >= CMD_KEY1G && cmd <= CMD_KEY9G)
-                            || (cmd >= CMD_KEY1X && cmd <= CMD_KEY9X)) {
+                } else if (cmd >= CMD_ASGN01 && cmd <= CMD_ASGNn18) {
+                    size += arg.length + 3;
+                } else if ((cmd >= CMD_KEY1G && cmd <= CMD_KEYn6G)
+                            || (cmd >= CMD_KEY1X && cmd <= CMD_KEYn6X)) {
                     if (arg.type == ARGTYPE_STR || arg.type == ARGTYPE_IND_STR)
                         size += arg.length + 3;
                     else
@@ -2095,12 +2074,12 @@ static void decode_suffix(int cmd, int suffix, arg_struct *arg) {
     bool ind = (suffix & 0x80) != 0;
     suffix &= 0x7f;
     if (!ind && (cmd == CMD_LBL || cmd == CMD_GTO || cmd == CMD_XEQ
-                || cmd >= CMD_KEY1G && cmd <= CMD_KEY9X)
+                || cmd >= CMD_KEY1G && cmd <= CMD_KEYn6X)
             && suffix >= 102 && suffix <= 111) {
         arg->type = ARGTYPE_LCLBL;
         arg->val.lclbl = 'A' + (suffix - 102);
     } else if (!ind && (cmd == CMD_LBL || cmd == CMD_GTO || cmd == CMD_XEQ
-                || cmd >= CMD_KEY1G && cmd <= CMD_KEY9X)
+                || cmd >= CMD_KEY1G && cmd <= CMD_KEYn6X)
             && suffix >= 123) {
         arg->type = ARGTYPE_LCLBL;
         arg->val.lclbl = 'a' + (suffix - 123);
@@ -2150,11 +2129,12 @@ static void decode_string(unsigned char *buf, int *cmd, arg_struct *arg, char **
         if (assign) {
             assign = false;
             int key = buf[pos++];
-            if (key > 17) {
+            if (key > 35) {
                 /* Bad assign... Fix the command to the string
                  * it would have been if I had known this
                  * earlier.
                  */
+                *cmd = CMD_STRING;
                 for (i = arg->length; i > 0; i--)
                     arg->val.text[i] = arg->val.text[i - 1];
                 arg->val.text[0] = (char) 0xc0;
@@ -2237,7 +2217,7 @@ static void decode_string(unsigned char *buf, int *cmd, arg_struct *arg, char **
                 *cmd = byte2 == 0xc2 || byte2 == 0xca
                         ? CMD_KEY1X : CMD_KEY1G;
                 key = buf[pos++];
-                if (key < 1 || key > 9) {
+                if (key < 1 || key > 15) {
                     /* Treat as plain string. Alas, it is
                      * not safe to back up 2 positions, so
                      * I do the whole thing here.
@@ -2262,7 +2242,7 @@ static void decode_string(unsigned char *buf, int *cmd, arg_struct *arg, char **
                 if (byte1 != 0xf3)
                     goto xrom_string;
                 key = buf[pos++];
-                if (key < 1 || key > 9)
+                if (key < 1 || key > 15)
                     goto bad_keyg_keyx;
                 *cmd = byte2 == 0xe2 ? CMD_KEY1X : CMD_KEY1G;
                 *cmd += key - 1;
@@ -3846,7 +3826,7 @@ static void paste_programs(const char *buf) {
                 arg.val.num = io;
                 goto store;
             } else if (cmd == CMD_ASSIGNa) {
-                // What we're looking for is '".*"  *TO  *[0-9][0-9]'
+                // What we're looking for is '".*"  *TO  *-?[0-9][0-9]'
                 tok_end = hppos;
                 bool after_to = false;
                 int to_start;
@@ -3856,19 +3836,21 @@ static void paste_programs(const char *buf) {
                         goto line_done;
                     int len = tok_end - tok_start;
                     if (after_to) {
-                        if (len != 2 || !isdigit(hpbuf[tok_start])
-                                     || !isdigit(hpbuf[tok_start + 1])) {
+                        if (!((len == 2 || len == 3 && hpbuf[tok_start] == '-')
+                                    && isdigit(hpbuf[tok_end - 2])
+                                    && isdigit(hpbuf[tok_end - 1]))) {
                             after_to = string_equals(hpbuf + tok_start, len, "TO", 2);
                             if (after_to)
                                 to_start = tok_start;
                             continue;
                         }
                         after_to = false;
-                        sscanf(hpbuf + tok_start, "%02d", &keynum);
-                        if (keynum < 1 || keynum > 18)
+                        sscanf(hpbuf + tok_start, "%d", &keynum);
+                        if (keynum < -18 || keynum == 0 || keynum > 18)
                             continue;
-                        else
-                            break;
+                        if (keynum < 0)
+                            keynum = 18 - keynum;
+                        break;
                     } else {
                         after_to = string_equals(hpbuf + tok_start, len, "TO", 2);
                         if (after_to)
@@ -4083,17 +4065,28 @@ static void paste_programs(const char *buf) {
                 // KEY GTO or KEY XEQ
                 if (!nexttoken(hpbuf, cmd_end, hpend, &tok_start, &tok_end))
                     goto line_done;
-                if (tok_end - tok_start != 1)
+                int toklen = tok_end - tok_start;
+                if (toklen != 1 && toklen != 2)
                     goto line_done;
-                char c = hpbuf[tok_start];
-                if (c < '1' || c > '9')
-                    goto line_done;
+                int key;
+                if (toklen == 1) {
+                    key = hpbuf[tok_start] - '0';
+                    if (key < 1 || key > 9)
+                        goto line_done;
+                } else {
+                    if (hpbuf[tok_start] != '-')
+                        goto line_done;
+                    key = hpbuf[tok_start + 1] - '0';
+                    if (key < 1 || key > 6)
+                        goto line_done;
+                    key += 9;
+                }
                 if (!nexttoken(hpbuf, tok_end, hpend, &tok_start, &tok_end))
                     goto line_done;
                 if (string_equals(hpbuf + tok_start, tok_end - tok_start, "GTO", 3))
-                    cmd = CMD_KEY1G + c - '1';
+                    cmd = CMD_KEY1G + key - 1;
                 else if (string_equals(hpbuf + tok_start, tok_end - tok_start, "XEQ", 3))
-                    cmd = CMD_KEY1X + c - '1';
+                    cmd = CMD_KEY1X + key - 1;
                 else
                     goto line_done;
                 goto gto_or_xeq;
@@ -5262,7 +5255,7 @@ void finish_command_entry(bool refresh) {
         }
         if (pending_command == CMD_ASSIGNb
                 || (pending_command >= CMD_ASGN01
-                    && pending_command <= CMD_ASGN18)) {
+                    && pending_command <= CMD_ASGNn18)) {
             set_menu(MENULEVEL_PLAIN, mode_commandmenu);
             mode_plainmenu_sticky = true;
         }

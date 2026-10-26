@@ -879,7 +879,8 @@ void keydown_command_entry(int shift, int key) {
         int menukey = find_menu_key(key);
         if (menukey != -1) {
             pending_command = CMD_ASGN01 + menukey
-                            + 6 * (mode_commandmenu - MENU_CUSTOM1);
+                            + 6 * (mode_commandmenu - MENU_CUSTOM1)
+                            + 18 * shift;
             finish_command_entry(true);
         } else if (!shift && key == KEY_BSP) {
             pending_command = CMD_NULL;
@@ -902,29 +903,36 @@ void keydown_command_entry(int shift, int key) {
     /* And yet another oddity: KEYG and KEYX */
     if (incomplete_argtype == ARG_MKEY) {
         int cmd = incomplete_command == CMD_KEYG ? CMD_KEY1G : CMD_KEY1X;
-        if (shift) {
-            squeak();
-            return;
-        }
+        int keynum;
         switch (key) {
-            case KEY_SIGMA: case KEY_1: break;
-            case KEY_INV: case KEY_2: cmd++; break;
-            case KEY_SQRT: case KEY_3: cmd += 2; break;
-            case KEY_LOG: case KEY_4: cmd += 3; break;
-            case KEY_LN: case KEY_5: cmd += 4; break;
-            case KEY_XEQ: case KEY_6: cmd += 5; break;
-            case KEY_UP: case KEY_7: cmd += 6; break;
-            case KEY_DOWN: case KEY_8: cmd += 7; break;
-            case KEY_EXIT: case KEY_9: cmd += 8; break;
+            case KEY_SIGMA: case KEY_1: keynum = 0; break;
+            case KEY_INV: case KEY_2: keynum = 1; break;
+            case KEY_SQRT: case KEY_3: keynum = 2; break;
+            case KEY_LOG: case KEY_4: keynum = 3; break;
+            case KEY_LN: case KEY_5: keynum = 4; break;
+            case KEY_XEQ: case KEY_6: keynum = 5; break;
+            case KEY_UP: case KEY_7: keynum = 6; break;
+            case KEY_DOWN: case KEY_8: keynum = 7; break;
+            case KEY_EXIT: case KEY_9: keynum = 8; break;
             case KEY_BSP:
-                pending_command = CMD_NULL;
-                finish_command_entry(false);
-                return;
+                if (!shift) {
+                    pending_command = CMD_NULL;
+                    finish_command_entry(false);
+                    return;
+                }
+                /* fall through */
             default:
                 squeak();
                 return;
         }
-        start_incomplete_command(cmd);
+        if (shift) {
+            if (keynum >= 6) {
+                squeak();
+                return;
+            } else
+                keynum += 9;
+        }
+        start_incomplete_command(cmd + keynum);
         return;
     }
 
@@ -1066,7 +1074,7 @@ void keydown_command_entry(int shift, int key) {
                             || pending_command == CMD_XEQ
                             || pending_command == CMD_LBL
                             || (pending_command >= CMD_KEY1G
-                                && pending_command <= CMD_KEY9X))
+                                && pending_command <= CMD_KEYn6X))
                         && pending_command_arg.length == 1
                         && ((pending_command_arg.val.text[0] >= 'A'
                                 && pending_command_arg.val.text[0] <= 'J')
@@ -1447,10 +1455,10 @@ void keydown_command_entry(int shift, int key) {
                 incomplete_num /= 10;
                 if (incomplete_length == 0) {
                     if (incomplete_command >= CMD_KEY1G
-                            && incomplete_command <= CMD_KEY9X)
+                            && incomplete_command <= CMD_KEYn6X)
                         start_incomplete_command(
-                                incomplete_command <= CMD_KEY9G ? CMD_KEYG
-                                                                : CMD_KEYX);
+                                incomplete_command <= CMD_KEYn6G ? CMD_KEYG
+                                                                 : CMD_KEYX);
                     else if (incomplete_argtype == ARG_VAR)
                         if (mode_appmenu == MENU_VARMENU)
                             set_menu(MENULEVEL_COMMAND, MENU_VARMENU);
@@ -1651,12 +1659,12 @@ void keydown_command_entry(int shift, int key) {
 
         if (!shift && key == KEY_BSP) {
             if (incomplete_command >= CMD_KEY1G
-                    && incomplete_command <= CMD_KEY9X) {
+                    && incomplete_command <= CMD_KEYn6X) {
                 if (incomplete_length == 0) {
                     if (mode_commandmenu >= MENU_ALPHA1
                             && mode_commandmenu <= MENU_ALPHA_MISC2)
                         start_incomplete_command(
-                                incomplete_command <= CMD_KEY9G
+                                incomplete_command <= CMD_KEYn6G
                                         ? CMD_KEYG : CMD_KEYX);
                     else {
                         pending_command = CMD_NULL;
@@ -1868,7 +1876,7 @@ void keydown_command_entry(int shift, int key) {
                         || incomplete_command == CMD_XEQ
                         || incomplete_command == CMD_LBL
                         || (incomplete_command >= CMD_KEY1G
-                            && incomplete_command <= CMD_KEY9X))
+                            && incomplete_command <= CMD_KEYn6X))
                     && incomplete_length == 1
                     && ((incomplete_str[0] >= 'A'
                             && incomplete_str[0] <= 'J')
@@ -2325,7 +2333,7 @@ void keydown_normal_mode(int shift, int key) {
         if (menu == MENU_PROGRAMMABLE) {
             int keynum;
             if (menukey != -1)
-                keynum = menukey + 1;
+                keynum = menukey + 1 + 9 * shift;
             else if (!shift) {
                 switch (key) {
                     case KEY_UP: keynum = 7; break;
@@ -2460,7 +2468,7 @@ void keydown_normal_mode(int shift, int key) {
                     int keynum, length;
                     char name[7];
                     keynum = menukey + 6 * (menu - MENU_CUSTOM1) + 1;
-                    get_custom_key(keynum, name, &length);
+                    get_custom_key(keynum, shift, name, &length);
                     if (length == 0)
                         squeak();
                     else {

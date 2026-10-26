@@ -2039,16 +2039,7 @@ int docmd_dim_t(arg_struct *arg) {
 }
 
 static int assign_helper(int num, arg_struct *arg) {
-    if (arg->type == ARGTYPE_COMMAND) {
-        /* For backward compatibility only; we don't allow this type
-         * of assignment command to be created anymore, but we do want
-         * programs that already contain such commands to continue
-         * working.
-         */
-        const command_spec *cs = &cmd_array[arg->val.cmd];
-        assign_custom_key(num, cs->name, cs->name_length);
-    } else
-        assign_custom_key(num, arg->val.text, arg->length);
+    assign_custom_key(num, arg->val.text, arg->length);
     flags.f.local_label = 0;
     return ERR_NONE;
 }
@@ -2125,6 +2116,78 @@ int docmd_asgn18(arg_struct *arg) {
     return assign_helper(18, arg);
 }
 
+int docmd_asgnn01(arg_struct *arg) {
+    return assign_helper(19, arg);
+}
+
+int docmd_asgnn02(arg_struct *arg) {
+    return assign_helper(20, arg);
+}
+
+int docmd_asgnn03(arg_struct *arg) {
+    return assign_helper(21, arg);
+}
+
+int docmd_asgnn04(arg_struct *arg) {
+    return assign_helper(22, arg);
+}
+
+int docmd_asgnn05(arg_struct *arg) {
+    return assign_helper(23, arg);
+}
+
+int docmd_asgnn06(arg_struct *arg) {
+    return assign_helper(24, arg);
+}
+
+int docmd_asgnn07(arg_struct *arg) {
+    return assign_helper(25, arg);
+}
+
+int docmd_asgnn08(arg_struct *arg) {
+    return assign_helper(26, arg);
+}
+
+int docmd_asgnn09(arg_struct *arg) {
+    return assign_helper(27, arg);
+}
+
+int docmd_asgnn10(arg_struct *arg) {
+    return assign_helper(28, arg);
+}
+
+int docmd_asgnn11(arg_struct *arg) {
+    return assign_helper(29, arg);
+}
+
+int docmd_asgnn12(arg_struct *arg) {
+    return assign_helper(30, arg);
+}
+
+int docmd_asgnn13(arg_struct *arg) {
+    return assign_helper(31, arg);
+}
+
+int docmd_asgnn14(arg_struct *arg) {
+    return assign_helper(32, arg);
+}
+
+int docmd_asgnn15(arg_struct *arg) {
+    return assign_helper(33, arg);
+}
+
+int docmd_asgnn16(arg_struct *arg) {
+    return assign_helper(34, arg);
+}
+
+int docmd_asgnn17(arg_struct *arg) {
+    return assign_helper(35, arg);
+}
+
+int docmd_asgnn18(arg_struct *arg) {
+    return assign_helper(36, arg);
+}
+
 int docmd_on(arg_struct *arg) {
     shell_always_on(1);
     return ERR_NONE;
@@ -2191,6 +2254,36 @@ int docmd_key9g(arg_struct *arg) {
     return ERR_NONE;
 }
 
+int docmd_keyn1g(arg_struct *arg) {
+    assign_prgm_key(10, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn2g(arg_struct *arg) {
+    assign_prgm_key(11, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn3g(arg_struct *arg) {
+    assign_prgm_key(12, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn4g(arg_struct *arg) {
+    assign_prgm_key(13, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn5g(arg_struct *arg) {
+    assign_prgm_key(14, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn6g(arg_struct *arg) {
+    assign_prgm_key(15, true, arg);
+    return ERR_NONE;
+}
+
 int docmd_key1x(arg_struct *arg) {
     assign_prgm_key(1, false, arg);
     return ERR_NONE;
@@ -2233,6 +2326,36 @@ int docmd_key8x(arg_struct *arg) {
 
 int docmd_key9x(arg_struct *arg) {
     assign_prgm_key(9, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn1x(arg_struct *arg) {
+    assign_prgm_key(10, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn2x(arg_struct *arg) {
+    assign_prgm_key(11, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn3x(arg_struct *arg) {
+    assign_prgm_key(12, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn4x(arg_struct *arg) {
+    assign_prgm_key(13, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn5x(arg_struct *arg) {
+    assign_prgm_key(14, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn6x(arg_struct *arg) {
+    assign_prgm_key(15, false, arg);
     return ERR_NONE;
 }
 
