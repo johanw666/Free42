@@ -2227,7 +2227,7 @@ void redisplay() {
         } else {
             for (i = 0; i < 6; i++) {
                 int rs = r;
-                if (mode_shift && custommenu_length[r + 3][i] > 0)
+                if (mode_shift && !mode_menu_static && custommenu_length[r + 3][i] > 0)
                     rs += 3;
                 draw_key(i, 0, 1, custommenu_label[rs][i],
                                   custommenu_length[rs][i]);
@@ -2237,7 +2237,7 @@ void redisplay() {
     } else if (menu_id == MENU_PROGRAMMABLE) {
         for (i = 0; i < 6; i++) {
             int k = i;
-            if (mode_shift && progmenu_length[i + 6] > 0)
+            if (mode_shift && !mode_menu_static && progmenu_length[i + 6] > 0)
                 k += 6;
             draw_key(i, 0, 0, progmenu_label[k], progmenu_length[k]);
         }
