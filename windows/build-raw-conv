@@ -8,3 +8,7 @@ mkdir -p ../packages
 sh ./build-intel-lib.sh 32
 
 cmd /c build-raw-conv.bat
+
+cd ../packages
+zip rawconv-windows.zip raw2txt.exe txt2raw.exe
+rm raw2txt.exe txt2raw.exe
