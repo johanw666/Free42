@@ -3845,11 +3845,11 @@ static void paste_programs(const char *buf) {
                             continue;
                         }
                         after_to = false;
-                        sscanf(hpbuf + tok_start, "%d", &keynum);
-                        if (keynum < -18 || keynum == 0 || keynum > 18)
+                        sscanf(hpbuf + tok_end - 2, "%02d", &keynum);
+                        if (keynum < 1 || keynum > 18)
                             continue;
-                        if (keynum < 0)
-                            keynum = 18 - keynum;
+                        if (len == 3)
+                            keynum += 18;
                         break;
                     } else {
                         after_to = string_equals(hpbuf + tok_start, len, "TO", 2);
