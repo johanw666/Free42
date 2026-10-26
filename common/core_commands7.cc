@@ -2438,3 +2438,211 @@ int docmd_height(arg_struct *arg) {
         return ERR_INSUFFICIENT_MEMORY;
     return recall_result(v);
 }
+
+static int sort_helper(vartype *a, vartype *b, int4 ai, int4 bi, int4 key, bool ascending, bool *a_first) {
+    if (a->type != TYPE_REAL && a->type != TYPE_STRING && a->type != TYPE_LIST
+            || b->type != TYPE_REAL && b->type != TYPE_STRING && b->type != TYPE_LIST)
+        return ERR_INVALID_TYPE;
+    if (a->type != b->type)
+        return ERR_INVALID_DATA;
+    switch (a->type) {
+        case TYPE_REAL: {
+            phloat aa = ((vartype_real *) a)->x;
+            phloat bb = ((vartype_real *) b)->x;
+            if (aa > bb)
+                *a_first = !ascending;
+            else if (aa < bb)
+                *a_first = ascending;
+            else
+                *a_first = ai < bi;
+            return ERR_NONE;
+        }
+        case TYPE_STRING: {
+            vartype_string *sa = (vartype_string *) a;
+            vartype_string *sb = (vartype_string *) b;
+            int4 alen = sa->length;
+            int4 blen = sb->length;
+            const char *ta = sa->txt();
+            const char *tb = sb->txt();
+            int4 len = alen < blen ? alen : blen;
+            for (int4 i = 0; i < len; i++)
+                if (ta[i] != tb[i]) {
+                    *a_first = (ta[i] < tb[i]) == ascending;
+                    return ERR_NONE;
+                }
+            *a_first = alen == blen ? ai < bi : (alen < blen) == ascending;
+            return ERR_NONE;
+        }
+        case TYPE_LIST: {
+            if (key == -1)
+                // Nested lists not allowed as sort keys
+                return ERR_INVALID_TYPE;
+            vartype_list *la = (vartype_list *) a;
+            vartype_list *lb = (vartype_list *) b;
+            int4 alen = la->size;
+            int4 blen = lb->size;
+            if (key >= alen || key >= blen)
+                return ERR_DIMENSION_ERROR;
+            return sort_helper(la->array->data[key], lb->array->data[key], ai, bi, -1, ascending, a_first);
+        }
+        default:
+            return ERR_INVALID_TYPE;
+    }
+}
+
+static int heapify(vartype **data, int4 *idx, int4 n, int4 i, int4 key, bool ascending) {
+    again:
+
+    // Initialize largest as root
+    int4 largest = i;
+
+    // left index = 2*i + 1
+    int4 left = 2 * i + 1;
+
+    // right index = 2*i + 2
+    int4 right = 2 * i + 2;
+
+    // If left child is larger than root
+    if (left < n) {
+        bool a_is_less;
+        int err = sort_helper(data[idx[left]], data[idx[largest]], idx[left], idx[largest], key, ascending, &a_is_less);
+        if (err != ERR_NONE)
+            return err;
+        if (!a_is_less)
+            largest = left;
+    }
+
+    // If right child is larger than largest so far
+    if (right < n) {
+        bool a_is_less;
+        int err = sort_helper(data[idx[right]], data[idx[largest]], idx[right], idx[largest], key, ascending, &a_is_less);
+        if (err != ERR_NONE)
+            return err;
+        if (!a_is_less)
+            largest = right;
+    }
+
+    // If largest is not root
+    if (largest != i) {
+        int4 temp = idx[i];
+        idx[i] = idx[largest];
+        idx[largest] = temp;
+
+        // Recursively heapify the affected sub-tree
+        i = largest;
+        goto again;
+    }
+    return ERR_NONE;
+}
+
+int docmd_sort(arg_struct *arg) {
+    int4 key = 0;
+    bool ascending = true;
+    vartype_list *list;
+
+    if (stack[sp]->type == TYPE_LIST) {
+        list = (vartype_list *) stack[sp];
+    } else if (stack[sp]->type == TYPE_REAL) {
+        if (sp < 1)
+            return ERR_TOO_FEW_ARGUMENTS;
+        if (stack[sp - 1]->type != TYPE_LIST)
+            return ERR_INVALID_TYPE;
+        list = (vartype_list *) stack[sp - 1];
+        phloat x = ((vartype_real *) stack[sp])->x;
+        if (x < 0) {
+            ascending = false;
+            x = -x;
+        }
+        if (x < 1 || x > x >= 2147483648.0)
+            return ERR_INVALID_DATA;
+        key = to_int4(x) - 1;
+    } else
+        return ERR_INVALID_TYPE;
+
+    int4 size = list->size;
+    if (size <= 1) {
+        no_need_to_sort:
+        vartype *res = dup_vartype((vartype *) list);
+        if (res == NULL)
+            return ERR_INSUFFICIENT_MEMORY;
+        if (stack[sp]->type == TYPE_REAL)
+            return binary_result(res);
+        else {
+            unary_result(res);
+            return ERR_NONE;
+        }
+    }
+
+    int4 *idx = (int4 *) malloc(size * sizeof(int4));
+    if (idx == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    for (int4 i = 0; i < size; i++)
+        idx[i] = i;
+
+    /* Heapsort code gleaned from
+     * https://www.geeksforgeeks.org/c/c-program-for-heap-sort/
+     */
+
+    // Build heap (rearrange vector)
+    for (int4 i = size / 2 - 1; i >= 0; i--) {
+        int err = heapify(list->array->data, idx, size, i, key, ascending);
+        if (err != ERR_NONE) {
+            free(idx);
+            return err;
+        }
+    }
+
+    // One by one extract an element from heap
+    for (int4 i = size - 1; i > 0; i--) {
+
+        // Move current root to end
+        int4 temp = idx[0];
+        idx[0] = idx[i];
+        idx[i] = temp;
+
+        // Call max heapify on the reduced heap
+        int err = heapify(list->array->data, idx, i, 0, key, ascending);
+        if (err != ERR_NONE) {
+            free(idx);
+            return err;
+        }
+    }
+
+    // Check if the list actually needs rearranging
+    for (int4 i = 0; i < size; i++)
+        if (idx[i] != i)
+            goto need_to_sort;
+    free(idx);
+    goto no_need_to_sort;
+    need_to_sort:
+    vartype *res = dup_vartype((vartype *) list);
+    if (res == NULL || !disentangle(res)) {
+        free_vartype(res);
+        free(idx);
+        return ERR_INSUFFICIENT_MEMORY;
+    }
+    vartype **data = ((vartype_list *) res)->array->data;
+    for (int4 i = 0; i < size; i++) {
+        if (idx[i] == i || idx[i] == -1)
+            continue;
+        int4 j = i;
+        vartype *tmp = data[i];
+        while (true) {
+            int4 k = idx[j];
+            idx[j] = -1;
+            if (k == i)
+                break;
+            data[j] = data[k];
+            j = k;
+        }
+        data[j] = tmp;
+    }
+
+    free(idx);
+    if (stack[sp]->type == TYPE_REAL)
+        return binary_result(res);
+    else {
+        unary_result(res);
+        return ERR_NONE;
+    }
+}

@@ -535,6 +535,7 @@ const command_spec cmd_array[] =
     { /* LENGTH */      docmd_length,      "LENGTH",              0x00, 0x00, 0xa7, 0xec,  6, ARG_NONE,   1, 0, 0x30 },
     { /* HEAD */        docmd_head,        "HEAD",                0x00, 0x03, 0xf2, 0x13,  4, ARG_VAR,    0, 0, NA_T },
     { /* REV */         docmd_rev,         "REV",                 0x00, 0x00, 0xa7, 0xed,  3, ARG_NONE,   1, 0, 0x30 },
+    { /* SORT */        docmd_sort,        "SORT",                0x00, 0x00, 0xa7, 0x7d,  4, ARG_NONE,   1, 0, FUNC },
     { /* POS */         docmd_pos,         "POS",                 0x00, 0x00, 0xa7, 0xee,  3, ARG_NONE,   2, 0, FUNC },
     { /* S_TO_N */      docmd_s_to_n,      "S\17N",               0x00, 0x00, 0xa7, 0xef,  3, ARG_NONE,   1, 0, 0x10 },
     { /* N_TO_S */      docmd_n_to_s,      "N\17S",               0x00, 0x00, 0xa7, 0xf0,  3, ARG_NONE,   1, 0, ALLT },

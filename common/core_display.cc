@@ -1644,10 +1644,10 @@ static const int ext_prgm_cat[] = {
 };
 
 static const int ext_str_cat[] = {
-    CMD_APPEND,  CMD_EXTEND,    CMD_POS,     CMD_LENGTH,  CMD_SUBSTR, CMD_XSTR,
-    CMD_N_TO_S,  CMD_NN_TO_S,   CMD_IP_TO_S, CMD_S_TO_N,  CMD_N_TO_C, CMD_C_TO_N,
-    CMD_TO_LIST, CMD_FROM_LIST, CMD_LIST_T,  CMD_NEWLIST, CMD_HEAD,   CMD_REV,
-    CMD_XASTO,   CMD_LXASTO,    CMD_XVIEW,   CMD_NULL,    CMD_NULL,   CMD_NULL
+    CMD_LENGTH,  CMD_SUBSTR,    CMD_POS,     CMD_XSTR,   CMD_XASTO,  CMD_LXASTO,
+    CMD_N_TO_S,  CMD_NN_TO_S,   CMD_IP_TO_S, CMD_S_TO_N, CMD_N_TO_C, CMD_C_TO_N,
+    CMD_XSTR,    CMD_XVIEW,     CMD_NEWLIST, CMD_APPEND, CMD_EXTEND, CMD_LIST_T,
+    CMD_TO_LIST, CMD_FROM_LIST, CMD_HEAD,    CMD_REV,    CMD_SORT,   CMD_NULL
 };
 
 static const int ext_stk_cat[] = {
