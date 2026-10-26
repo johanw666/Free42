@@ -110,6 +110,12 @@ txt2raw: symlinks txt2raw.o $(CORE_OBJS) gcc111libbid.a
 raw2txt: symlinks raw2txt.o $(CORE_OBJS) gcc111libbid.a
 	$(CXX) -o raw2txt $(LDFLAGS) raw2txt.o $(CORE_OBJS) $(LIBS)
 
+rawconv: raw2txt txt2raw
+	strip raw2txt
+	strip txt2raw
+	tar cvfz rawconv-linux.tgz raw2txt txt2raw
+	rm raw2txt txt2raw
+
 $(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf keymap.txt: symlinks
 
 .cc.o:
@@ -148,7 +154,7 @@ clean: FORCE
 		skin2cc skin2cc.exe skins.cc \
 		keymap2cc keymap2cc.exe keymap.cc \
 		*.o *.d *.i *.ii *.s symlinks core.* \
-		raw2txt txt2raw
+		raw2txt txt2raw rawconv-linux.tgz
 
 cleaner: FORCE
 	rm -f `find . -type l` \
@@ -158,7 +164,7 @@ cleaner: FORCE
 		readtest_lines.cc \
 		gcc111libbid.a \
 		*.o *.d *.i *.ii *.s symlinks core.* \
-		raw2txt txt2raw
+		raw2txt txt2raw rawconv-linux.tgz
 	rm -rf IntelRDFPMathLib20U1
 
 FORCE:
