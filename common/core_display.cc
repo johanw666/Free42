@@ -1289,35 +1289,71 @@ void xlabel2buf(char *buf, int buflen, int *bufptr) {
     }
 }
 
+static int full_list_to_string(vartype *v, char *buf, int buflen) {
+    int bufptr = 0;
+    string2buf(buf, buflen, &bufptr, "{ ", 2);
+    if (bufptr > buflen)
+        return bufptr;
+    vartype_list *list = (vartype_list *) v;
+    for (int i = 0; i < list->size; i++) {
+        vartype *v2 = list->array->data[i];
+        if (v2->type == TYPE_LIST) {
+            bufptr += full_list_to_string(v2, buf + bufptr, buflen - bufptr);
+        } else if (v2->type == TYPE_STRING) {
+            vartype_string *s = (vartype_string *) v2;
+            char2buf(buf, buflen, &bufptr, '"');
+            string2buf(buf, buflen, &bufptr, s->txt(), s->length);
+            char2buf(buf, buflen, &bufptr, '"');
+        } else {
+            bufptr += vartype2string(v2, buf + bufptr, buflen - bufptr);
+        }
+        if (bufptr > buflen)
+            return bufptr;
+        char2buf(buf, buflen, &bufptr, ' ');
+    }
+    char2buf(buf, buflen, &bufptr, '}');
+    return bufptr;
+}
+
 void display_x(int row) {
-    char buf[22];
+    char buf[23];
     int bufptr = 0;
 
     clear_row(row);
-    xlabel2buf(buf, 22, &bufptr);
+    xlabel2buf(buf, 23, &bufptr);
     vartype *x = sp >= 0 ? stack[sp] : NULL;
     if (x != NULL)
-        bufptr += vartype2string(x, buf + bufptr, 22 - bufptr);
+        if (x->type == TYPE_LIST)
+            bufptr += full_list_to_string(x, buf + bufptr, 23 - bufptr);
+        else
+            bufptr += vartype2string(x, buf + bufptr, 23 - bufptr);
+    if (bufptr == 23) {
+        buf[21] = 26;
+        bufptr--;
+    }
     draw_string(0, row, buf, bufptr);
 }
 
 void display_y(int row) {
-    char buf[20];
-    int len;
+    char buf[23];
+    int bufptr = 0;
+
     clear_row(row);
     vartype *y = sp >= 1 ? stack[sp - 1] : NULL;
     if (flags.f.big_stack)
-        draw_string(0, row, "2\200", 2);
+        string2buf(buf, 23, &bufptr, "2\200", 2);
     else
-        draw_string(0, row, "\201\200", 2);
-    if (y != NULL) {
-        len = vartype2string(y, buf, 20);
-        if (len > 20) {
-            draw_string(2, row, buf, 19);
-            draw_char(21, row, 26);
-        } else
-            draw_string(2, row, buf, len);
+        string2buf(buf, 23, &bufptr, "\201\200", 2);
+    if (y != NULL)
+        if (y->type == TYPE_LIST)
+            bufptr += full_list_to_string(y, buf + bufptr, 23 - bufptr);
+        else
+            bufptr += vartype2string(y, buf + bufptr, 23 - bufptr);
+    if (bufptr == 23) {
+        buf[21] = 26;
+        bufptr--;
     }
+    draw_string(0, row, buf, bufptr);
 }
 
 void display_incomplete_command(int row) {
@@ -2142,14 +2178,8 @@ void show() {
                 break;
             }
             case TYPE_LIST: {
-                vartype_list *list = (vartype_list *) rx;
-                bufptr = vartype2string(rx, buf, 22);
-                draw_string(0, 0, buf, bufptr);
-                if (list->size > 0) {
-                    draw_string(0, 1, "1=", 2);
-                    bufptr = vartype2string(list->array->data[0], buf, 20);
-                    draw_string(2, 1, buf, bufptr);
-                }
+                bufptr = full_list_to_string(rx, buf, 44);
+                goto show_one_or_two_lines;
                 break;
             }
         }
