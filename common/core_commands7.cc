@@ -2553,7 +2553,7 @@ int docmd_sort(arg_struct *arg) {
             ascending = false;
             x = -x;
         }
-        if (x < 1 || x > x >= 2147483648.0)
+        if (x < 1 || x >= 2147483648.0)
             return ERR_INVALID_DATA;
         key = to_int4(x) - 1;
     } else
