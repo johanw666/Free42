@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "core_main.h"
 #include "core_commands2.h"
