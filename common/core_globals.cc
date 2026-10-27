@@ -31,12 +31,6 @@
 #include "core_variables.h"
 #include "shell.h"
 
-#ifndef BCD_MATH
-// We need these locally for BID128->double conversion
-#include "bid_conf.h"
-#include "bid_functions.h"
-#endif
-
 // File used for reading and writing the state file, and for importing and
 // exporting programs. Since only one of these operations can be active at one
 // time, having one FILE pointer for all of them is sufficient.

@@ -36,12 +36,6 @@
 #include "shell.h"
 #include "shell_spool.h"
 
-#ifndef BCD_MATH
-// We need these locally for BID128->double conversion
-#include "bid_conf.h"
-#include "bid_functions.h"
-#endif
-
 #ifdef WINDOWS
 FILE *my_fopen(const char *name, const char *mode);
 int my_rename(const char *oldname, const char *newname);
@@ -2024,9 +2018,7 @@ static bool parse_number_line(char *buf, phloat *res) {
 #ifdef BCD_MATH
     *res = Phloat(buf);
 #else
-    BID_UINT128 d;
-    bid128_from_string(&d, buf);
-    bid128_to_binary64(res, &d);
+    sscanf(buf, "%le", res);
 #endif
     if (p_isinf(*res) != 0)
         *res = NAN_1_PHLOAT;
