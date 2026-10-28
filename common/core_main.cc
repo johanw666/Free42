@@ -5378,6 +5378,16 @@ void set_last_err(int error) {
     }
 }
 
+const uint8 UNCATCHABLE_ERRORS =
+          1ULL << ERR_NUMBER_TOO_LARGE
+        | 1ULL << ERR_NUMBER_TOO_SMALL
+        | 1ULL << ERR_INTERNAL_ERROR
+        | 1ULL << ERR_NOT_YET_IMPLEMENTED
+        | 1ULL << ERR_INSUFFICIENT_MEMORY
+        | 1ULL << ERR_INVALID_CONTEXT
+        | 1ULL << ERR_RTN_STACK_FULL
+        | 1ULL << ERR_SUSPICIOUS_OFF;
+
 static bool handle_error(int error) {
     if (mode_running) {
         if (error == ERR_RUN)
@@ -5393,8 +5403,7 @@ static bool handle_error(int error) {
                 pc = -1;
             set_running(false);
             return false;
-        } else if (error == ERR_NUMBER_TOO_LARGE
-                || error == ERR_NUMBER_TOO_SMALL) {
+        } else if ((UNCATCHABLE_ERRORS & (1ULL << error)) != 0) {
             // Handling these separately because they shouldn't be
             // suppressed by flag 25, nor trapped by SOLVE or TRY
             handle_it:
@@ -5403,7 +5412,7 @@ static bool handle_error(int error) {
             set_running(false);
             return false;
         } else if (error != ERR_NONE && error != ERR_YES) {
-            if (flags.f.error_ignore && error != ERR_SUSPICIOUS_OFF) {
+            if (flags.f.error_ignore) {
                 flags.f.error_ignore = 0;
                 set_last_err(error);
                 return true;
@@ -5456,8 +5465,7 @@ static bool handle_error(int error) {
             error = ERR_NONE;
             if (pc > prgms[current_prgm].size)
                 pc = -1;
-        } else if (error == ERR_NUMBER_TOO_LARGE
-                || error == ERR_NUMBER_TOO_SMALL) {
+        } else if ((UNCATCHABLE_ERRORS & (1ULL << error)) != 0) {
             // Handling these separately because they shouldn't be
             // suppressed by flag 25, nor trapped by SOLVE or TRY
             handle_it_2:
