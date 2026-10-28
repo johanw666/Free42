@@ -517,7 +517,7 @@ int docmd_rcl_add(arg_struct *arg) {
 
 int docmd_fix(arg_struct *arg) {
     if (arg->type == ARGTYPE_STK)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     int err;
     int4 num;
     err = arg_to_num(arg, &num);
@@ -537,7 +537,7 @@ int docmd_fix(arg_struct *arg) {
 
 int docmd_sci(arg_struct *arg) {
     if (arg->type == ARGTYPE_STK)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     int err;
     int4 num;
     err = arg_to_num(arg, &num);
@@ -557,7 +557,7 @@ int docmd_sci(arg_struct *arg) {
 
 int docmd_eng(arg_struct *arg) {
     if (arg->type == ARGTYPE_STK)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     int err;
     int4 num;
     err = arg_to_num(arg, &num);

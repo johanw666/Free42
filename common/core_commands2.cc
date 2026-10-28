@@ -962,7 +962,7 @@ int docmd_beep(arg_struct *arg) {
 
 int docmd_tone(arg_struct *arg) {
     if (arg->type == ARGTYPE_STK)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     int err;
     int4 num;
     err = arg_to_num(arg, &num);
@@ -2399,7 +2399,7 @@ int docmd_sigma_reg(arg_struct *arg) {
     if (arg->type == ARGTYPE_STR)
         return ERR_ALPHA_DATA_IS_INVALID;
     if (arg->type != ARGTYPE_NUM)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     mode_sigma_reg = (int4) arg->val.num;
     if (mode_sigma_reg < 0)
         mode_sigma_reg = -mode_sigma_reg;
