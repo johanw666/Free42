@@ -25,10 +25,14 @@
 #include "core_helpers.h"
 #include "shell.h"
 
-#ifndef BCD_MATH
-// We need these locally for BID128->double conversion
+#if defined(FP_INTEL) || defined(FP_BINARY_INTEL)
 #include "bid_conf.h"
 #include "bid_functions.h"
+#elif defined(FP_DECNUM)
+extern "C" {
+#include "decQuad.h"
+#include "decimal128.h"
+}
 #endif
 
 
@@ -41,7 +45,7 @@ phloat NAN_1_PHLOAT;
 phloat NAN_2_PHLOAT;
 
 
-#ifdef BCD_MATH
+#if defined(FP_INTEL)
 
 
 void phloat_init() {
@@ -818,7 +822,684 @@ bool operator==(int4 x, Phloat y) {
 Phloat PI("3.141592653589793238462643383279503");
 
 
-#else // BCD_MATH
+#elif defined(FP_DECNUM)
+
+
+decContext dctx;
+
+void phloat_init() {
+    decContextDefault(&dctx, DEC_INIT_DECQUAD);
+    decQuad posinf, neginf, zero, poshuge, neghuge, postiny, negtiny, nan, nan1, nan2;
+    decQuadFromString(&posinf, "+Infinity", &dctx);
+    decQuadFromString(&neginf, "-Infinity", &dctx);
+    decQuadFromString(&zero, "0", &dctx);
+    decQuadNextToward(&poshuge, &posinf, &zero, &dctx);
+    decQuadNextToward(&neghuge, &neginf, &zero, &dctx);
+    decQuadNextToward(&postiny, &zero, &posinf, &dctx);
+    decQuadNextToward(&negtiny, &zero, &neginf, &dctx);
+    POS_HUGE_PHLOAT = poshuge;
+    NEG_HUGE_PHLOAT = neghuge;
+    POS_TINY_PHLOAT = postiny;
+    NEG_TINY_PHLOAT = negtiny;
+    decQuadDivide(&nan, &zero, &zero, &dctx);
+    nan1 = nan;
+    nan2 = nan;
+    unsigned char coeff[DECQUAD_Pmax];
+    memset(coeff, 0, DECQUAD_Pmax);
+    decQuadSetCoefficient(&nan, coeff, 0);
+    coeff[DECQUAD_Pmax - 1] = 1;
+    decQuadSetCoefficient(&nan1, coeff, 0);
+    coeff[DECQUAD_Pmax - 1] = 2;
+    decQuadSetCoefficient(&nan2, coeff, 0);
+    NAN_PHLOAT = nan;
+    NAN_1_PHLOAT = nan1;
+    NAN_2_PHLOAT = nan2;
+}
+
+int string2phloat(const char *buf, int buflen, phloat *d) {
+    /* Convert string to phloat.
+     * Return values:
+     * 0: no error
+     * 1: positive overflow
+     * 2: negative overflow
+     * 3: positive underflow
+     * 4: negative underflow
+     * 5: other error
+     */
+
+    // Special case: "-" by itself. bid128_from_string() doesn't like this,
+    // so handling it separately here.
+    if (buflen == 1 && buf[0] == '-') {
+        *d = 0;
+        return 0;
+    }
+
+    // Strip thousands separators, convert comma to dot if
+    // appropriate, and convert char(24) to 'E'.
+    // Also, reject numbers with more than MAX_MANT_DIGITS digits in the mantissa.
+    char buf2[100];
+    int buflen2 = 0;
+    char sep = flags.f.decimal_point ? ',' : '.';
+    int mantdigits = 0;
+    int expdigits = 0;
+    bool in_mant = true;
+    bool zero = true;
+    for (int i = 0; i < buflen; i++) {
+        char c = buf[i];
+        if (c == sep)
+            continue;
+        if (c == ',')
+            c = '.';
+        else if (c == 24) {
+            c = 'E';
+            in_mant = false;
+        } else if (c >= '0' && c <= '9') {
+            if (in_mant) {
+                if (++mantdigits > MAX_MANT_DIGITS)
+                    return 5;
+                if (c != '0')
+                    zero = false;
+            } else {
+                expdigits++;
+            }
+        }
+        buf2[buflen2++] = c;
+    }
+
+    if (!in_mant && mantdigits == 0) {
+        // A number like "E4"; not something the HP-41 or HP42S (or Free42, for
+        // that matter) will actually allow you to enter into a program, but
+        // the real calcs do accept this kind of thing (synthetically), and
+        // supply a mantissa of 1 (just like when you start number entry by
+        // pressing EEX (HP-41) or E (HP-42S).
+        for (int i = buflen2 - 1; i >= 0; i--)
+            buf2[i + 1] = buf2[i];
+        buf2[0] = '1';
+        buflen2++;
+    }
+
+    if (!in_mant && expdigits == 0)
+        buf2[buflen2++] = '0';
+
+    buf2[buflen2] = 0;
+    decQuad b;
+    decQuadFromString(&b, buf2, &dctx);
+    if (decQuadIsInfinite(&b))
+        return decQuadIsSigned(&b) ? 2 : 1;
+    if (!zero && decQuadIsZero(&b))
+        return decQuadIsSigned(&b) ? 4 : 3;
+    *d = b;
+    return 0;
+}
+
+/* public */
+Phloat::Phloat(const char *str) {
+    decQuadFromString(&val, str, &dctx);
+}
+
+/* public */
+Phloat::Phloat(int numer, int denom) {
+    decQuad n, d;
+    decQuadFromInt32(&n, numer);
+    decQuadFromInt32(&d, denom);
+    decQuadDivide(&val, &n, &d, &dctx);
+}
+
+/* public */
+Phloat::Phloat(int8 numer, int8 denom) {
+    decQuad n, d;
+    char buf[22];
+    sprintf(buf, "%lld", numer);
+    decQuadFromString(&n, buf, &dctx);
+    sprintf(buf, "%lld", denom);
+    decQuadFromString(&d, buf, &dctx);
+    decQuadDivide(&val, &n, &d, &dctx);
+}
+
+/* public */
+Phloat::Phloat(int i) {
+    decQuadFromInt32(&val, i);
+}
+
+/* public */
+Phloat::Phloat(int8 i) {
+    char buf[22];
+    sprintf(buf, "%lld", i);
+    decQuadFromString(&val, buf, &dctx);
+}
+
+/* public */
+Phloat::Phloat(uint8 i) {
+    char buf[22];
+    sprintf(buf, "%llu", i);
+    decQuadFromString(&val, buf, &dctx);
+}
+
+/* public */
+Phloat::Phloat(double d) {
+    char buf[25];
+    snprintf(buf, 25, "%.16e", d);
+    decQuadFromString(&val, buf, &dctx);
+}
+
+/* public */
+Phloat::Phloat(const Phloat &p) {
+    val = p.val;
+}
+
+/* public */
+Phloat Phloat::operator=(int i) {
+    decQuadFromInt32(&val, i);
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator=(int8 i) {
+    char buf[22];
+    sprintf(buf, "%lld", i);
+    decQuadFromString(&val, buf, &dctx);
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator=(uint8 i) {
+    char buf[22];
+    sprintf(buf, "%llu", i);
+    decQuadFromString(&val, buf, &dctx);
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator=(double d) {
+    char buf[25];
+    snprintf(buf, 25, "%.16e", d);
+    decQuadFromString(&val, buf, &dctx);
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator=(Phloat p) {
+    val = p.val;
+    return *this;
+}
+
+/* public */
+void Phloat::assign17digits(double d) {
+    char buf[25];
+    snprintf(buf, 25, "%.15e", d);
+    double d2;
+    if (sscanf(buf, "%le", &d2) != 1 || d != d2)
+        snprintf(buf, 25, "%.16e", d);
+    decQuadFromString(&val, buf, &dctx);
+}
+
+/* public */
+bool Phloat::operator==(Phloat p) const {
+    decQuad r;
+    decQuadCompare(&r, &val, &p.val, &dctx);
+    return decQuadIsZero(&r);
+}
+
+/* public */
+bool Phloat::operator!=(Phloat p) const {
+    decQuad r;
+    decQuadCompare(&r, &val, &p.val, &dctx);
+    return !decQuadIsZero(&r);
+}
+
+/* public */
+bool Phloat::operator<(Phloat p) const {
+    decQuad r;
+    decQuadCompare(&r, &val, &p.val, &dctx);
+    return decQuadIsNegative(&r);
+}
+
+/* public */
+bool Phloat::operator<=(Phloat p) const {
+    decQuad r;
+    decQuadCompare(&r, &val, &p.val, &dctx);
+    return decQuadIsZero(&r) || decQuadIsNegative(&r);
+}
+
+/* public */
+bool Phloat::operator>(Phloat p) const {
+    decQuad r;
+    decQuadCompare(&r, &p.val, &val, &dctx);
+    return decQuadIsNegative(&r);
+}
+
+/* public */
+bool Phloat::operator>=(Phloat p) const {
+    decQuad r;
+    decQuadCompare(&r, &p.val, &val, &dctx);
+    return decQuadIsZero(&r) || decQuadIsNegative(&r);
+}
+
+/* public */
+Phloat Phloat::operator-() const {
+    decQuad res;
+    decQuadCopyNegate(&res, &val);
+    return Phloat(res);
+}
+
+/* public */
+Phloat Phloat::operator*(Phloat p) const {
+    decQuad res;
+    decQuadMultiply(&res, &val, &p.val, &dctx);
+    return Phloat(res);
+}
+
+/* public */
+Phloat Phloat::operator/(Phloat p) const {
+    decQuad res;
+    decQuadDivide(&res, &val, &p.val, &dctx);
+    return Phloat(res);
+}
+
+/* public */
+Phloat Phloat::operator+(Phloat p) const {
+    decQuad res;
+    decQuadAdd(&res, &val, &p.val, &dctx);
+    return Phloat(res);
+}
+
+/* public */
+Phloat Phloat::operator-(Phloat p) const {
+    decQuad res;
+    decQuadSubtract(&res, &val, &p.val, &dctx);
+    return Phloat(res);
+}
+
+/* public */
+Phloat Phloat::operator*=(Phloat p) {
+    decQuad res;
+    decQuadMultiply(&res, &val, &p.val, &dctx);
+    val = res;
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator/=(Phloat p) {
+    decQuad res;
+    decQuadDivide(&res, &val, &p.val, &dctx);
+    val = res;
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator+=(Phloat p) {
+    decQuad res;
+    decQuadAdd(&res, &val, &p.val, &dctx);
+    val = res;
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator-=(Phloat p) {
+    decQuad res;
+    decQuadSubtract(&res, &val, &p.val, &dctx);
+    val = res;
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator++() {
+    // prefix
+    decQuad one, temp;
+    decQuadFromInt32(&one, 1);
+    decQuadAdd(&temp, &val, &one, &dctx);
+    val = temp;
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator++(int) {
+    // postfix
+    Phloat old = *this;
+    decQuad one;
+    decQuadFromInt32(&one, 1);
+    decQuadAdd(&val, &old.val, &one, &dctx);
+    return old;
+}
+
+/* public */
+Phloat Phloat::operator--() {
+    // prefix
+    decQuad one, temp;
+    decQuadFromInt32(&one, 1);
+    decQuadSubtract(&temp, &val, &one, &dctx);
+    val = temp;
+    return *this;
+}
+
+/* public */
+Phloat Phloat::operator--(int) {
+    // postfix
+    Phloat old = *this;
+    decQuad one;
+    decQuadFromInt32(&one, 1);
+    decQuadSubtract(&val, &old.val, &one, &dctx);
+    return old;
+}
+
+int p_isinf(Phloat p) {
+    if (decQuadIsInfinite(&p.val))
+        return decQuadIsSigned(&p.val) ? -1 : 1;
+    else
+        return 0;
+}
+
+int p_isnan(Phloat p) {
+    return decQuadIsNaN(&p.val);
+}
+
+int p_isnormal(Phloat p) {
+    return decQuadIsNormal(&p.val);
+}
+
+int to_digit(Phloat p) {
+    decQuad ten;
+    decQuadFromInt32(&ten, 10);
+    decQuad rem;
+    decQuadRemainder(&rem, &p.val, &ten, &dctx);
+    return decQuadToInt32(&rem, &dctx, DEC_ROUND_DOWN);
+}
+
+char to_char(Phloat p) {
+    int4 res = decQuadToInt32(&p.val, &dctx, DEC_ROUND_DOWN);
+    return (char) res;
+}
+
+int to_int(Phloat p) {
+    int4 res = decQuadToInt32(&p.val, &dctx, DEC_ROUND_DOWN);
+    return (int) res;
+}
+
+int4 to_int4(Phloat p) {
+    return decQuadToInt32(&p.val, &dctx, DEC_ROUND_DOWN);
+}
+
+static uint8 to_uint8_helper(decQuad *q) {
+    decQuad src;
+    decQuadToIntegralValue(&src, q, &dctx, DEC_ROUND_DOWN);
+    decQuad b16;
+    decQuadFromInt32(&b16, 65536);
+    uint8 res = 0;
+    for (int i = 0; i < 4; i++) {
+        decQuad tmp;
+        decQuadRemainder(&tmp, &src, &b16, &dctx);
+        res |= ((uint8) decQuadToUInt32(&tmp, &dctx, DEC_ROUND_DOWN)) << (i * 16);
+        if (i < 3) {
+            decQuad tmp2;
+            decQuadDivide(&tmp2, &tmp, &b16, &dctx);
+            decQuadToIntegralValue(&tmp, &tmp2, &dctx, DEC_ROUND_DOWN);
+        }
+    }
+    return res;
+}
+
+int8 to_int8(Phloat p) {
+    if (decQuadIsNegative(&p.val)) {
+        decQuad n;
+        decQuadCopyNegate(&n, &p.val);
+        return -(int8) to_uint8_helper(&n);
+    } else {
+        return (int8) to_uint8_helper(&p.val);
+    }
+}
+
+uint8 to_uint8(Phloat p) {
+    return to_uint8_helper(&p.val);
+}
+
+double to_double(Phloat p) {
+    char buf[50];
+    decQuadToString(&p.val, buf);
+    double res;
+    sscanf(buf, "%le", &res);
+    return res;
+}
+
+Phloat sin(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat cos(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat tan(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat asin(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat acos(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat atan(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+void p_sincos(Phloat phi, Phloat *s, Phloat *c) {
+    // TODO
+    *s = NAN_PHLOAT;
+    *c = NAN_PHLOAT;
+}
+
+Phloat hypot(Phloat x, Phloat y) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat atan2(Phloat x, Phloat y) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat sinh(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat cosh(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat tanh(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat asinh(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat acosh(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat atanh(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat log(Phloat p) {
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberLn(&r, &n, &dctx);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
+}
+
+Phloat log1p(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat log10(Phloat p) {
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberLog10(&r, &n, &dctx);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
+}
+
+Phloat exp(Phloat p) {
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberExp(&r, &n, &dctx);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
+}
+
+Phloat expm1(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat tgamma(Phloat p) {
+    // TODO
+    return NAN_PHLOAT;
+}
+
+Phloat sqrt(Phloat p) {
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberSquareRoot(&r, &n, &dctx);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
+}
+
+Phloat fmod(Phloat x, Phloat y) {
+    decQuad res;
+    decQuadRemainder(&res, &x.val, &y.val, &dctx);
+    return Phloat(res);
+}
+
+Phloat fabs(Phloat p) {
+    decQuad res;
+    decQuadCopyAbs(&res, &p.val);
+    return Phloat(res);
+}
+
+Phloat pow(Phloat y, Phloat x) {
+    decNumber yy, xx;
+    decQuadToNumber(&y.val, &yy);
+    decQuadToNumber(&x.val, &xx);
+    decNumber r;
+    decNumberPower(&r, &yy, &xx, &dctx);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
+}
+
+Phloat floor(Phloat p) {
+    decQuad res;
+    decQuadToIntegralValue(&res, &p.val, &dctx, DEC_ROUND_FLOOR);
+    return Phloat(res);
+}
+
+Phloat fma(Phloat x, Phloat y, Phloat z) {
+    decQuad res;
+    decQuadFMA(&res, &x.val, &y.val, &z.val, &dctx);
+    return Phloat(res);
+}
+
+Phloat nextafter(Phloat x, Phloat y) {
+    decQuad res;
+    decQuadNextToward(&res, &x.val, &y.val, &dctx);
+    return Phloat(res);
+}
+
+int ilogb(Phloat x) {
+    decQuad res;
+    decQuadLogB(&res, &x.val, &dctx);
+    return decQuadToInt32(&res, &dctx, DEC_ROUND_DOWN);
+}
+
+Phloat scalbn(Phloat x, int y) {
+    decQuad yy;
+    decQuadFromInt32(&yy, y);
+    decQuad res;
+    decQuadScaleB(&res, &x.val, &yy, &dctx);
+    return Phloat(res);
+}
+
+Phloat copysign(Phloat x, Phloat y) {
+    decQuad res;
+    decQuadCopySign(&res, &x.val, &y.val);
+    return Phloat(res);
+}
+
+Phloat operator*(int x, Phloat y) {
+    decQuad xx, res;
+    decQuadFromInt32(&xx, x);
+    decQuadMultiply(&res, &xx, &y.val, &dctx);
+    return Phloat(res);
+}
+
+Phloat operator/(int x, Phloat y) {
+    decQuad xx, res;
+    decQuadFromInt32(&xx, x);
+    decQuadDivide(&res, &xx, &y.val, &dctx);
+    return Phloat(res);
+}
+
+Phloat operator/(double x, Phloat y) {
+    char buf[25];
+    snprintf(buf, 25, "%.16e", x);
+    decQuad xx, res;
+    decQuadFromString(&xx, buf, &dctx);
+    decQuadDivide(&res, &xx, &y.val, &dctx);
+    return Phloat(res);
+}
+
+Phloat operator+(int x, Phloat y) {
+    decQuad xx, res;
+    decQuadFromInt32(&xx, x);
+    decQuadAdd(&res, &xx, &y.val, &dctx);
+    return Phloat(res);
+}
+
+Phloat operator-(int x, Phloat y) {
+    decQuad xx, res;
+    decQuadFromInt32(&xx, x);
+    decQuadSubtract(&res, &xx, &y.val, &dctx);
+    return Phloat(res);
+}
+
+bool operator==(int4 x, Phloat y) {
+    decQuad xx, r;
+    decQuadFromInt32(&xx, x);
+    decQuadCompare(&r, &xx, &y.val, &dctx);
+    return decQuadIsZero(&r);
+}
+
+Phloat PI("3.141592653589793238462643383279503");
+
+
+#else // FP_BINARY_INTEL, FP_BINARY
 
 
 void phloat_init() {
@@ -965,6 +1646,13 @@ int string2phloat(const char *buf, int buflen, phloat *d) {
 }
 
 double decimal2double(void *data, bool pin_magnitude /* = false */) {
+#ifdef FP_BINARY
+    // Reading a decimal state file while having no decimal library available
+    // to help decode it. This is where that DIY bid128-to-decimal64 routine
+    // becomes absolutely essential.
+    // TODO
+    return NAN_PHLOAT;
+#else // FP_BINARY_INTEL
     double res;
     BID_UINT128 *b, b2;
     if ((((size_t) data) & 15) != 0) {
@@ -981,10 +1669,11 @@ double decimal2double(void *data, bool pin_magnitude /* = false */) {
         return (bid128_isSigned(&r, b), r) ? NEG_TINY_PHLOAT : POS_TINY_PHLOAT;
     int inf = isinf(res);
     return inf == 0 ? res : inf < 0 ? NEG_HUGE_PHLOAT : POS_HUGE_PHLOAT;
+#endif
 }
 
 
-#endif // BCD_MATH
+#endif
 
 
 int phloat2string(phloat pd, char *buf, int buflen, int base_mode, int digits,
@@ -1160,19 +1849,21 @@ int phloat2string(phloat pd, char *buf, int buflen, int base_mode, int digits,
 
     char bcd_mantissa[MAX_MANT_DIGITS];
     memset(bcd_mantissa, 0, MAX_MANT_DIGITS);
-    int bcd_exponent = 0;
+    int bcd_exponent = -1;
     int bcd_mantissa_sign = 0;
 
     char decstr[50];
 
-#ifndef BCD_MATH
+#if defined(FP_INTEL)
+    bid128_to_string(decstr, &pd.val);
+#elif defined(FP_DECNUM)
+    decQuadToString(&pd.val, decstr);
+#else
     double d = to_double(pd);
     snprintf(decstr, 50, "%.*e", MAX_MANT_DIGITS - 2, d);
     double d2;
     if (sscanf(decstr, "%le", &d2) != 1 || d != d2)
         snprintf(decstr, 50, "%.*e", MAX_MANT_DIGITS - 1, d);
-#else
-    bid128_to_string(decstr, &pd.val);
 #endif
 
     char *p = decstr;
@@ -1180,7 +1871,6 @@ int phloat2string(phloat pd, char *buf, int buflen, int base_mode, int digits,
     bcd_mantissa_sign = 0;
     bool seen_dot = false;
     bool in_leading_zeroes = true;
-    int exp_offset = -1;
 
     while (*p != 0) {
         char c = *p++;
@@ -1196,22 +1886,26 @@ int phloat2string(phloat pd, char *buf, int buflen, int base_mode, int digits,
         }
         if (c == 'e' || c == 'E') {
             if (!in_leading_zeroes) {
-                sscanf(p, "%d", &bcd_exponent);
-                bcd_exponent += exp_offset;
+                int exp;
+                sscanf(p, "%d", &exp);
+                bcd_exponent += exp;
             }
             break;
         }
         // Can only be decimal digit at this point
-        if (c == '0') {
-            if (in_leading_zeroes)
-                continue;
-        } else
-            in_leading_zeroes = false;
+        if (c == '0' && in_leading_zeroes) {
+            if (seen_dot)
+                bcd_exponent--;
+            continue;
+        }
+        in_leading_zeroes = false;
         if (!seen_dot)
-            exp_offset++;
+            bcd_exponent++;
         if (mant_index < MAX_MANT_DIGITS)
             bcd_mantissa[mant_index++] = c - '0';
     }
+    if (in_leading_zeroes)
+        bcd_exponent = 0;
 
     int max_int_digits = max_mant_digits;
     int max_frac_digits = MAX_MANT_DIGITS + max_int_digits - 1;

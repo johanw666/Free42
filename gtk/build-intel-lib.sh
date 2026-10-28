@@ -41,7 +41,7 @@ else
   ENDIAN_ARG=
 fi
 
-tar xvfz ../inteldecimal/IntelRDFPMathLib20U1.tar.gz
+tar xvfz ../decimal/IntelRDFPMathLib20U1.tar.gz
 cd IntelRDFPMathLib20U1
 patch -p0 <../intel-lib-linux.patch
 

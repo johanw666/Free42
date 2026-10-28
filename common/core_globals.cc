@@ -31,6 +31,10 @@
 #include "core_variables.h"
 #include "shell.h"
 
+#ifdef FP_DECNUM
+#include "core_decimal.h"
+#endif
+
 // File used for reading and writing the state file, and for importing and
 // exporting programs. Since only one of these operations can be active at one
 // time, having one FILE pointer for all of them is sufficient.
@@ -4175,6 +4179,9 @@ bool read_phloat(phloat *d) {
                 char buf[16];
                 if (fread(buf, 1, 16, gfile) != 16)
                     return false;
+                #ifdef FP_DECNUM
+                    bid_to_dpd128((decQuad *) buf, (decQuad *) buf);
+                #endif
                 char *dst = (char *) d;
                 for (int i = 0; i < 16; i++)
                     dst[i] = buf[15 - i];
@@ -4191,12 +4198,20 @@ bool read_phloat(phloat *d) {
         #else
             if (fread(d, 1, sizeof(phloat), gfile) != sizeof(phloat))
                 return false;
+            #ifdef FP_DECNUM
+                bid_to_dpd128(&d->val, &d->val);
+            #endif
             return true;
         #endif
     }
 }
 
 bool write_phloat(phloat d) {
+    #ifdef FP_DECNUM
+        phloat d2;
+        bid_dpd_to_bid128(&d2.val, &d.val);
+        d = d2;
+    #endif
     #ifdef F42_BIG_ENDIAN
         #ifdef BCD_MATH
             char buf[16];

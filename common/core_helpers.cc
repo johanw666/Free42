@@ -639,9 +639,13 @@ int anum(const char *text, int len, phloat *res) {
         buf[exp_pos] = '-';
     buf[buf_pos++] = 0;
     phloat p;
-#ifdef BCD_MATH
+#if defined(FP_INTEL)
     BID_UINT128 b;
     bid128_from_string(&b, buf);
+    p = b;
+#elif defined(FP_DECNUM)
+    decQuad b;
+    decQuadFromString(&b, buf, &dctx);
     p = b;
 #else
     sscanf(buf, "%le", &p);

@@ -725,7 +725,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -f gcc111libbid.a ]; then exit 0; fi\nARCHS=(arm64 x86_64)\nLIBNAMES=\nfor ARCH in ${ARCHS[@]}; do\n  rm -rf IntelRDFPMathLib20U1\n  tar xvfz ../inteldecimal/IntelRDFPMathLib20U1.tar.gz\n  cd IntelRDFPMathLib20U1\n  patch -p0 <../intel-lib-mac-$ARCH.patch\n  cd LIBRARY\n  make CC=gcc CALL_BY_REF=1 GLOBAL_RND=1 GLOBAL_FLAGS=1 UNCHANGED_BINARY_FLAGS=0\n  mv libbid.a ../../gcc111libbid-$ARCH.a\n  LIBNAMES=\"$LIBNAMES gcc111libbid-$ARCH.a\"\n  cd ../..\ndone\nlipo -create $LIBNAMES -output gcc111libbid.a\n( echo '#ifdef FREE42_FPTEST'; echo 'const char *readtest_lines[] = {'; tr -d '\\r' < IntelRDFPMathLib20U1/TESTS/readtest.in | sed 's/^\\(.*\\)$/\"\\1\",/'; echo '0 };'; echo '#endif' ) > readtest_lines.cc\n";
+			shellScript = "if [ -f gcc111libbid.a ]; then exit 0; fi\nARCHS=(arm64 x86_64)\nLIBNAMES=\nfor ARCH in ${ARCHS[@]}; do\n  rm -rf IntelRDFPMathLib20U1\n  tar xvfz ../decimal/IntelRDFPMathLib20U1.tar.gz\n  cd IntelRDFPMathLib20U1\n  patch -p0 <../intel-lib-mac-$ARCH.patch\n  cd LIBRARY\n  make CC=gcc CALL_BY_REF=1 GLOBAL_RND=1 GLOBAL_FLAGS=1 UNCHANGED_BINARY_FLAGS=0\n  mv libbid.a ../../gcc111libbid-$ARCH.a\n  LIBNAMES=\"$LIBNAMES gcc111libbid-$ARCH.a\"\n  cd ../..\ndone\nlipo -create $LIBNAMES -output gcc111libbid.a\n( echo '#ifdef FREE42_FPTEST'; echo 'const char *readtest_lines[] = {'; tr -d '\\r' < IntelRDFPMathLib20U1/TESTS/readtest.in | sed 's/^\\(.*\\)$/\"\\1\",/'; echo '0 };'; echo '#endif' ) > readtest_lines.cc\n";
 		};
 		E969E2092603F14900EABB28 /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -743,7 +743,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -f gcc111libbid.a ]; then exit 0; fi\nARCHS=(arm64 x86_64)\nLIBNAMES=\nfor ARCH in ${ARCHS[@]}; do\n  rm -rf IntelRDFPMathLib20U1\n  tar xvfz ../inteldecimal/IntelRDFPMathLib20U1.tar.gz\n  cd IntelRDFPMathLib20U1\n  patch -p0 <../intel-lib-mac-$ARCH.patch\n  cd LIBRARY\n  make CC=gcc CALL_BY_REF=1 GLOBAL_RND=1 GLOBAL_FLAGS=1 UNCHANGED_BINARY_FLAGS=0\n  mv libbid.a ../../gcc111libbid-$ARCH.a\n  LIBNAMES=\"$LIBNAMES gcc111libbid-$ARCH.a\"\n  cd ../..\ndone\nlipo -create $LIBNAMES -output gcc111libbid.a\n( echo '#ifdef FREE42_FPTEST'; echo 'const char *readtest_lines[] = {'; tr -d '\\r' < IntelRDFPMathLib20U1/TESTS/readtest.in | sed 's/^\\(.*\\)$/\"\\1\",/'; echo '0 };'; echo '#endif' ) > readtest_lines.cc\n";
+			shellScript = "if [ -f gcc111libbid.a ]; then exit 0; fi\nARCHS=(arm64 x86_64)\nLIBNAMES=\nfor ARCH in ${ARCHS[@]}; do\n  rm -rf IntelRDFPMathLib20U1\n  tar xvfz ../decimal/IntelRDFPMathLib20U1.tar.gz\n  cd IntelRDFPMathLib20U1\n  patch -p0 <../intel-lib-mac-$ARCH.patch\n  cd LIBRARY\n  make CC=gcc CALL_BY_REF=1 GLOBAL_RND=1 GLOBAL_FLAGS=1 UNCHANGED_BINARY_FLAGS=0\n  mv libbid.a ../../gcc111libbid-$ARCH.a\n  LIBNAMES=\"$LIBNAMES gcc111libbid-$ARCH.a\"\n  cd ../..\ndone\nlipo -create $LIBNAMES -output gcc111libbid.a\n( echo '#ifdef FREE42_FPTEST'; echo 'const char *readtest_lines[] = {'; tr -d '\\r' < IntelRDFPMathLib20U1/TESTS/readtest.in | sed 's/^\\(.*\\)$/\"\\1\",/'; echo '0 };'; echo '#endif' ) > readtest_lines.cc\n";
 		};
 		E9EB0E6E2B3DA1BA00F70E61 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -761,7 +761,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -f gcc111libbid.a ]; then exit 0; fi\nARCHS=(arm64 x86_64)\nLIBNAMES=\nfor ARCH in ${ARCHS[@]}; do\n  rm -rf IntelRDFPMathLib20U1\n  tar xvfz ../inteldecimal/IntelRDFPMathLib20U1.tar.gz\n  cd IntelRDFPMathLib20U1\n  patch -p0 <../intel-lib-mac-$ARCH.patch\n  cd LIBRARY\n  make CC=gcc CALL_BY_REF=1 GLOBAL_RND=1 GLOBAL_FLAGS=1 UNCHANGED_BINARY_FLAGS=0\n  mv libbid.a ../../gcc111libbid-$ARCH.a\n  LIBNAMES=\"$LIBNAMES gcc111libbid-$ARCH.a\"\n  cd ../..\ndone\nlipo -create $LIBNAMES -output gcc111libbid.a\n( echo '#ifdef FREE42_FPTEST'; echo 'const char *readtest_lines[] = {'; tr -d '\\r' < IntelRDFPMathLib20U1/TESTS/readtest.in | sed 's/^\\(.*\\)$/\"\\1\",/'; echo '0 };'; echo '#endif' ) > readtest_lines.cc\n";
+			shellScript = "if [ -f gcc111libbid.a ]; then exit 0; fi\nARCHS=(arm64 x86_64)\nLIBNAMES=\nfor ARCH in ${ARCHS[@]}; do\n  rm -rf IntelRDFPMathLib20U1\n  tar xvfz ../decimal/IntelRDFPMathLib20U1.tar.gz\n  cd IntelRDFPMathLib20U1\n  patch -p0 <../intel-lib-mac-$ARCH.patch\n  cd LIBRARY\n  make CC=gcc CALL_BY_REF=1 GLOBAL_RND=1 GLOBAL_FLAGS=1 UNCHANGED_BINARY_FLAGS=0\n  mv libbid.a ../../gcc111libbid-$ARCH.a\n  LIBNAMES=\"$LIBNAMES gcc111libbid-$ARCH.a\"\n  cd ../..\ndone\nlipo -create $LIBNAMES -output gcc111libbid.a\n( echo '#ifdef FREE42_FPTEST'; echo 'const char *readtest_lines[] = {'; tr -d '\\r' < IntelRDFPMathLib20U1/TESTS/readtest.in | sed 's/^\\(.*\\)$/\"\\1\",/'; echo '0 };'; echo '#endif' ) > readtest_lines.cc\n";
 		};
 		E9EB0E712B3DADDF00F70E61 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -779,7 +779,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -f gcc111libbid.a ]; then exit 0; fi\nARCHS=(arm64 x86_64)\nLIBNAMES=\nfor ARCH in ${ARCHS[@]}; do\n  rm -rf IntelRDFPMathLib20U1\n  tar xvfz ../inteldecimal/IntelRDFPMathLib20U1.tar.gz\n  cd IntelRDFPMathLib20U1\n  patch -p0 <../intel-lib-mac-$ARCH.patch\n  cd LIBRARY\n  make CC=gcc CALL_BY_REF=1 GLOBAL_RND=1 GLOBAL_FLAGS=1 UNCHANGED_BINARY_FLAGS=0\n  mv libbid.a ../../gcc111libbid-$ARCH.a\n  LIBNAMES=\"$LIBNAMES gcc111libbid-$ARCH.a\"\n  cd ../..\ndone\nlipo -create $LIBNAMES -output gcc111libbid.a\n( echo '#ifdef FREE42_FPTEST'; echo 'const char *readtest_lines[] = {'; tr -d '\\r' < IntelRDFPMathLib20U1/TESTS/readtest.in | sed 's/^\\(.*\\)$/\"\\1\",/'; echo '0 };'; echo '#endif' ) > readtest_lines.cc\n";
+			shellScript = "if [ -f gcc111libbid.a ]; then exit 0; fi\nARCHS=(arm64 x86_64)\nLIBNAMES=\nfor ARCH in ${ARCHS[@]}; do\n  rm -rf IntelRDFPMathLib20U1\n  tar xvfz ../decimal/IntelRDFPMathLib20U1.tar.gz\n  cd IntelRDFPMathLib20U1\n  patch -p0 <../intel-lib-mac-$ARCH.patch\n  cd LIBRARY\n  make CC=gcc CALL_BY_REF=1 GLOBAL_RND=1 GLOBAL_FLAGS=1 UNCHANGED_BINARY_FLAGS=0\n  mv libbid.a ../../gcc111libbid-$ARCH.a\n  LIBNAMES=\"$LIBNAMES gcc111libbid-$ARCH.a\"\n  cd ../..\ndone\nlipo -create $LIBNAMES -output gcc111libbid.a\n( echo '#ifdef FREE42_FPTEST'; echo 'const char *readtest_lines[] = {'; tr -d '\\r' < IntelRDFPMathLib20U1/TESTS/readtest.in | sed 's/^\\(.*\\)$/\"\\1\",/'; echo '0 };'; echo '#endif' ) > readtest_lines.cc\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

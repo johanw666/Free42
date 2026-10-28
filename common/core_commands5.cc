@@ -17,8 +17,11 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
+#if defined(FP_INTEL) || defined(FP_BINARY_INTEL)
 #include "bid_conf.h"
 #include "bid_functions.h"
+#endif
 
 #include "core_commands2.h"
 #include "core_commands5.h"
@@ -1574,7 +1577,7 @@ static bool result2bits(void *data, int size) {
     }
 }
 
-#ifdef BCD_MATH
+#if defined(FP_INTEL)
 
 int docmd_n_to_bs(arg_struct *arg) {
     BID_UINT128 x = ((vartype_real *) stack[sp])->x.val;
@@ -1691,7 +1694,7 @@ int docmd_dq_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-#else
+#elif defined(FP_BINARY_INTEL)
 
 int docmd_n_to_bs(arg_struct *arg) {
     double x = ((vartype_real *) stack[sp])->x;
@@ -1806,6 +1809,56 @@ int docmd_dq_to_n(arg_struct *arg) {
         return ERR_INSUFFICIENT_MEMORY;
     unary_result(v);
     return ERR_NONE;
+}
+
+#else
+
+int docmd_n_to_bs(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_n_to_bd(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_n_to_bq(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_n_to_ds(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_n_to_dd(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_n_to_dq(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_bs_to_n(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_bd_to_n(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_bq_to_n(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_ds_to_n(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_dd_to_n(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
+}
+
+int docmd_dq_to_n(arg_struct *arg) {
+    return ERR_NOT_YET_IMPLEMENTED;
 }
 
 #endif
