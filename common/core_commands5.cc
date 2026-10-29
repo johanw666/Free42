@@ -21,6 +21,8 @@
 #if defined(FP_INTEL) || defined(FP_BINARY_INTEL)
 #include "bid_conf.h"
 #include "bid_functions.h"
+#elif defined(FP_DECNUM)
+#include "core_decimal.h"
 #endif
 
 #include "core_commands2.h"
@@ -1717,7 +1719,9 @@ int docmd_n_to_dd(arg_struct *arg) {
 }
 
 int docmd_n_to_dq(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    return bits2result(&x, 16);
 }
 
 int docmd_bs_to_n(arg_struct *arg) {
@@ -1741,7 +1745,15 @@ int docmd_dd_to_n(arg_struct *arg) {
 }
 
 int docmd_dq_to_n(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    decQuad x;
+    if (!result2bits(&x, 16))
+        return ERR_INVALID_DATA;
+    bid_to_dpd128(&x, &x);
+    vartype *v = new_real(x);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
 }
 
 #else
