@@ -1699,15 +1699,27 @@ int docmd_dq_to_n(arg_struct *arg) {
 #elif defined(FP_DECNUM)
 
 int docmd_n_to_bs(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    float r;
+    bid128_to_binary32(&r, &x);
+    return bits2result(&r, 4);
 }
 
 int docmd_n_to_bd(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    double r;
+    bid128_to_binary64(&r, &x);
+    return bits2result(&r, 8);
 }
 
 int docmd_n_to_bq(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    decQuad r;
+    bid128_to_binary128(&r, &x);
+    return bits2result(&r, 16);
 }
 
 int docmd_n_to_ds(arg_struct *arg) {
@@ -1725,15 +1737,44 @@ int docmd_n_to_dq(arg_struct *arg) {
 }
 
 int docmd_bs_to_n(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    float x;
+    if (!result2bits(&x, 4))
+        return ERR_INVALID_DATA;
+    decQuad r;
+    binary32_to_bid128(&r, &x);
+    bid_to_dpd128(&r, &r);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
 }
 
 int docmd_bd_to_n(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    double x;
+    if (!result2bits(&x, 8))
+        return ERR_INVALID_DATA;
+    decQuad r;
+    binary64_to_bid128(&r, &x);
+    bid_to_dpd128(&r, &r);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
 }
 
 int docmd_bq_to_n(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    decQuad x, r;
+    if (!result2bits(&x, 16))
+        return ERR_INVALID_DATA;
+    binary128_to_bid128(&r, &x);
+    bid_to_dpd128(&r, &r);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
 }
 
 int docmd_ds_to_n(arg_struct *arg) {
@@ -1930,27 +1971,63 @@ int docmd_dq_to_n(arg_struct *arg) {
 #else
 
 int docmd_n_to_ds(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    double x = ((vartype_real *) stack[sp])->x;
+    uint32_t r;
+    binary64_to_bid32(&r, &x);
+    return bits2result(&r, 4);
 }
 
 int docmd_n_to_dd(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    double x = ((vartype_real *) stack[sp])->x;
+    uint64_t r;
+    binary64_to_bid64(&r, &x);
+    return bits2result(&r, 8);
 }
 
 int docmd_n_to_dq(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    double x = ((vartype_real *) stack[sp])->x;
+    struct { uint64_t lo; uint64_t hi; } r;
+    binary64_to_bid128(&r, &x);
+    return bits2result(&r, 16);
 }
 
 int docmd_ds_to_n(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    uint32_t x;
+    if (!result2bits(&x, 4))
+        return ERR_INVALID_DATA;
+    double r;
+    bid32_to_binary64(&r, &x);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
 }
 
 int docmd_dd_to_n(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    uint64_t x;
+    if (!result2bits(&x, 8))
+        return ERR_INVALID_DATA;
+    double r;
+    bid64_to_binary64(&r, &x);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
 }
 
 int docmd_dq_to_n(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    struct { uint64_t lo; uint64_t hi; } x;
+    if (!result2bits(&x, 16))
+        return ERR_INVALID_DATA;
+    double r;
+    bid128_to_binary64(&r, &x);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
 }
 
 

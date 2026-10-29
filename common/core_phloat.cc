@@ -1647,29 +1647,27 @@ int string2phloat(const char *buf, int buflen, phloat *d) {
 
 double decimal2double(void *data, bool pin_magnitude /* = false */) {
 #ifdef FP_BINARY
-    // Reading a decimal state file while having no decimal library available
-    // to help decode it. This is where that DIY bid128-to-decimal64 routine
-    // becomes absolutely essential.
-    // TODO
-    return NAN_PHLOAT;
+    struct { uint64_t lo; uint64_t hi; } b2;
+    void *b;
+    if ((((size_t) data) & 15) != 0) {
+        memcpy(&b2, data, 16);
+        b = &b2;
+    } else
+        b = data;
 #else // FP_BINARY_INTEL
-    double res;
     BID_UINT128 *b, b2;
     if ((((size_t) data) & 15) != 0) {
-        //b2 = *((BID_UINT128 *) data);
         memcpy(&b2, data, 16);
         b = &b2;
     } else
         b = (BID_UINT128 *) data;
+#endif
+    double res;
     bid128_to_binary64(&res, b);
     if (isnan(res) || !pin_magnitude)
         return res;
-    int r;
-    if (res == 0 && !(bid128_isZero(&r, b), r))
-        return (bid128_isSigned(&r, b), r) ? NEG_TINY_PHLOAT : POS_TINY_PHLOAT;
     int inf = isinf(res);
     return inf == 0 ? res : inf < 0 ? NEG_HUGE_PHLOAT : POS_HUGE_PHLOAT;
-#endif
 }
 
 
