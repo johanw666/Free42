@@ -22,7 +22,7 @@
 #include "bid_conf.h"
 #include "bid_functions.h"
 #elif defined(FP_DECNUM)
-#include "core_decimal.h"
+#include "intel-conv.h"
 #endif
 
 #include "core_commands2.h"

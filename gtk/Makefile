@@ -89,10 +89,10 @@ EXE = free42bin
 else
 ifdef FP_DECNUM
 CXXFLAGS += -DFP_DECNUM
-SRCS += core_decimal.cc
-OBJS += core_decimal.o
 DECNUM_SRCS = decQuad.c decimal128.c decNumber.c decContext.c decimal64.c
 OBJS += decQuad.o decimal128.o decNumber.o decContext.o decimal64.o
+INTELCONV_SRCS = intel-conv.cc
+OBJS += intel-conv.o
 EXE = free42dec-decnum
 else
 ifdef FP_BINARY
@@ -155,10 +155,13 @@ rawconv: raw2txt txt2raw
 	tar cvfz rawconv-linux.tgz raw2txt txt2raw
 	rm raw2txt txt2raw
 
-$(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf keymap.txt: symlinks $(DECNUM_SRCS)
+$(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf keymap.txt: symlinks $(DECNUM_SRCS) $(INTELCONV_SRCS)
 
 $(DECNUM_SRCS):
 	tar xvfz ../decimal/decNumber.tgz
+
+$(INTELCONV_SRCS):
+	tar xvfz ../decimal/intel-conv.tgz
 
 .cc.o:
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
@@ -193,7 +196,7 @@ symlinks:
 
 clean: FORCE
 	rm -f `find . -type l ! -name readtest.c` \
-		dec* \
+		dec* intel-conv.* \
 		skin2cc skin2cc.exe skins.cc \
 		keymap2cc keymap2cc.exe keymap.cc \
 		*.o *.d *.i *.ii *.s symlinks core.* \
@@ -201,7 +204,7 @@ clean: FORCE
 
 cleaner: FORCE
 	rm -f `find . -type l` \
-		free42bin* free42dec* dec* \
+		free42bin* free42dec* dec* intel-conv.* \
 		skin2cc skin2cc.exe skins.cc \
 		keymap2cc keymap2cc.exe keymap.cc \
 		readtest_lines.cc \

@@ -12,3 +12,8 @@ decNumber.tgz
 This is a subset of the files from decNumber-icu-368.zip, used to build the
 FP_DECNUM target. The patches from decNumber368-patches-20210522.zip have been
 applied.
+
+intel-conv.tgz
+
+This is an excerpt from the Intel library, containing only the conversion
+functions needed by the FP_DECNUM and FP_BINARY targets.

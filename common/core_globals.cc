@@ -32,7 +32,7 @@
 #include "shell.h"
 
 #ifdef FP_DECNUM
-#include "core_decimal.h"
+#include "intel-conv.h"
 #endif
 
 // File used for reading and writing the state file, and for importing and

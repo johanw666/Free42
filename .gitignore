@@ -116,8 +116,6 @@
 /gtk/core_commands6.h
 /gtk/core_commands7.cc
 /gtk/core_commands7.h
-/gtk/core_decimal.cc
-/gtk/core_decimal.h
 /gtk/core_display.cc
 /gtk/core_display.h
 /gtk/core_globals.cc
@@ -158,6 +156,8 @@
 /gtk/decimal128.h
 /gtk/decimal64.c
 /gtk/decimal64.h
+/gtk/intel-conv.cc
+/gtk/intel-conv.h
 /gtk/free42.h
 /gtk/keymap2cc.cc
 /gtk/keymap.txt
