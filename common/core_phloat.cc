@@ -33,6 +33,8 @@ extern "C" {
 #include "decQuad.h"
 #include "decimal128.h"
 }
+#elif defined(FP_BINARY)
+#include "intel-conv.h"
 #endif
 
 
@@ -1647,7 +1649,7 @@ int string2phloat(const char *buf, int buflen, phloat *d) {
 
 double decimal2double(void *data, bool pin_magnitude /* = false */) {
 #ifdef FP_BINARY
-    struct { uint64_t lo; uint64_t hi; } b2;
+    struct { uint8 lo; uint8 hi; } b2;
     void *b;
     if ((((size_t) data) & 15) != 0) {
         memcpy(&b2, data, 16);

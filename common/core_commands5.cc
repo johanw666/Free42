@@ -21,7 +21,7 @@
 #if defined(FP_INTEL) || defined(FP_BINARY_INTEL)
 #include "bid_conf.h"
 #include "bid_functions.h"
-#elif defined(FP_DECNUM)
+#elif defined(FP_DECNUM) || defined(FP_BINARY)
 #include "intel-conv.h"
 #endif
 
@@ -1972,27 +1972,27 @@ int docmd_dq_to_n(arg_struct *arg) {
 
 int docmd_n_to_ds(arg_struct *arg) {
     double x = ((vartype_real *) stack[sp])->x;
-    uint32_t r;
+    uint4 r;
     binary64_to_bid32(&r, &x);
     return bits2result(&r, 4);
 }
 
 int docmd_n_to_dd(arg_struct *arg) {
     double x = ((vartype_real *) stack[sp])->x;
-    uint64_t r;
+    uint8 r;
     binary64_to_bid64(&r, &x);
     return bits2result(&r, 8);
 }
 
 int docmd_n_to_dq(arg_struct *arg) {
     double x = ((vartype_real *) stack[sp])->x;
-    struct { uint64_t lo; uint64_t hi; } r;
+    struct { uint8 lo; uint8 hi; } r;
     binary64_to_bid128(&r, &x);
     return bits2result(&r, 16);
 }
 
 int docmd_ds_to_n(arg_struct *arg) {
-    uint32_t x;
+    uint4 x;
     if (!result2bits(&x, 4))
         return ERR_INVALID_DATA;
     double r;
@@ -2005,7 +2005,7 @@ int docmd_ds_to_n(arg_struct *arg) {
 }
 
 int docmd_dd_to_n(arg_struct *arg) {
-    uint64_t x;
+    uint8 x;
     if (!result2bits(&x, 8))
         return ERR_INVALID_DATA;
     double r;
@@ -2018,7 +2018,7 @@ int docmd_dd_to_n(arg_struct *arg) {
 }
 
 int docmd_dq_to_n(arg_struct *arg) {
-    struct { uint64_t lo; uint64_t hi; } x;
+    struct { uint8 lo; uint8 hi; } x;
     if (!result2bits(&x, 16))
         return ERR_INVALID_DATA;
     double r;

@@ -97,6 +97,8 @@ EXE = free42dec-decnum
 else
 ifdef FP_BINARY
 CXXFLAGS += -DFP_BINARY
+INTELCONV_SRCS = intel-conv.cc
+OBJS += intel-conv.o
 EXE = free42bin-pure
 endif
 endif
