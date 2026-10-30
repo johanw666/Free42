@@ -1232,9 +1232,8 @@ static uint8 to_uint8_helper(decQuad *q) {
         decQuadRemainder(&tmp, &src, &b16, &dctx);
         res |= ((uint8) decQuadToUInt32(&tmp, &dctx, DEC_ROUND_DOWN)) << (i * 16);
         if (i < 3) {
-            decQuad tmp2;
-            decQuadDivide(&tmp2, &tmp, &b16, &dctx);
-            decQuadToIntegralValue(&tmp, &tmp2, &dctx, DEC_ROUND_DOWN);
+            decQuadDivide(&tmp, &src, &b16, &dctx);
+            decQuadToIntegralValue(&src, &tmp, &dctx, DEC_ROUND_DOWN);
         }
     }
     return res;
