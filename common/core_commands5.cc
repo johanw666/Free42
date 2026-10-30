@@ -18,12 +18,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#if defined(FP_INTEL) || defined(FP_BINARY_INTEL)
-#include "bid_conf.h"
-#include "bid_functions.h"
-#elif defined(FP_DECNUM) || defined(FP_BINARY)
-#include "intel-conv.h"
-#endif
 
 #include "core_commands2.h"
 #include "core_commands5.h"
@@ -33,6 +27,13 @@
 #include "core_math1.h"
 #include "core_sto_rcl.h"
 #include "core_variables.h"
+
+#if defined(FP_INTEL) || defined(FP_BINARY_INTEL)
+#include "bid_conf.h"
+#include "bid_functions.h"
+#elif defined(FP_DECNUM) || defined(FP_BINARY)
+#include "intel-conv.h"
+#endif
 
 /********************************************************/
 /* Implementations of HP-42S built-in functions, part 5 */
@@ -1924,7 +1925,7 @@ int docmd_bq_to_n(arg_struct *arg) {
     } else {
         // Getting some additional bits so we can do proper rounding
         uint8 mant = (q.hi << 8) & 0xffffffffffff00ULL | (q.lo >> 56) & 0xff | 0x100000000000000ULL;
-        u.r = scalbn((double) mant, exp - 0x3fff - 56);
+        u.r = scalbn((double) mant, (int) (exp - 0x3fff - 56));
     }
 
     vartype *v = new_real(u.r);
