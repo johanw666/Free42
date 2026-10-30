@@ -19,6 +19,12 @@
 #define FREE42_H 1
 
 
+//////////////////////////////////////////////////////////////////////////
+///// NOTE: THE FP_DECNUM TARGET IS NOT FULLY FUNCTIONAL YET!        /////
+///// It's still missing the trigonometric and hyperbolic functions, /////
+///// and a few others.                                              /////
+//////////////////////////////////////////////////////////////////////////
+
 /*
  * Build options:
  *
