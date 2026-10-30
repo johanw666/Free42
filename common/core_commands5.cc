@@ -1723,7 +1723,11 @@ int docmd_n_to_bq(arg_struct *arg) {
 }
 
 int docmd_n_to_ds(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    uint4 r;
+    bid128_to_bid32(&r, &x);
+    return bits2result(&r, 4);
 }
 
 int docmd_n_to_dd(arg_struct *arg) {
@@ -1778,7 +1782,17 @@ int docmd_bq_to_n(arg_struct *arg) {
 }
 
 int docmd_ds_to_n(arg_struct *arg) {
-    return ERR_NOT_YET_IMPLEMENTED;
+    uint4 x;
+    if (!result2bits(&x, 4))
+        return ERR_INVALID_DATA;
+    decQuad r;
+    bid32_to_bid128(&r, &x);
+    bid_to_dpd128(&r, &r);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
 }
 
 int docmd_dd_to_n(arg_struct *arg) {
