@@ -836,7 +836,7 @@ bool no_keystrokes_yet;
  * Version 54: 3.3.11 Statistics sums menu
  * Version 55: 3.4    Error trapping
  * Version 56: 3.4    Error trapping: stack trace
- * Version 57: 3.4.2  Shifted CUSTOM & prog menu assignments
+ * Version 57: 3.5    Shifted CUSTOM & prog menu assignments
  */
 #define FREE42_VERSION 57
 
