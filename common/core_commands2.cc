@@ -725,10 +725,26 @@ static int generic_loop(arg_struct *arg, bool isg) {
                 }
             } else if (regs->type == TYPE_COMPLEXMATRIX) {
                 return ERR_INVALID_TYPE;
+            } else if (regs->type == TYPE_LIST) {
+                vartype_list *list = (vartype_list *) regs;
+                int4 size = list->size;
+                int4 index = arg->val.num;
+                if (index >= size)
+                    return ERR_SIZE_ERROR;
+                vartype *v = list->array->data[index];
+                if (v->type == TYPE_REAL) {
+                    if (!disentangle(regs))
+                        return ERR_INSUFFICIENT_MEMORY;
+                    v = list->array->data[index];
+                    return generic_loop_helper(&((vartype_real *) v)->x, isg);
+                } else if (v->type == TYPE_STRING)
+                    return ERR_ALPHA_DATA_IS_INVALID;
+                else
+                    return ERR_INVALID_TYPE;
             } else {
                 /* This should never happen; STO should prevent
                  * "REGS" from being any other type than a real or
-                 * complex matrix.
+                 * complex matrix or a list.
                  */
                 return ERR_INTERNAL_ERROR;
             }
@@ -946,7 +962,7 @@ int docmd_beep(arg_struct *arg) {
 
 int docmd_tone(arg_struct *arg) {
     if (arg->type == ARGTYPE_STK)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     int err;
     int4 num;
     err = arg_to_num(arg, &num);
@@ -992,6 +1008,54 @@ int docmd_varmenu(arg_struct *arg) {
     varmenu_row = 0;
     varmenu_role = 0;
     return set_menu_return_err(MENULEVEL_APP, MENU_VARMENU, false);
+}
+
+int docmd_params(arg_struct *arg) {
+    vartype_string *name = (vartype_string *) stack[sp];
+    if (name->length == 0)
+        return ERR_RESTRICTED_OPERATION;
+    if (name->length > 7)
+        return ERR_NAME_TOO_LONG;
+    arg_struct arg2;
+    arg2.type = ARGTYPE_STR;
+    int length;
+    string_copy(arg2.val.text, &length, name->txt(), name->length);
+    arg2.length = length;
+    int prgm;
+    int4 pc;
+    if (!find_global_label(&arg2, &prgm, &pc))
+        return ERR_LABEL_NOT_FOUND;
+    pc += get_command_length(prgm, pc);
+    int saved_prgm = current_prgm;
+    current_prgm = prgm;
+    int count = 0;
+    int4 pc2 = pc;
+    int cmd;
+    while (true) {
+        get_next_command(&pc2, &cmd, &arg2, 0, NULL);
+        if (cmd == CMD_MVAR)
+            count++;
+        else
+            break;
+    }
+    vartype_list *res = (vartype_list *) new_list(count);
+    if (res == NULL) {
+        current_prgm = saved_prgm;
+        return ERR_INSUFFICIENT_MEMORY;
+    }
+    for (int i = 0; i < count; i++) {
+        get_next_command(&pc, &cmd, &arg2, 0, NULL);
+        vartype *s = new_string(arg2.val.text, arg2.length);
+        if (s == NULL) {
+            free_vartype((vartype *) res);
+            current_prgm = saved_prgm;
+            return ERR_INSUFFICIENT_MEMORY;
+        }
+        res->array->data[i] = s;
+    }
+    current_prgm = saved_prgm;
+    unary_result((vartype *) res);
+    return ERR_NONE;
 }
 
 int docmd_getkey(arg_struct *arg) {
@@ -1100,20 +1164,21 @@ static const sigma_label_spec sigma_labels[] = {
 
 int docmd_prsigma(arg_struct *arg) {
     vartype *regs = recall_var("REGS", 4);
-    vartype_realmatrix *rm;
-    int nr;
-    int4 size, max, i;
-    char buf[100];
-    int bufptr;
-
     if (regs == NULL)
         return ERR_NONEXISTENT;
-    if (regs->type != TYPE_REALMATRIX)
+
+    int4 size;
+    if (regs->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+        size = rm->rows * rm->columns;
+    } else if (regs->type == TYPE_LIST) {
+        vartype_list *list = (vartype_list *) regs;
+        size = list->size;
+    } else
         return ERR_INVALID_TYPE;
-    rm = (vartype_realmatrix *) regs;
-    nr = flags.f.all_sigma ? 13 : 6;
-    size = rm->rows * rm->columns;
-    max = mode_sigma_reg + nr;
+
+    int nr = flags.f.all_sigma ? 13 : 6;
+    int4 max = mode_sigma_reg + nr;
     if (max > size)
         return ERR_SIZE_ERROR;
     if (!flags.f.printer_enable && program_running())
@@ -1123,25 +1188,53 @@ int docmd_prsigma(arg_struct *arg) {
 
     set_annunciators(-1, -1, 1, -1, -1, -1);
     print_text(NULL, 0, true);
-    for (i = 0; i < nr; i++) {
-        int4 j = i + mode_sigma_reg;
-        if (rm->array->is_string[j] != 0) {
-            char *text;
-            int4 len;
-            get_matrix_string(rm, j, &text, &len);
-            char *sbuf = (char *) malloc(len + 2);
-            if (sbuf == NULL) {
-                print_wide(sigma_labels[i].text, sigma_labels[i].length, "<Low Mem>", 9);
+    char buf[100];
+    int bufptr;
+
+    if (regs->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+        for (int4 i = 0; i < nr; i++) {
+            int4 j = i + mode_sigma_reg;
+            if (rm->array->is_string[j] != 0) {
+                char *text;
+                int4 len;
+                get_matrix_string(rm, j, &text, &len);
+                char *sbuf = (char *) malloc(len + 2);
+                if (sbuf == NULL) {
+                    print_wide(sigma_labels[i].text, sigma_labels[i].length, "<Low Mem>", 9);
+                } else {
+                    sbuf[0] = '"';
+                    memcpy(sbuf + 1, text, len);
+                    sbuf[len + 1] = '"';
+                    print_wide(sigma_labels[i].text, sigma_labels[i].length, sbuf, len + 2);
+                    free(sbuf);
+                }
             } else {
-                sbuf[0] = '"';
-                memcpy(sbuf + 1, text, len);
-                sbuf[len + 1] = '"';
-                print_wide(sigma_labels[i].text, sigma_labels[i].length, sbuf, len + 2);
-                free(sbuf);
+                bufptr = easy_phloat2string(rm->array->data[j], buf, 100, 0);
+                print_wide(sigma_labels[i].text, sigma_labels[i].length, buf, bufptr);
             }
-        } else {
-            bufptr = easy_phloat2string(rm->array->data[j], buf, 100, 0);
-            print_wide(sigma_labels[i].text, sigma_labels[i].length, buf, bufptr);
+        }
+    } else {
+        vartype_list *list = (vartype_list *) regs;
+        for (int4 i = 0; i < nr; i++) {
+            int4 j = i + mode_sigma_reg;
+            vartype *v = list->array->data[j];
+            if (v->type == TYPE_STRING) {
+                vartype_string *s = (vartype_string *) v;
+                char *sbuf = (char *) malloc(s->length + 2);
+                if (sbuf == NULL) {
+                    print_wide(sigma_labels[i].text, sigma_labels[i].length, "<Low Mem>", 9);
+                } else {
+                    sbuf[0] = '"';
+                    memcpy(sbuf + 1, s->txt(), s->length);
+                    sbuf[s->length + 1] = '"';
+                    print_wide(sigma_labels[i].text, sigma_labels[i].length, sbuf, s->length + 2);
+                    free(sbuf);
+                }
+            } else {
+                bufptr = vartype2string(v, buf, 100);
+                print_wide(sigma_labels[i].text, sigma_labels[i].length, buf, bufptr);
+            }
         }
     }
     set_annunciators(-1, -1, 0, -1, -1, -1);
@@ -1167,10 +1260,55 @@ int docmd_prp(arg_struct *arg) {
     return print_program(prgm_index, -1, -1, false);
 }
 
-static vartype *prv_var;
-static int4 prv_index;
-static bool prv_prreg;
+struct prv_struct {
+    vartype *v;
+    int4 *stack;
+    int4 capacity;
+    int4 depth;
+    int4 index;
+    bool prreg;
+};
+
+static prv_struct *prv_data = NULL;
+
 static int prv_worker(bool interrupted);
+
+static int prv_start(vartype *v, bool prreg) {
+    prv_data = (prv_struct *) malloc(sizeof(prv_struct));
+    if (prv_data == NULL) {
+        nomem:
+        set_annunciators(-1, -1, 0, -1, -1, -1);
+        return ERR_INSUFFICIENT_MEMORY;
+    }
+
+    if (prreg) {
+        prv_data->stack = NULL;
+    } else {
+        prv_data->stack = (int4 *) malloc(4 * sizeof(int4));
+        if (prv_data->stack == NULL) {
+            free(prv_data);
+            prv_data = NULL;
+            goto nomem;
+        }
+        prv_data->capacity = 4;
+    }
+
+    prv_data->depth = 0;
+    prv_data->index = 0;
+    prv_data->v = v;
+    prv_data->prreg = prreg;
+
+    mode_interruptible = prv_worker;
+    mode_stoppable = true;
+    return ERR_INTERRUPTIBLE;
+}
+
+static void prv_stop() {
+    free(prv_data->stack);
+    free(prv_data);
+    prv_data = NULL;
+    set_annunciators(-1, -1, 0, -1, -1, -1);
+}
 
 int docmd_prv(arg_struct *arg) {
     if (arg->type == ARGTYPE_IND_NUM || arg->type == ARGTYPE_IND_STK
@@ -1216,12 +1354,7 @@ int docmd_prv(arg_struct *arg) {
                 || v->type == TYPE_COMPLEXMATRIX
                 || v->type == TYPE_LIST
                 && ((vartype_list *) v)->size > 0) {
-            prv_var = v;
-            prv_prreg = false;
-            prv_index = 0;
-            mode_interruptible = prv_worker;
-            mode_stoppable = true;
-            return ERR_INTERRUPTIBLE;
+            return prv_start(v, false);
         } else {
             set_annunciators(-1, -1, 0, -1, -1, -1);
             return ERR_NONE;
@@ -1235,31 +1368,39 @@ static int prv_worker(bool interrupted) {
     int4 i, j, sz;
 
     if (interrupted) {
-        set_annunciators(-1, -1, 0, -1, -1, -1);
+        prv_stop();
         return ERR_STOP;
     }
 
-    if (prv_var->type == TYPE_REALMATRIX) {
-        vartype_realmatrix *rm = (vartype_realmatrix *) prv_var;
+    vartype *pv = prv_data->v;
+    for (int4 i = 0; i < prv_data->depth; i++) {
+        int4 j = prv_data->stack[i] >> 1;
+        llen += int2string(j + 1, lbuf + llen, 32 - llen);
+        char2buf(lbuf, 32, &llen, '.');
+        pv = ((vartype_list *) pv)->array->data[j];
+    }
+
+    if (pv->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *rm = (vartype_realmatrix *) pv;
         sz = rm->rows * rm->columns;
-        if (prv_prreg) {
+        if (prv_data->prreg) {
             char2buf(lbuf, 32, &llen, 'R');
-            if (prv_index < 10)
+            if (prv_data->index < 10)
                 char2buf(lbuf, 32, &llen, '0');
-            llen += int2string(prv_index, lbuf + llen, 32 - llen);
+            llen += int2string(prv_data->index, lbuf + llen, 32 - llen);
             char2buf(lbuf, 32, &llen, '=');
         } else {
-            i = prv_index / rm->columns;
-            j = prv_index % rm->columns;
-            llen = int2string(i + 1, lbuf, 32);
+            i = prv_data->index / rm->columns;
+            j = prv_data->index % rm->columns;
+            llen += int2string(i + 1, lbuf + llen, 32 - llen);
             char2buf(lbuf, 32, &llen, ':');
             llen += int2string(j + 1, lbuf + llen, 32 - llen);
             char2buf(lbuf, 32, &llen, '=');
         }
-        if (rm->array->is_string[prv_index] != 0) {
+        if (rm->array->is_string[prv_data->index] != 0) {
             char *text;
             int4 len;
-            get_matrix_string(rm, prv_index, &text, &len);
+            get_matrix_string(rm, prv_data->index, &text, &len);
             char *sbuf = (char *) malloc(len + 2);
             if (sbuf == NULL) {
                 print_wide(lbuf, llen, "<Low Mem>", 9);
@@ -1271,39 +1412,47 @@ static int prv_worker(bool interrupted) {
                 free(sbuf);
             }
         } else {
-            rlen = easy_phloat2string(rm->array->data[prv_index],
+            rlen = easy_phloat2string(rm->array->data[prv_data->index],
                                         rbuf, 100, 0);
             print_wide(lbuf, llen, rbuf, rlen);
         }
-    } else if (prv_var->type == TYPE_COMPLEXMATRIX) {
-        vartype_complexmatrix *cm = (vartype_complexmatrix *) prv_var;
+    } else if (pv->type == TYPE_COMPLEXMATRIX) {
+        vartype_complexmatrix *cm = (vartype_complexmatrix *) pv;
         sz = cm->rows * cm->columns;
-        if (prv_prreg) {
+        if (prv_data->prreg) {
             char2buf(lbuf, 32, &llen, 'R');
-            if (prv_index < 10)
+            if (prv_data->index < 10)
                 char2buf(lbuf, 32, &llen, '0');
-            llen += int2string(prv_index, lbuf + llen, 32 - llen);
+            llen += int2string(prv_data->index, lbuf + llen, 32 - llen);
             char2buf(lbuf, 32, &llen, '=');
         } else {
-            i = prv_index / cm->columns;
-            j = prv_index % cm->columns;
-            llen = int2string(i + 1, lbuf, 32);
+            i = prv_data->index / cm->columns;
+            j = prv_data->index % cm->columns;
+            llen += int2string(i + 1, lbuf + llen, 32 - llen);
             char2buf(lbuf, 32, &llen, ':');
             llen += int2string(j + 1, lbuf + llen, 32 - llen);
             char2buf(lbuf, 32, &llen, '=');
         }
         vartype_complex cpx;
         cpx.type = TYPE_COMPLEX;
-        cpx.re = cm->array->data[2 * prv_index];
-        cpx.im = cm->array->data[2 * prv_index + 1];
+        cpx.re = cm->array->data[2 * prv_data->index];
+        cpx.im = cm->array->data[2 * prv_data->index + 1];
         rlen = vartype2string((vartype *) &cpx, rbuf, 100);
         print_wide(lbuf, llen, rbuf, rlen);
-    } else /* prv_var->type == TYPE_LIST */ {
-        vartype_list *list = (vartype_list *) prv_var;
-        i = prv_index;
+    } else /* pv->type == TYPE_LIST */ {
+        vartype_list *list = (vartype_list *) pv;
+        i = prv_data->index;
         sz = list->size;
-        llen = int2string(i + 1, lbuf, 32);
-        char2buf(lbuf, 32, &llen, '=');
+        if (prv_data->prreg) {
+            char2buf(lbuf, 32, &llen, 'R');
+            if (prv_data->index < 10)
+                char2buf(lbuf, 32, &llen, '0');
+            llen += int2string(prv_data->index, lbuf + llen, 32 - llen);
+            char2buf(lbuf, 32, &llen, '=');
+        } else {
+            llen += int2string(i + 1, lbuf + llen, 32 - llen);
+            char2buf(lbuf, 32, &llen, '=');
+        }
         vartype *v = list->array->data[i];
         if (v->type == TYPE_STRING) {
             vartype_string *s = (vartype_string *) v;
@@ -1321,14 +1470,38 @@ static int prv_worker(bool interrupted) {
             rlen = vartype2string(v, rbuf, 100);
             print_wide(lbuf, llen, rbuf, rlen);
         }
+        if (!prv_data->prreg && (v->type == TYPE_REALMATRIX || v->type == TYPE_COMPLEXMATRIX
+                || v->type == TYPE_LIST && ((vartype_list *) v)->size > 0)) {
+            if (prv_data->depth == prv_data->capacity) {
+                int4 newcap = prv_data->capacity + 4;
+                int4 *newstk = (int4 *) realloc(prv_data->stack, newcap * sizeof(int4));
+                if (newstk == NULL) {
+                    print_wide(lbuf, llen, "<Low Mem>", 9);
+                    goto dont_descend;
+                } else {
+                    prv_data->capacity = newcap;
+                    prv_data->stack = newstk;
+                }
+            }
+            prv_data->stack[prv_data->depth++] = (prv_data->index << 1) + (prv_data->index + 1 >= sz);
+            prv_data->index = 0;
+            return ERR_INTERRUPTIBLE;
+            dont_descend:;
+        }
     }
 
-    if (++prv_index < sz)
+    if (++prv_data->index < sz)
         return ERR_INTERRUPTIBLE;
-    else {
-        set_annunciators(-1, -1, 0, -1, -1, -1);
-        return ERR_NONE;
+
+    while (prv_data->depth > 0) {
+        int4 idx = prv_data->stack[--prv_data->depth];
+        prv_data->index = (idx >> 1) + 1;
+        if ((idx & 1) == 0)
+            return ERR_INTERRUPTIBLE;
     }
+
+    prv_stop();
+    return ERR_NONE;
 }
 
 int docmd_prreg(arg_struct *arg) {
@@ -1341,12 +1514,7 @@ int docmd_prreg(arg_struct *arg) {
         return ERR_PRINTING_IS_DISABLED;
     set_annunciators(-1, -1, 1, -1, -1, -1);
     print_text(NULL, 0, true);
-    prv_var = regs;
-    prv_prreg = true;
-    prv_index = 0;
-    mode_interruptible = prv_worker;
-    mode_stoppable = true;
-    return ERR_INTERRUPTIBLE;
+    return prv_start(regs, true);
 }
 
 int docmd_prstk(arg_struct *arg) {
@@ -1500,12 +1668,7 @@ int docmd_prx(arg_struct *arg) {
                             || stack[sp]->type == TYPE_COMPLEXMATRIX
                             || stack[sp]->type == TYPE_LIST
                             && ((vartype_list *) stack[sp])->size > 0)) {
-            prv_var = stack[sp];
-            prv_prreg = false;
-            prv_index = 0;
-            mode_interruptible = prv_worker;
-            mode_stoppable = true;
-            return ERR_INTERRUPTIBLE;
+            return prv_start(stack[sp], false);
         } else {
             set_annunciators(-1, -1, 0, -1, -1, -1);
             return ERR_NONE;
@@ -1853,13 +2016,17 @@ int docmd_mat_t(arg_struct *arg) {
 }
 
 int docmd_dim_t(arg_struct *arg) {
+    vartype *v = stack[sp];
     int4 rows, columns;
-    if (stack[sp]->type == TYPE_REALMATRIX) {
-        rows = ((vartype_realmatrix *) stack[sp])->rows;
-        columns = ((vartype_realmatrix *) stack[sp])->columns;
+    if (v->type == TYPE_REALMATRIX) {
+        rows = ((vartype_realmatrix *) v)->rows;
+        columns = ((vartype_realmatrix *) v)->columns;
+    } else if (v->type == TYPE_COMPLEXMATRIX) {
+        rows = ((vartype_complexmatrix *) v)->rows;
+        columns = ((vartype_complexmatrix *) v)->columns;
     } else {
-        rows = ((vartype_complexmatrix *) stack[sp])->rows;
-        columns = ((vartype_complexmatrix *) stack[sp])->columns;
+        rows = ((vartype_list *) v)->size;
+        columns = 1;
     }
     vartype *new_y = new_real(rows);
     vartype *new_x = new_real(columns);
@@ -1872,16 +2039,7 @@ int docmd_dim_t(arg_struct *arg) {
 }
 
 static int assign_helper(int num, arg_struct *arg) {
-    if (arg->type == ARGTYPE_COMMAND) {
-        /* For backward compatibility only; we don't allow this type
-         * of assignment command to be created anymore, but we do want
-         * programs that already contain such commands to continue
-         * working.
-         */
-        const command_spec *cs = &cmd_array[arg->val.cmd];
-        assign_custom_key(num, cs->name, cs->name_length);
-    } else
-        assign_custom_key(num, arg->val.text, arg->length);
+    assign_custom_key(num, arg->val.text, arg->length);
     flags.f.local_label = 0;
     return ERR_NONE;
 }
@@ -1958,6 +2116,78 @@ int docmd_asgn18(arg_struct *arg) {
     return assign_helper(18, arg);
 }
 
+int docmd_asgnn01(arg_struct *arg) {
+    return assign_helper(19, arg);
+}
+
+int docmd_asgnn02(arg_struct *arg) {
+    return assign_helper(20, arg);
+}
+
+int docmd_asgnn03(arg_struct *arg) {
+    return assign_helper(21, arg);
+}
+
+int docmd_asgnn04(arg_struct *arg) {
+    return assign_helper(22, arg);
+}
+
+int docmd_asgnn05(arg_struct *arg) {
+    return assign_helper(23, arg);
+}
+
+int docmd_asgnn06(arg_struct *arg) {
+    return assign_helper(24, arg);
+}
+
+int docmd_asgnn07(arg_struct *arg) {
+    return assign_helper(25, arg);
+}
+
+int docmd_asgnn08(arg_struct *arg) {
+    return assign_helper(26, arg);
+}
+
+int docmd_asgnn09(arg_struct *arg) {
+    return assign_helper(27, arg);
+}
+
+int docmd_asgnn10(arg_struct *arg) {
+    return assign_helper(28, arg);
+}
+
+int docmd_asgnn11(arg_struct *arg) {
+    return assign_helper(29, arg);
+}
+
+int docmd_asgnn12(arg_struct *arg) {
+    return assign_helper(30, arg);
+}
+
+int docmd_asgnn13(arg_struct *arg) {
+    return assign_helper(31, arg);
+}
+
+int docmd_asgnn14(arg_struct *arg) {
+    return assign_helper(32, arg);
+}
+
+int docmd_asgnn15(arg_struct *arg) {
+    return assign_helper(33, arg);
+}
+
+int docmd_asgnn16(arg_struct *arg) {
+    return assign_helper(34, arg);
+}
+
+int docmd_asgnn17(arg_struct *arg) {
+    return assign_helper(35, arg);
+}
+
+int docmd_asgnn18(arg_struct *arg) {
+    return assign_helper(36, arg);
+}
+
 int docmd_on(arg_struct *arg) {
     shell_always_on(1);
     return ERR_NONE;
@@ -2024,6 +2254,36 @@ int docmd_key9g(arg_struct *arg) {
     return ERR_NONE;
 }
 
+int docmd_keyn1g(arg_struct *arg) {
+    assign_prgm_key(10, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn2g(arg_struct *arg) {
+    assign_prgm_key(11, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn3g(arg_struct *arg) {
+    assign_prgm_key(12, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn4g(arg_struct *arg) {
+    assign_prgm_key(13, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn5g(arg_struct *arg) {
+    assign_prgm_key(14, true, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn6g(arg_struct *arg) {
+    assign_prgm_key(15, true, arg);
+    return ERR_NONE;
+}
+
 int docmd_key1x(arg_struct *arg) {
     assign_prgm_key(1, false, arg);
     return ERR_NONE;
@@ -2069,6 +2329,36 @@ int docmd_key9x(arg_struct *arg) {
     return ERR_NONE;
 }
 
+int docmd_keyn1x(arg_struct *arg) {
+    assign_prgm_key(10, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn2x(arg_struct *arg) {
+    assign_prgm_key(11, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn3x(arg_struct *arg) {
+    assign_prgm_key(12, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn4x(arg_struct *arg) {
+    assign_prgm_key(13, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn5x(arg_struct *arg) {
+    assign_prgm_key(14, false, arg);
+    return ERR_NONE;
+}
+
+int docmd_keyn6x(arg_struct *arg) {
+    assign_prgm_key(15, false, arg);
+    return ERR_NONE;
+}
+
 int docmd_vmsto(arg_struct *arg) {
     /* STO variant that is invoked from a VARMENU */
     int err = docmd_sto(arg);
@@ -2109,7 +2399,7 @@ int docmd_sigma_reg(arg_struct *arg) {
     if (arg->type == ARGTYPE_STR)
         return ERR_ALPHA_DATA_IS_INVALID;
     if (arg->type != ARGTYPE_NUM)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     mode_sigma_reg = (int4) arg->val.num;
     if (mode_sigma_reg < 0)
         mode_sigma_reg = -mode_sigma_reg;

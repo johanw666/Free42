@@ -766,10 +766,11 @@ int docmd_lsto(arg_struct *arg) {
     }
     if (arg->type != ARGTYPE_STR)
         return ERR_INVALID_TYPE;
-    /* Only allow matrices to be stored in "REGS" */
+    /* Only allow matrices and lists to be stored in "REGS" */
     if (string_equals(arg->val.text, arg->length, "REGS", 4)
             && stack[sp]->type != TYPE_REALMATRIX
-            && stack[sp]->type != TYPE_COMPLEXMATRIX)
+            && stack[sp]->type != TYPE_COMPLEXMATRIX
+            && stack[sp]->type != TYPE_LIST)
         return ERR_RESTRICTED_OPERATION;
     vartype *newval = dup_vartype(stack[sp]);
     if (newval == NULL)
@@ -1005,6 +1006,109 @@ int docmd_pcomplx(arg_struct *arg) {
     int err = docmd_complex(arg);
     flags.f.polar = p;
     return err;
+}
+
+static int re_im_helper(bool re) {
+    vartype *res;
+    vartype *x = stack[sp];
+    switch (x->type) {
+        case TYPE_REAL: {
+            vartype_real *r = (vartype_real *) x;
+            res = new_real(re ? r->x : 0);
+            break;
+        }
+        case TYPE_COMPLEX: {
+            vartype_complex *c = (vartype_complex *) x;
+            res = new_real(re ? c->re : c->im);
+            break;
+        }
+        case TYPE_REALMATRIX: {
+            vartype_realmatrix *rm = (vartype_realmatrix *) x;
+            int4 sz = rm->rows * rm->columns;
+            for (int4 i = 0; i < sz; i++)
+                if (rm->array->is_string[i] != 0)
+                    return ERR_ALPHA_DATA_IS_INVALID;
+            if (re)
+                res = dup_vartype(x);
+            else
+                res = new_realmatrix(rm->rows, rm->columns);
+            break;
+        }
+        case TYPE_COMPLEXMATRIX: {
+            vartype_complexmatrix *cm = (vartype_complexmatrix *) x;
+            res = new_realmatrix(cm->rows, cm->columns);
+            if (res != NULL) {
+                int4 sz = cm->rows * cm->columns;
+                vartype_realmatrix *rm = (vartype_realmatrix *) res;
+                for (int4 i = 0; i < sz; i++)
+                    rm->array->data[i] = cm->array->data[2 * i + !re];
+            }
+            break;
+        }
+        default:
+            return ERR_INTERNAL_ERROR;
+    }
+    if (res == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(res);
+    return ERR_NONE;
+}
+
+int docmd_re(arg_struct *arg) {
+    return re_im_helper(true);
+}
+
+int docmd_im(arg_struct *arg) {
+    return re_im_helper(false);
+}
+
+int docmd_conj(arg_struct *arg) {
+    vartype *x = stack[sp];
+    vartype *res;
+    switch (x->type) {
+        case TYPE_REAL: {
+            res = dup_vartype(x);
+            break;
+        }
+        case TYPE_REALMATRIX: {
+            if (contains_strings((vartype_realmatrix *) x))
+                return ERR_ALPHA_DATA_IS_INVALID;
+            res = dup_vartype(x);
+            break;
+        }
+        case TYPE_COMPLEX: {
+            vartype_complex *c = (vartype_complex *) x;
+            res = new_complex(c->re, -c->im);
+            break;
+        }
+        case TYPE_COMPLEXMATRIX: {
+            vartype_complexmatrix *cm = (vartype_complexmatrix *) x;
+            int4 sz = cm->rows * cm->columns * 2;
+            bool is_real = true;
+            for (int4 i = 1; i < sz; i += 2)
+                if (cm->array->data[i] != 0) {
+                    is_real = false;
+                    break;
+                }
+            res = dup_vartype(x);
+            if (!is_real) {
+                if (!disentangle(res)) {
+                    free_vartype(res);
+                    res = NULL;
+                } else {
+                    cm = (vartype_complexmatrix *) res;
+                    for (int4 i = 1; i < sz; i += 2)
+                        cm->array->data[i] = -cm->array->data[i];
+                }
+            }
+        }
+        default:
+            return ERR_INTERNAL_ERROR;
+    }
+    if (res == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(res);
+    return ERR_NONE;
 }
 
 int docmd_caps(arg_struct *arg) {
@@ -1627,14 +1731,14 @@ int docmd_x_eq_nn(arg_struct *arg) {
     temp_vartype tv(arg, false);
     if (tv.err != ERR_NONE)
         return tv.err;
-    return vartype_equals(stack[sp], tv.v) ? ERR_YES : ERR_NO;
+    return vartype_equals(stack[sp], tv.v, true) ? ERR_YES : ERR_NO;
 }
 
 int docmd_x_ne_nn(arg_struct *arg) {
     temp_vartype tv(arg, false);
     if (tv.err != ERR_NONE)
         return tv.err;
-    return vartype_equals(stack[sp], tv.v) ? ERR_NO : ERR_YES;
+    return vartype_equals(stack[sp], tv.v, true) ? ERR_NO : ERR_YES;
 }
 
 int docmd_x_lt_nn(arg_struct *arg) {
@@ -1665,18 +1769,59 @@ int docmd_x_ge_nn(arg_struct *arg) {
     return ((vartype_real *) stack[sp])->x >= ((vartype_real *) tv.v)->x ? ERR_YES : ERR_NO;
 }
 
+static bool compare_zero_helper(vartype *v) {
+    switch (v->type) {
+        case TYPE_REAL: {
+            vartype_real *r = (vartype_real *) v;
+            return r->x == 0;
+        }
+        case TYPE_COMPLEX: {
+            vartype_complex *c = (vartype_complex *) v;
+            return c->re == 0 && c->im == 0;
+        }
+        case TYPE_REALMATRIX: {
+            vartype_realmatrix *rm = (vartype_realmatrix *) v;
+            int4 sz = rm->rows * rm->columns;
+            for (int4 i = 0; i < sz; i++) {
+                if (rm->array->is_string[i] != 0)
+                    return false;
+                if (rm->array->data[i] != 0)
+                    return false;
+            }
+            return true;
+        }
+        case TYPE_COMPLEXMATRIX: {
+            vartype_complexmatrix *cm = (vartype_complexmatrix *) v;
+            int4 sz = cm->rows * cm->columns * 2;
+            for (int4 i = 0; i < sz; i++)
+                if (cm->array->data[i] != 0)
+                    return false;
+            return true;
+        }
+        case TYPE_LIST: {
+            vartype_list *list = (vartype_list *) v;
+            for (int4 i = 0; i < list->size; i++)
+                if (!compare_zero_helper(list->array->data[i]))
+                    return false;
+            return true;
+        }
+        default:
+            return false;
+    }
+}
+
 int docmd_0_eq_nn(arg_struct *arg) {
-    temp_vartype tv(arg, true);
+    temp_vartype tv(arg, false);
     if (tv.err != ERR_NONE)
         return tv.err;
-    return ((vartype_real *) tv.v)->x == 0 ? ERR_YES : ERR_NO;
+    return compare_zero_helper(tv.v) ? ERR_YES : ERR_NO;
 }
 
 int docmd_0_ne_nn(arg_struct *arg) {
-    temp_vartype tv(arg, true);
+    temp_vartype tv(arg, false);
     if (tv.err != ERR_NONE)
         return tv.err;
-    return ((vartype_real *) tv.v)->x != 0 ? ERR_YES : ERR_NO;
+    return compare_zero_helper(tv.v) ? ERR_NO : ERR_YES;
 }
 
 int docmd_0_lt_nn(arg_struct *arg) {
@@ -1712,23 +1857,29 @@ int docmd_0_ge_nn(arg_struct *arg) {
 ///////////////////////////
 
 static int get_sum(int n) {
+    n += mode_sigma_reg;
     vartype *v = recall_var("REGS", 4);
     if (v == NULL)
         return ERR_SIZE_ERROR;
-    else if (v->type != TYPE_REALMATRIX)
+    if (v->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *rm = (vartype_realmatrix *) v;
+        if (n >= rm->rows * rm->columns)
+            return ERR_SIZE_ERROR;
+        if (rm->array->is_string[n]) {
+            char *text;
+            int length;
+            get_matrix_string(rm, n, &text, &length);
+            v = new_string(text, length);
+        } else {
+            v = new_real(rm->array->data[n]);
+        }
+    } else if (v->type == TYPE_LIST) {
+        vartype_list *list = (vartype_list *) v;
+        if (n >= list->size)
+            return ERR_SIZE_ERROR;
+        v = dup_vartype(list->array->data[n]);
+    } else
         return ERR_INVALID_TYPE;
-    vartype_realmatrix *rm = (vartype_realmatrix *) v;
-    n += mode_sigma_reg;
-    if (n >= rm->rows * rm->columns)
-        return ERR_SIZE_ERROR;
-    if (rm->array->is_string[n]) {
-        char *text;
-        int length;
-        get_matrix_string(rm, n, &text, &length);
-        v = new_string(text, length);
-    } else {
-        v = new_real(rm->array->data[n]);
-    }
     if (v == NULL)
         return ERR_INSUFFICIENT_MEMORY;
     return recall_result(v);
@@ -2045,32 +2196,43 @@ int docmd_head(arg_struct *arg) {
             vartype *regs = recall_var("REGS", 4);
             if (regs == NULL)
                 return ERR_SIZE_ERROR;
-            if (regs->type != TYPE_REALMATRIX)
+            if (regs->type == TYPE_REALMATRIX) {
+                vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+                int4 sz = rm->rows * rm->columns;
+                int4 n = arg->val.num;
+                if (n >= sz)
+                    return ERR_SIZE_ERROR;
+                if (rm->array->is_string[n] == 0)
+                    return ERR_INVALID_TYPE;
+                char *text;
+                int len;
+                get_matrix_string(rm, n, &text, &len);
+                if (len == 0)
+                    return ERR_NO;
+                if (!disentangle(regs))
+                    return ERR_INSUFFICIENT_MEMORY;
+                get_matrix_string(rm, n, &text, &len);
+                v = new_string(text, 1);
+                if (v == NULL)
+                    return ERR_INSUFFICIENT_MEMORY;
+                if (!put_matrix_string(rm, n, text + 1, len - 1)) {
+                    free_vartype(v);
+                    return ERR_INSUFFICIENT_MEMORY;
+                }
+                err = recall_result(v);
+                return err == ERR_NONE ? ERR_YES : err;
+            } else if (regs->type == TYPE_LIST) {
+                vartype_list *list = (vartype_list *) regs;
+                int4 sz = list->size;
+                int n = arg->val.num;
+                if (n >= sz)
+                    return ERR_SIZE_ERROR;
+                if (!disentangle(regs))
+                    return ERR_INSUFFICIENT_MEMORY;
+                s = list->array->data[n];
+                goto doit;
+            } else
                 return ERR_INVALID_TYPE;
-            vartype_realmatrix *rm = (vartype_realmatrix *) regs;
-            int4 sz = rm->rows * rm->columns;
-            int4 n = arg->val.num;
-            if (n >= sz)
-                return ERR_SIZE_ERROR;
-            if (rm->array->is_string[n] == 0)
-                return ERR_INVALID_TYPE;
-            char *text;
-            int len;
-            get_matrix_string(rm, n, &text, &len);
-            if (len == 0)
-                return ERR_NO;
-            if (!disentangle(regs))
-                return ERR_INSUFFICIENT_MEMORY;
-            get_matrix_string(rm, n, &text, &len);
-            v = new_string(text, 1);
-            if (v == NULL)
-                return ERR_INSUFFICIENT_MEMORY;
-            if (!put_matrix_string(rm, n, text + 1, len - 1)) {
-                free_vartype(v);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            err = recall_result(v);
-            return err == ERR_NONE ? ERR_YES : err;
         }
         case ARGTYPE_STK: {
             int idx;
@@ -2419,4 +2581,212 @@ int docmd_height(arg_struct *arg) {
     if (v == NULL)
         return ERR_INSUFFICIENT_MEMORY;
     return recall_result(v);
+}
+
+static int sort_helper(vartype *a, vartype *b, int4 ai, int4 bi, int4 key, bool ascending, bool *a_first) {
+    if (a->type != TYPE_REAL && a->type != TYPE_STRING && a->type != TYPE_LIST
+            || b->type != TYPE_REAL && b->type != TYPE_STRING && b->type != TYPE_LIST)
+        return ERR_INVALID_TYPE;
+    if (a->type != b->type)
+        return ERR_INVALID_DATA;
+    switch (a->type) {
+        case TYPE_REAL: {
+            phloat aa = ((vartype_real *) a)->x;
+            phloat bb = ((vartype_real *) b)->x;
+            if (aa > bb)
+                *a_first = !ascending;
+            else if (aa < bb)
+                *a_first = ascending;
+            else
+                *a_first = ai < bi;
+            return ERR_NONE;
+        }
+        case TYPE_STRING: {
+            vartype_string *sa = (vartype_string *) a;
+            vartype_string *sb = (vartype_string *) b;
+            int4 alen = sa->length;
+            int4 blen = sb->length;
+            const char *ta = sa->txt();
+            const char *tb = sb->txt();
+            int4 len = alen < blen ? alen : blen;
+            for (int4 i = 0; i < len; i++)
+                if (ta[i] != tb[i]) {
+                    *a_first = (ta[i] < tb[i]) == ascending;
+                    return ERR_NONE;
+                }
+            *a_first = alen == blen ? ai < bi : (alen < blen) == ascending;
+            return ERR_NONE;
+        }
+        case TYPE_LIST: {
+            if (key == -1)
+                // Nested lists not allowed as sort keys
+                return ERR_INVALID_TYPE;
+            vartype_list *la = (vartype_list *) a;
+            vartype_list *lb = (vartype_list *) b;
+            int4 alen = la->size;
+            int4 blen = lb->size;
+            if (key >= alen || key >= blen)
+                return ERR_DIMENSION_ERROR;
+            return sort_helper(la->array->data[key], lb->array->data[key], ai, bi, -1, ascending, a_first);
+        }
+        default:
+            return ERR_INVALID_TYPE;
+    }
+}
+
+static int heapify(vartype **data, int4 *idx, int4 n, int4 i, int4 key, bool ascending) {
+    again:
+
+    // Initialize largest as root
+    int4 largest = i;
+
+    // left index = 2*i + 1
+    int4 left = 2 * i + 1;
+
+    // right index = 2*i + 2
+    int4 right = 2 * i + 2;
+
+    // If left child is larger than root
+    if (left < n) {
+        bool a_is_less;
+        int err = sort_helper(data[idx[left]], data[idx[largest]], idx[left], idx[largest], key, ascending, &a_is_less);
+        if (err != ERR_NONE)
+            return err;
+        if (!a_is_less)
+            largest = left;
+    }
+
+    // If right child is larger than largest so far
+    if (right < n) {
+        bool a_is_less;
+        int err = sort_helper(data[idx[right]], data[idx[largest]], idx[right], idx[largest], key, ascending, &a_is_less);
+        if (err != ERR_NONE)
+            return err;
+        if (!a_is_less)
+            largest = right;
+    }
+
+    // If largest is not root
+    if (largest != i) {
+        int4 temp = idx[i];
+        idx[i] = idx[largest];
+        idx[largest] = temp;
+
+        // Recursively heapify the affected sub-tree
+        i = largest;
+        goto again;
+    }
+    return ERR_NONE;
+}
+
+int docmd_sort(arg_struct *arg) {
+    int4 key = 0;
+    bool ascending = true;
+    vartype_list *list;
+
+    if (stack[sp]->type == TYPE_LIST) {
+        list = (vartype_list *) stack[sp];
+    } else if (stack[sp]->type == TYPE_REAL) {
+        if (sp < 1)
+            return ERR_TOO_FEW_ARGUMENTS;
+        if (stack[sp - 1]->type != TYPE_LIST)
+            return ERR_INVALID_TYPE;
+        list = (vartype_list *) stack[sp - 1];
+        phloat x = ((vartype_real *) stack[sp])->x;
+        if (x < 0) {
+            ascending = false;
+            x = -x;
+        }
+        if (x < 1 || x >= 2147483648.0)
+            return ERR_INVALID_DATA;
+        key = to_int4(x) - 1;
+    } else
+        return ERR_INVALID_TYPE;
+
+    int4 size = list->size;
+    if (size <= 1) {
+        no_need_to_sort:
+        vartype *res = dup_vartype((vartype *) list);
+        if (res == NULL)
+            return ERR_INSUFFICIENT_MEMORY;
+        if (stack[sp]->type == TYPE_REAL)
+            return binary_result(res);
+        else {
+            unary_result(res);
+            return ERR_NONE;
+        }
+    }
+
+    int4 *idx = (int4 *) malloc(size * sizeof(int4));
+    if (idx == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    for (int4 i = 0; i < size; i++)
+        idx[i] = i;
+
+    /* Heapsort code gleaned from
+     * https://www.geeksforgeeks.org/c/c-program-for-heap-sort/
+     */
+
+    // Build heap (rearrange vector)
+    for (int4 i = size / 2 - 1; i >= 0; i--) {
+        int err = heapify(list->array->data, idx, size, i, key, ascending);
+        if (err != ERR_NONE) {
+            free(idx);
+            return err;
+        }
+    }
+
+    // One by one extract an element from heap
+    for (int4 i = size - 1; i > 0; i--) {
+
+        // Move current root to end
+        int4 temp = idx[0];
+        idx[0] = idx[i];
+        idx[i] = temp;
+
+        // Call max heapify on the reduced heap
+        int err = heapify(list->array->data, idx, i, 0, key, ascending);
+        if (err != ERR_NONE) {
+            free(idx);
+            return err;
+        }
+    }
+
+    // Check if the list actually needs rearranging
+    for (int4 i = 0; i < size; i++)
+        if (idx[i] != i)
+            goto need_to_sort;
+    free(idx);
+    goto no_need_to_sort;
+    need_to_sort:
+    vartype *res = dup_vartype((vartype *) list);
+    if (res == NULL || !disentangle(res)) {
+        free_vartype(res);
+        free(idx);
+        return ERR_INSUFFICIENT_MEMORY;
+    }
+    vartype **data = ((vartype_list *) res)->array->data;
+    for (int4 i = 0; i < size; i++) {
+        if (idx[i] == i || idx[i] == -1)
+            continue;
+        int4 j = i;
+        vartype *tmp = data[i];
+        while (true) {
+            int4 k = idx[j];
+            idx[j] = -1;
+            if (k == i)
+                break;
+            data[j] = data[k];
+            j = k;
+        }
+        data[j] = tmp;
+    }
+
+    free(idx);
+    if (stack[sp]->type == TYPE_REAL)
+        return binary_result(res);
+    else {
+        unary_result(res);
+        return ERR_NONE;
+    }
 }

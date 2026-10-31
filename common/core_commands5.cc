@@ -17,8 +17,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include "bid_conf.h"
-#include "bid_functions.h"
+#include <ctype.h>
 
 #include "core_commands2.h"
 #include "core_commands5.h"
@@ -28,6 +27,13 @@
 #include "core_math1.h"
 #include "core_sto_rcl.h"
 #include "core_variables.h"
+
+#if defined(FP_INTEL) || defined(FP_BINARY_INTEL)
+#include "bid_conf.h"
+#include "bid_functions.h"
+#elif defined(FP_DECNUM) || defined(FP_BINARY)
+#include "intel-conv.h"
+#endif
 
 /********************************************************/
 /* Implementations of HP-42S built-in functions, part 5 */
@@ -90,37 +96,61 @@ static int get_summation() {
     /* Check if summation registers are OK */
     int4 first = mode_sigma_reg;
     int4 last = first + (flags.f.all_sigma ? 13 : 6);
-    int4 size, i;
     vartype *regs = recall_var("REGS", 4);
-    vartype_realmatrix *r;
-    phloat *sigmaregs;
     if (regs == NULL)
         return ERR_SIZE_ERROR;
-    if (regs->type != TYPE_REALMATRIX)
+    if (regs->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *r = (vartype_realmatrix *) regs;
+        int4 size = r->rows * r->columns;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++)
+            if (r->array->is_string[i] != 0)
+                return ERR_ALPHA_DATA_IS_INVALID;
+        phloat *sigmaregs = r->array->data + first;
+        sum.x = sigmaregs[0];
+        sum.x2 = sigmaregs[1];
+        sum.y = sigmaregs[2];
+        sum.y2 = sigmaregs[3];
+        sum.xy = sigmaregs[4];
+        sum.n = sigmaregs[5];
+        if (flags.f.all_sigma) {
+            sum.lnx = sigmaregs[6];
+            sum.lnx2 = sigmaregs[7];
+            sum.lny = sigmaregs[8];
+            sum.lny2 = sigmaregs[9];
+            sum.lnxlny = sigmaregs[10];
+            sum.xlny = sigmaregs[11];
+            sum.ylnx = sigmaregs[12];
+        }
+    } else if (regs->type == TYPE_LIST) {
+        vartype_list *list = (vartype_list *) regs;
+        int4 size = list->size;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++) {
+            int type = list->array->data[i]->type;
+            if (type != TYPE_REAL)
+                return type == TYPE_STRING ? ERR_ALPHA_DATA_IS_INVALID : ERR_INVALID_TYPE;
+        }
+        vartype_real **sigmaregs = (vartype_real **) (list->array->data + first);
+        sum.x = sigmaregs[0]->x;
+        sum.x2 = sigmaregs[1]->x;
+        sum.y = sigmaregs[2]->x;
+        sum.y2 = sigmaregs[3]->x;
+        sum.xy = sigmaregs[4]->x;
+        sum.n = sigmaregs[5]->x;
+        if (flags.f.all_sigma) {
+            sum.lnx = sigmaregs[6]->x;
+            sum.lnx2 = sigmaregs[7]->x;
+            sum.lny = sigmaregs[8]->x;
+            sum.lny2 = sigmaregs[9]->x;
+            sum.lnxlny = sigmaregs[10]->x;
+            sum.xlny = sigmaregs[11]->x;
+            sum.ylnx = sigmaregs[12]->x;
+        }
+    } else
         return ERR_INVALID_TYPE;
-    r = (vartype_realmatrix *) regs;
-    size = r->rows * r->columns;
-    if (last > size)
-        return ERR_SIZE_ERROR;
-    for (i = first; i < last; i++)
-        if (r->array->is_string[i] != 0)
-            return ERR_ALPHA_DATA_IS_INVALID;
-    sigmaregs = r->array->data + first;
-    sum.x = sigmaregs[0];
-    sum.x2 = sigmaregs[1];
-    sum.y = sigmaregs[2];
-    sum.y2 = sigmaregs[3];
-    sum.xy = sigmaregs[4];
-    sum.n = sigmaregs[5];
-    if (flags.f.all_sigma) {
-        sum.lnx = sigmaregs[6];
-        sum.lnx2 = sigmaregs[7];
-        sum.lny = sigmaregs[8];
-        sum.lny2 = sigmaregs[9];
-        sum.lnxlny = sigmaregs[10];
-        sum.xlny = sigmaregs[11];
-        sum.ylnx = sigmaregs[12];
-    }
     return ERR_NONE;
 }
 
@@ -1550,7 +1580,7 @@ static bool result2bits(void *data, int size) {
     }
 }
 
-#ifdef BCD_MATH
+#if defined(FP_INTEL)
 
 int docmd_n_to_bs(arg_struct *arg) {
     BID_UINT128 x = ((vartype_real *) stack[sp])->x.val;
@@ -1667,6 +1697,135 @@ int docmd_dq_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
+#elif defined(FP_DECNUM)
+
+int docmd_n_to_bs(arg_struct *arg) {
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    float r;
+    bid128_to_binary32(&r, &x);
+    return bits2result(&r, 4);
+}
+
+int docmd_n_to_bd(arg_struct *arg) {
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    double r;
+    bid128_to_binary64(&r, &x);
+    return bits2result(&r, 8);
+}
+
+int docmd_n_to_bq(arg_struct *arg) {
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    decQuad r;
+    bid128_to_binary128(&r, &x);
+    return bits2result(&r, 16);
+}
+
+int docmd_n_to_ds(arg_struct *arg) {
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    uint4 r;
+    bid128_to_bid32(&r, &x);
+    return bits2result(&r, 4);
+}
+
+int docmd_n_to_dd(arg_struct *arg) {
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    uint8 r;
+    bid128_to_bid64(&r, &x);
+    return bits2result(&r, 8);
+}
+
+int docmd_n_to_dq(arg_struct *arg) {
+    decQuad x = ((vartype_real *) stack[sp])->x.val;
+    bid_dpd_to_bid128(&x, &x);
+    return bits2result(&x, 16);
+}
+
+int docmd_bs_to_n(arg_struct *arg) {
+    float x;
+    if (!result2bits(&x, 4))
+        return ERR_INVALID_DATA;
+    decQuad r;
+    binary32_to_bid128(&r, &x);
+    bid_to_dpd128(&r, &r);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
+}
+
+int docmd_bd_to_n(arg_struct *arg) {
+    double x;
+    if (!result2bits(&x, 8))
+        return ERR_INVALID_DATA;
+    decQuad r;
+    binary64_to_bid128(&r, &x);
+    bid_to_dpd128(&r, &r);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
+}
+
+int docmd_bq_to_n(arg_struct *arg) {
+    decQuad x, r;
+    if (!result2bits(&x, 16))
+        return ERR_INVALID_DATA;
+    binary128_to_bid128(&r, &x);
+    bid_to_dpd128(&r, &r);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
+}
+
+int docmd_ds_to_n(arg_struct *arg) {
+    uint4 x;
+    if (!result2bits(&x, 4))
+        return ERR_INVALID_DATA;
+    decQuad r;
+    bid32_to_bid128(&r, &x);
+    bid_to_dpd128(&r, &r);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
+}
+
+int docmd_dd_to_n(arg_struct *arg) {
+    uint8 x;
+    if (!result2bits(&x, 8))
+        return ERR_INVALID_DATA;
+    decQuad r;
+    bid64_to_bid128(&r, &x);
+    bid_to_dpd128(&r, &r);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
+}
+
+int docmd_dq_to_n(arg_struct *arg) {
+    decQuad x;
+    if (!result2bits(&x, 16))
+        return ERR_INVALID_DATA;
+    bid_to_dpd128(&x, &x);
+    vartype *v = new_real(x);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
+}
+
 #else
 
 int docmd_n_to_bs(arg_struct *arg) {
@@ -1681,32 +1840,41 @@ int docmd_n_to_bd(arg_struct *arg) {
 }
 
 int docmd_n_to_bq(arg_struct *arg) {
-    double x = ((vartype_real *) stack[sp])->x;
-    BID_UINT128 r1, r2;
-    binary64_to_bid128(&r1, &x);
-    bid128_to_binary128(&r2, &r1);
-    return bits2result(&r2, 16);
-}
+    union {
+        double r;
+        uint8 d;
+    } u;
+    u.r = ((vartype_real *) stack[sp])->x;
 
-int docmd_n_to_ds(arg_struct *arg) {
-    double x = ((vartype_real *) stack[sp])->x;
-    BID_UINT32 r;
-    binary64_to_bid32(&r, &x);
-    return bits2result(&r, 4);
-}
+    struct {
+        #ifdef F42_BIG_ENDIAN
+        uint8 hi;
+        uint8 lo;
+        #else
+        uint8 lo;
+        uint8 hi;
+        #endif
+    } q;
+    q.hi = u.d & 0x8000000000000000ULL;
+    uint8 exp = (u.d >> 52) & 0x7ff;
+    uint8 mant = u.d & 0xfffffffffffffULL;
+    if (exp == 0x7ff)
+        exp = 0x7fff;
+    else if (exp != 0)
+        exp += 0x3c00;
+    else if (mant != 0) {
+        exp = 0x3c01;
+        do {
+            mant <<= 1;
+            exp--;
+        } while ((mant & 0x10000000000000ULL) == 0);
+        mant &= 0xfffffffffffffULL;
+    }
+    q.hi |= exp << 48;
+    q.hi |= mant >> 4;
+    q.lo = mant << 60;
 
-int docmd_n_to_dd(arg_struct *arg) {
-    double x = ((vartype_real *) stack[sp])->x;
-    BID_UINT64 r;
-    binary64_to_bid64(&r, &x);
-    return bits2result(&r, 8);
-}
-
-int docmd_n_to_dq(arg_struct *arg) {
-    double x = ((vartype_real *) stack[sp])->x;
-    BID_UINT128 r;
-    binary64_to_bid128(&r, &x);
-    return bits2result(&r, 16);
+    return bits2result(&q, 16);
 }
 
 int docmd_bs_to_n(arg_struct *arg) {
@@ -1732,17 +1900,62 @@ int docmd_bd_to_n(arg_struct *arg) {
 }
 
 int docmd_bq_to_n(arg_struct *arg) {
-    BID_UINT128 x, r1;
-    if (!result2bits(&x, 16))
+    struct {
+        #ifdef F42_BIG_ENDIAN
+        uint8 hi;
+        uint8 lo;
+        #else
+        uint8 lo;
+        uint8 hi;
+        #endif
+    } q;
+    if (!result2bits(&q, 16))
         return ERR_INVALID_DATA;
-    binary128_to_bid128(&r1, &x);
-    double r2;
-    bid128_to_binary64(&r2, &r1);
-    vartype *v = new_real(r2);
+
+    union {
+        double r;
+        uint8 d;
+    } u;
+    u.d = q.hi & 0x8000000000000000ULL;
+    uint8 exp = (q.hi >> 48) & 0x7fff;
+    if (exp == 0) {
+        u.r = 0;
+    } else if (exp == 0x7fff) {
+        u.d |= (q.hi & 0xffffffffffff) << 4 | (q.lo >> 60);
+    } else {
+        // Getting some additional bits so we can do proper rounding
+        uint8 mant = (q.hi << 8) & 0xffffffffffff00ULL | (q.lo >> 56) & 0xff | 0x100000000000000ULL;
+        u.r = scalbn((double) mant, (int) (exp - 0x3fff - 56));
+    }
+
+    vartype *v = new_real(u.r);
     if (v == NULL)
         return ERR_INSUFFICIENT_MEMORY;
     unary_result(v);
     return ERR_NONE;
+}
+
+#ifdef FP_BINARY_INTEL
+
+int docmd_n_to_ds(arg_struct *arg) {
+    double x = ((vartype_real *) stack[sp])->x;
+    BID_UINT32 r;
+    binary64_to_bid32(&r, &x);
+    return bits2result(&r, 4);
+}
+
+int docmd_n_to_dd(arg_struct *arg) {
+    double x = ((vartype_real *) stack[sp])->x;
+    BID_UINT64 r;
+    binary64_to_bid64(&r, &x);
+    return bits2result(&r, 8);
+}
+
+int docmd_n_to_dq(arg_struct *arg) {
+    double x = ((vartype_real *) stack[sp])->x;
+    BID_UINT128 r;
+    binary64_to_bid128(&r, &x);
+    return bits2result(&r, 16);
 }
 
 int docmd_ds_to_n(arg_struct *arg) {
@@ -1783,6 +1996,71 @@ int docmd_dq_to_n(arg_struct *arg) {
     unary_result(v);
     return ERR_NONE;
 }
+
+#else
+
+int docmd_n_to_ds(arg_struct *arg) {
+    double x = ((vartype_real *) stack[sp])->x;
+    uint4 r;
+    binary64_to_bid32(&r, &x);
+    return bits2result(&r, 4);
+}
+
+int docmd_n_to_dd(arg_struct *arg) {
+    double x = ((vartype_real *) stack[sp])->x;
+    uint8 r;
+    binary64_to_bid64(&r, &x);
+    return bits2result(&r, 8);
+}
+
+int docmd_n_to_dq(arg_struct *arg) {
+    double x = ((vartype_real *) stack[sp])->x;
+    struct { uint8 lo; uint8 hi; } r;
+    binary64_to_bid128(&r, &x);
+    return bits2result(&r, 16);
+}
+
+int docmd_ds_to_n(arg_struct *arg) {
+    uint4 x;
+    if (!result2bits(&x, 4))
+        return ERR_INVALID_DATA;
+    double r;
+    bid32_to_binary64(&r, &x);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
+}
+
+int docmd_dd_to_n(arg_struct *arg) {
+    uint8 x;
+    if (!result2bits(&x, 8))
+        return ERR_INVALID_DATA;
+    double r;
+    bid64_to_binary64(&r, &x);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
+}
+
+int docmd_dq_to_n(arg_struct *arg) {
+    struct { uint8 lo; uint8 hi; } x;
+    if (!result2bits(&x, 16))
+        return ERR_INVALID_DATA;
+    double r;
+    bid128_to_binary64(&r, &x);
+    vartype *v = new_real(r);
+    if (v == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(v);
+    return ERR_NONE;
+}
+
+
+#endif
 
 #endif
 
@@ -1988,7 +2266,8 @@ int docmd_to_oct(arg_struct *arg) {
     return ERR_NONE;
 }
 
-static void accum(phloat *sum, phloat term, int weight) {
+static void accum(void *sigmaregs, bool regs_is_matrix, int idx, phloat term, int weight) {
+    phloat *sum = regs_is_matrix ? ((phloat *) sigmaregs) + idx : &((vartype_real **) sigmaregs)[idx]->x;
     int inf;
     phloat s;
     if (weight == 1)
@@ -2000,38 +2279,37 @@ static void accum(phloat *sum, phloat term, int weight) {
     *sum = s;
 }
 
-static phloat sigma_helper_2(phloat *sigmaregs,
-                             phloat x, phloat y, int weight) {
+static phloat sigma_helper_2(void *sigmaregs, bool regs_is_matrix, phloat x, phloat y, int weight) {
 
-    accum(&sigmaregs[0], x, weight);
-    accum(&sigmaregs[1], x * x, weight);
-    accum(&sigmaregs[2], y, weight);
-    accum(&sigmaregs[3], y * y, weight);
-    accum(&sigmaregs[4], x * y, weight);
-    accum(&sigmaregs[5], 1, weight);
+    accum(sigmaregs, regs_is_matrix, 0, x, weight);
+    accum(sigmaregs, regs_is_matrix, 1, x * x, weight);
+    accum(sigmaregs, regs_is_matrix, 2, y, weight);
+    accum(sigmaregs, regs_is_matrix, 3, y * y, weight);
+    accum(sigmaregs, regs_is_matrix, 4, x * y, weight);
+    accum(sigmaregs, regs_is_matrix, 5, 1, weight);
 
     if (flags.f.all_sigma) {
         if (x > 0) {
             phloat lnx = log(x);
             if (y > 0) {
                 phloat lny = log(y);
-                accum(&sigmaregs[8], lny, weight);
-                accum(&sigmaregs[9], lny * lny, weight);
-                accum(&sigmaregs[10], lnx * lny, weight);
-                accum(&sigmaregs[11], x * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 8, lny, weight);
+                accum(sigmaregs, regs_is_matrix, 9, lny * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 10, lnx * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 11, x * lny, weight);
             } else {
                 flags.f.exp_fit_invalid = 1;
                 flags.f.pwr_fit_invalid = 1;
             }
-            accum(&sigmaregs[6], lnx, weight);
-            accum(&sigmaregs[7], lnx * lnx, weight);
-            accum(&sigmaregs[12], lnx * y, weight);
+            accum(sigmaregs, regs_is_matrix, 6, lnx, weight);
+            accum(sigmaregs, regs_is_matrix, 7, lnx * lnx, weight);
+            accum(sigmaregs, regs_is_matrix, 12, lnx * y, weight);
         } else {
             if (y > 0) {
                 phloat lny = log(y);
-                accum(&sigmaregs[8], lny, weight);
-                accum(&sigmaregs[9], lny * lny, weight);
-                accum(&sigmaregs[11], x * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 8, lny, weight);
+                accum(sigmaregs, regs_is_matrix, 9, lny * lny, weight);
+                accum(sigmaregs, regs_is_matrix, 11, x * lny, weight);
             } else
                 flags.f.exp_fit_invalid = 1;
             flags.f.log_fit_invalid = 1;
@@ -2043,29 +2321,45 @@ static phloat sigma_helper_2(phloat *sigmaregs,
         flags.f.pwr_fit_invalid = 1;
     }
 
-    return sigmaregs[5];
+    return regs_is_matrix ? ((phloat *) sigmaregs)[5] : ((vartype_real **) sigmaregs)[5]->x;
 }
 
 static int sigma_helper_1(int weight) {
     /* Check if summation registers are OK */
     int4 first = mode_sigma_reg;
     int4 last = first + (flags.f.all_sigma ? 13 : 6);
-    int4 size, i;
     vartype *regs = recall_var("REGS", 4);
-    vartype_realmatrix *r;
-    phloat *sigmaregs;
     if (regs == NULL)
         return ERR_SIZE_ERROR;
-    if (regs->type != TYPE_REALMATRIX)
+    bool regs_is_matrix;
+    void *sigmaregs;
+    if (regs->type == TYPE_REALMATRIX)
+        regs_is_matrix = true;
+    else if (regs->type == TYPE_LIST)
+        regs_is_matrix = false;
+    else
         return ERR_INVALID_TYPE;
-    r = (vartype_realmatrix *) regs;
-    size = r->rows * r->columns;
-    if (last > size)
-        return ERR_SIZE_ERROR;
-    for (i = first; i < last; i++)
-        if (r->array->is_string[i] != 0)
-            return ERR_ALPHA_DATA_IS_INVALID;
-    sigmaregs = r->array->data + first;
+    if (regs_is_matrix) {
+        vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+        int4 size = rm->rows * rm->columns;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++)
+            if (rm->array->is_string[i] != 0)
+                return ERR_ALPHA_DATA_IS_INVALID;
+        sigmaregs = rm->array->data + first;
+    } else {
+        vartype_list *list = (vartype_list *) regs;
+        int4 size = list->size;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++) {
+            int type = list->array->data[i]->type;
+            if (type != TYPE_REAL)
+                return type == TYPE_STRING ? ERR_ALPHA_DATA_IS_INVALID : ERR_INVALID_TYPE;
+        }
+        sigmaregs = list->array->data + first;
+    }
 
     /* All summation registers present, real-valued, non-string. */
     if (stack[sp]->type == TYPE_REALMATRIX) {
@@ -2081,10 +2375,10 @@ static int sigma_helper_1(int weight) {
         if (x == NULL)
             return ERR_INSUFFICIENT_MEMORY;
         for (i = 0; i < rm->rows; i++)
-            x->x = sigma_helper_2(sigmaregs,
-                                    rm->array->data[i * 2],
-                                    rm->array->data[i * 2 + 1],
-                                    weight);
+            x->x = sigma_helper_2(sigmaregs, regs_is_matrix,
+                                  rm->array->data[i * 2],
+                                  rm->array->data[i * 2 + 1],
+                                  weight);
         free_vartype(lastx);
         lastx = stack[sp];
         stack[sp] = (vartype *) x;
@@ -2097,10 +2391,10 @@ static int sigma_helper_1(int weight) {
             if (x == NULL)
                 return ERR_INSUFFICIENT_MEMORY;
             phloat y = sp == 0 ? 0 : ((vartype_real *) stack[sp - 1])->x;
-            x->x = sigma_helper_2(sigmaregs,
-                                    ((vartype_real *) stack[sp])->x,
-                                    y,
-                                    weight);
+            x->x = sigma_helper_2(sigmaregs, regs_is_matrix,
+                                  ((vartype_real *) stack[sp])->x,
+                                  y,
+                                  weight);
             free_vartype(lastx);
             lastx = stack[sp];
             stack[sp] = (vartype *) x;

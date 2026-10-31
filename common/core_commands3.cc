@@ -353,10 +353,10 @@ int docmd_delr(arg_struct *arg) {
     vartype_complexmatrix *cm;
     vartype_list *list;
     int4 rows, columns, i, j, n, newi;
-    int err, refcount;
+    int err;
     int interactive;
 
-    err = matedit_get(&m);
+    err = matedit_get(&m, true);
     if (err != ERR_NONE)
         return err;
 
@@ -364,17 +364,14 @@ int docmd_delr(arg_struct *arg) {
         rm = (vartype_realmatrix *) m;
         rows = rm->rows;
         columns = rm->columns;
-        refcount = rm->array->refcount;
     } else if (m->type == TYPE_COMPLEXMATRIX) {
         cm = (vartype_complexmatrix *) m;
         rows = cm->rows;
         columns = cm->columns;
-        refcount = cm->array->refcount;
     } else {
         list = (vartype_list *) m;
         rows = list->size;
         columns = 1;
-        refcount = list->array->refcount;
     }
 
     if (rows == 1 && m->type != TYPE_LIST)
@@ -422,174 +419,77 @@ int docmd_delr(arg_struct *arg) {
             return ERR_INSUFFICIENT_MEMORY;
     }
 
-    if (refcount == 1) {
-        /* We have this array to ourselves so we can modify it in place
-         * We shuffle the array elements around so that if the reallocation
-         * succeeds, everything is in the right place, but if it fails, we
-         * still have all the data so we can roll everything back. And best
-         * of all, no temporary memory allocations needed!
-         */
-        if (m->type == TYPE_REALMATRIX) {
+    /* We have this array to ourselves so we can modify it in place
+     * We shuffle the array elements around so that if the reallocation
+     * succeeds, everything is in the right place, but if it fails, we
+     * still have all the data so we can roll everything back. And best
+     * of all, no temporary memory allocations needed!
+     */
+    if (m->type == TYPE_REALMATRIX) {
+        for (j = 0; j < columns; j++) {
+            phloat tempd = rm->array->data[matedit_i * columns + j];
+            char tempc = rm->array->is_string[matedit_i * columns + j];
+            for (i = matedit_i; i < rows - 1; i++) {
+                rm->array->data[i * columns + j] =
+                            rm->array->data[(i + 1) * columns + j];
+                rm->array->is_string[i * columns + j] =
+                            rm->array->is_string[(i + 1) * columns + j];
+            }
+            rm->array->data[(rows - 1) * columns + j] = tempd;
+            rm->array->is_string[(rows - 1) * columns + j] = tempc;
+        }
+        err = dimension_array_ref(m, rows - 1, columns);
+        if (err != ERR_NONE) {
+            /* Dang! Now we have to rotate everything back to where
+                * it was before. */
             for (j = 0; j < columns; j++) {
-                phloat tempd = rm->array->data[matedit_i * columns + j];
-                char tempc = rm->array->is_string[matedit_i * columns + j];
-                for (i = matedit_i; i < rows - 1; i++) {
+                phloat tempd = rm->array->data[(rows - 1) * columns + j];
+                char tempc = rm->array->is_string[(rows - 1) * columns + j];
+                for (i = rows - 1; i > matedit_i; i--) {
                     rm->array->data[i * columns + j] =
-                                rm->array->data[(i + 1) * columns + j];
+                                rm->array->data[(i - 1) * columns + j];
                     rm->array->is_string[i * columns + j] =
-                                rm->array->is_string[(i + 1) * columns + j];
+                                rm->array->is_string[(i - 1) * columns + j];
                 }
-                rm->array->data[(rows - 1) * columns + j] = tempd;
-                rm->array->is_string[(rows - 1) * columns + j] = tempc;
+                rm->array->data[matedit_i * columns + j] = tempd;
+                rm->array->is_string[matedit_i * columns + j] = tempc;
             }
-            err = dimension_array_ref(m, rows - 1, columns);
-            if (err != ERR_NONE) {
-                /* Dang! Now we have to rotate everything back to where
-                 * it was before. */
-                for (j = 0; j < columns; j++) {
-                    phloat tempd = rm->array->data[(rows - 1) * columns + j];
-                    char tempc = rm->array->is_string[(rows - 1) * columns + j];
-                    for (i = rows - 1; i > matedit_i; i--) {
-                        rm->array->data[i * columns + j] =
-                                    rm->array->data[(i - 1) * columns + j];
-                        rm->array->is_string[i * columns + j] =
-                                    rm->array->is_string[(i - 1) * columns + j];
-                    }
-                    rm->array->data[matedit_i * columns + j] = tempd;
-                    rm->array->is_string[matedit_i * columns + j] = tempc;
-                }
-                if (interactive)
-                    free_vartype(newx);
-                return err;
-            }
-        } else if (m->type == TYPE_COMPLEXMATRIX) {
+            if (interactive)
+                free_vartype(newx);
+            return err;
+        }
+    } else if (m->type == TYPE_COMPLEXMATRIX) {
+        for (j = 0; j < 2 * columns; j++) {
+            phloat tempd = cm->array->data[matedit_i * 2 * columns + j];
+            for (i = matedit_i; i < rows - 1; i++)
+                cm->array->data[i * 2 * columns + j] =
+                            cm->array->data[(i + 1) * 2 * columns + j];
+            cm->array->data[(rows - 1) * 2 * columns + j] = tempd;
+        }
+        err = dimension_array_ref(m, rows - 1, columns);
+        if (err != ERR_NONE) {
+            /* Dang! Now we have to rotate everything back to where
+                * it was before. */
             for (j = 0; j < 2 * columns; j++) {
-                phloat tempd = cm->array->data[matedit_i * 2 * columns + j];
-                for (i = matedit_i; i < rows - 1; i++)
+                phloat tempd = cm->array->data[(rows - 1) * 2 * columns + j];
+                for (i = rows - 1; i > matedit_i; i--)
                     cm->array->data[i * 2 * columns + j] =
-                                cm->array->data[(i + 1) * 2 * columns + j];
-                cm->array->data[(rows - 1) * 2 * columns + j] = tempd;
+                                cm->array->data[(i - 1) * 2 * columns + j];
+                cm->array->data[matedit_i * 2 * columns + j] = tempd;
             }
-            err = dimension_array_ref(m, rows - 1, columns);
-            if (err != ERR_NONE) {
-                /* Dang! Now we have to rotate everything back to where
-                 * it was before. */
-                for (j = 0; j < 2 * columns; j++) {
-                    phloat tempd = cm->array->data[(rows - 1) * 2 * columns + j];
-                    for (i = rows - 1; i > matedit_i; i--)
-                        cm->array->data[i * 2 * columns + j] =
-                                    cm->array->data[(i - 1) * 2 * columns + j];
-                    cm->array->data[matedit_i * 2 * columns + j] = tempd;
-                }
-                if (interactive)
-                    free_vartype(newx);
-                return err;
-            }
-        } else /* m->type == TYPE_LIST */ {
-            /* This one is easy because shrinking an unshared list always succeeds. */
-            vartype *tmp = list->array->data[matedit_i];
-            memmove(list->array->data + matedit_i, list->array->data + matedit_i + 1,
-                    (rows - matedit_i - 1) * sizeof(vartype *));
-            list->array->data[rows - 1] = tmp;
-            dimension_array_ref(m, rows - 1, 1);
+            if (interactive)
+                free_vartype(newx);
+            return err;
         }
-    } else {
-        /* We're sharing this array. I don't use disentangle() because it
-         * does not deal with resizing. */
-        int4 newsize = (rows - 1) * columns;
-        if (m->type == TYPE_REALMATRIX) {
-            realmatrix_data *array = (realmatrix_data *)
-                                malloc(sizeof(realmatrix_data));
-            if (array == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            array->data = (phloat *) malloc(newsize * sizeof(phloat));
-            if (array->data == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                free(array);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            array->is_string = (char *) malloc(newsize);
-            if (array->is_string == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                free(array->data);
-                free(array);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            for (i = 0; i < matedit_i * columns; i++) {
-                array->is_string[i] = rm->array->is_string[i];
-                array->data[i] = rm->array->data[i];
-            }
-            for (i = matedit_i * columns; i < (matedit_i + 1) * columns; i++)
-                if (array->is_string[i] == 2)
-                    free(*(void **) &array->data[i]);
-            for (i = matedit_i * columns; i < newsize; i++) {
-                array->is_string[i] = rm->array->is_string[i + columns];
-                array->data[i] = rm->array->data[i + columns];
-            }
-            array->refcount = 1;
-            rm->array->refcount--;
-            rm->array = array;
-            rm->rows--;
-        } else if (m->type == TYPE_COMPLEXMATRIX) {
-            complexmatrix_data *array = (complexmatrix_data *)
-                                malloc(sizeof(complexmatrix_data));
-            if (array == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            array->data = (phloat *) malloc(2 * newsize * sizeof(phloat));
-            if (array->data == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                free(array);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            for (i = 0; i < 2 * matedit_i * columns; i++)
-                array->data[i] = cm->array->data[i];
-            for (i = 2 * matedit_i * columns; i < 2 * newsize; i++)
-                array->data[i] = cm->array->data[i + 2 * columns];
-            array->refcount = 1;
-            cm->array->refcount--;
-            cm->array = array;
-            cm->rows--;
-        } else /* m->type == TYPE_LIST */ {
-            list_data *array = (list_data *) malloc(sizeof(list_data));
-            if (array == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            array->data = (vartype **) malloc(newsize * sizeof(vartype *));
-            if (array->data == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                free(array);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            for (int4 i = 0; i < newsize; i++) {
-                array->data[i] = dup_vartype(list->array->data[i < matedit_i ? i : i + 1]);
-                if (array->data[i] == NULL) {
-                    for (int4 j = 0; j < i; j++)
-                        free_vartype(array->data[j]);
-                    if (interactive)
-                        free_vartype(newx);
-                    free(array->data);
-                    free(array);
-                    return ERR_INSUFFICIENT_MEMORY;
-                }
-            }
-            array->refcount = 1;
-            list->array->refcount--;
-            list->array = array;
-            list->size--;
-        }
+    } else /* m->type == TYPE_LIST */ {
+        /* This one is easy because shrinking an unshared list always succeeds. */
+        vartype *tmp = list->array->data[matedit_i];
+        memmove(list->array->data + matedit_i, list->array->data + matedit_i + 1,
+                (rows - matedit_i - 1) * sizeof(vartype *));
+        list->array->data[rows - 1] = tmp;
+        dimension_array_ref(m, rows - 1, 1);
     }
+
     if (interactive) {
         if (sp == -1)
             sp = 0;

@@ -73,42 +73,102 @@ int docmd_rdn(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_chs(arg_struct *arg) {
-    switch (stack[sp]->type) {
+static int chs_helper_check(vartype *v) {
+    switch (v->type) {
+        case TYPE_REAL:
+        case TYPE_COMPLEX:
+        case TYPE_COMPLEXMATRIX:
+            return ERR_NONE;
+        case TYPE_REALMATRIX:
+            if (contains_strings((vartype_realmatrix *) v))
+                return ERR_ALPHA_DATA_IS_INVALID;
+            else
+                return ERR_NONE;
+        case TYPE_LIST: {
+            vartype_list *list = (vartype_list *) v;
+            int4 sz = list->size;
+            for (int4 i = 0; i < sz; i++) {
+                int err = chs_helper_check(list->array->data[i]);
+                if (err != ERR_NONE)
+                    return err;
+            }
+            return ERR_NONE;
+        }
+        default:
+            return ERR_ALPHA_DATA_IS_INVALID;
+    }
+}
+
+static int chs_helper_disentangle(vartype *v) {
+    switch (v->type) {
+        case TYPE_REALMATRIX:
+        case TYPE_COMPLEXMATRIX:
+            if (!disentangle(v))
+                return ERR_INSUFFICIENT_MEMORY;
+            else
+                return ERR_NONE;
+        case TYPE_LIST: {
+            if (!disentangle(v))
+                return ERR_INSUFFICIENT_MEMORY;
+            vartype_list *list = (vartype_list *) v;
+            int4 sz = list->size;
+            for (int4 i = 0; i < sz; i++) {
+                int err = chs_helper_disentangle(list->array->data[i]);
+                if (err != ERR_NONE)
+                    return err;
+            }
+            return ERR_NONE;
+        }
+        default:
+            return ERR_NONE;
+    }
+}
+
+static void chs_helper_doit(vartype *v) {
+    switch (v->type) {
         case TYPE_REAL: {
-            vartype_real *r = (vartype_real *) stack[sp];
+            vartype_real *r = (vartype_real *) v;
             r->x = -(r->x);
             break;
         }
         case TYPE_COMPLEX: {
-            vartype_complex *c = (vartype_complex *) stack[sp];
+            vartype_complex *c = (vartype_complex *) v;
             c->re = -(c->re);
             c->im = -(c->im);
             break;
         }
         case TYPE_REALMATRIX: {
-            vartype_realmatrix *rm = (vartype_realmatrix *) stack[sp];
-            if (contains_strings(rm))
-                return ERR_ALPHA_DATA_IS_INVALID;
-            if (!disentangle((vartype *) rm))
-                return ERR_INSUFFICIENT_MEMORY;
+            vartype_realmatrix *rm = (vartype_realmatrix *) v;
             int4 sz = rm->rows * rm->columns;
             for (int4 i = 0; i < sz; i++)
                 rm->array->data[i] = -(rm->array->data[i]);
             break;
         }
         case TYPE_COMPLEXMATRIX: {
-            vartype_complexmatrix *cm = (vartype_complexmatrix *) stack[sp];
-            if (!disentangle((vartype *) cm))
-                return ERR_INSUFFICIENT_MEMORY;
+            vartype_complexmatrix *cm = (vartype_complexmatrix *) v;
             int4 sz = cm->rows * cm->columns * 2;
             for (int4 i = 0; i < sz; i++)
                 cm->array->data[i] = -(cm->array->data[i]);
             break;
         }
-        default:
-            return ERR_INTERNAL_ERROR;
+        case TYPE_LIST: {
+            vartype_list *list = (vartype_list *) v;
+            int4 sz = list->size;
+            for (int4 i = 0; i < sz; i++)
+                chs_helper_doit(list->array->data[i]);
+            break;
+        }
     }
+}
+
+int docmd_chs(arg_struct *arg) {
+    int err = chs_helper_check(stack[sp]);
+    if (err != ERR_NONE)
+        return err;
+    err = chs_helper_disentangle(stack[sp]);
+    if (err != ERR_NONE)
+        return err;
+    chs_helper_doit(stack[sp]);
     print_trace();
     return ERR_NONE;
 }
@@ -156,28 +216,95 @@ int docmd_lastx(arg_struct *arg) {
     return recall_result(v);
 }
 
-int docmd_complex(arg_struct *arg) {
-    switch (stack[sp]->type) {
+static int complex_helper_r2c(vartype *xx, vartype *yy, vartype **rr) {
+    switch (xx->type) {
         case TYPE_REAL: {
-            if (stack[sp - 1]->type == TYPE_STRING)
-                return ERR_ALPHA_DATA_IS_INVALID;
-            else if (stack[sp - 1]->type != TYPE_REAL)
-                return ERR_INVALID_TYPE;
-            vartype *v;
-            if (flags.f.polar) {
-                phloat re, im;
-                generic_p2r(((vartype_real *) stack[sp - 1])->x,
-                            ((vartype_real *) stack[sp])->x, &re, &im);
-                v = new_complex(re, im);
-            } else {
-                v = new_complex(((vartype_real *) stack[sp - 1])->x,
-                                ((vartype_real *) stack[sp])->x);
+            switch (yy->type) {
+                case TYPE_REAL: {
+                    vartype *v;
+                    if (flags.f.polar) {
+                        phloat re, im;
+                        generic_p2r(((vartype_real *) yy)->x,
+                                    ((vartype_real *) xx)->x, &re, &im);
+                        v = new_complex(re, im);
+                    } else {
+                        v = new_complex(((vartype_real *) yy)->x,
+                                        ((vartype_real *) xx)->x);
+                    }
+                    if (v == NULL)
+                        return ERR_INSUFFICIENT_MEMORY;
+                    *rr = v;
+                    return ERR_NONE;
+                }
+                case TYPE_REALMATRIX: {
+                    return ERR_INVALID_TYPE;
+                }
+                default: {
+                    real_list:
+                    vartype_list *xl = xx->type == TYPE_LIST ? (vartype_list *) xx : NULL;
+                    vartype_list *yl = yy->type == TYPE_LIST ? (vartype_list *) yy : NULL;
+                    if (xl != NULL && yl != NULL && xl->size != yl->size)
+                        return ERR_DIMENSION_ERROR;
+                    int4 sz = xl != NULL ? xl->size : yl->size;
+                    vartype_list *c = (vartype_list *) new_list(sz);
+                    if (c == NULL)
+                        return ERR_INSUFFICIENT_MEMORY;
+                    for (int4 i = 0; i < sz; i++) {
+                        vartype *x = xl != NULL ? xl->array->data[i] : xx;
+                        vartype *y = yl != NULL ? yl->array->data[i] : yy;
+                        vartype *v;
+                        int err = complex_helper_r2c(x, y, &v);
+                        if (err != ERR_NONE) {
+                            free_vartype((vartype *) c);
+                            return err;
+                        }
+                        c->array->data[i] = v;
+                    }
+                    *rr = (vartype *) c;
+                    return ERR_NONE;
+                }
             }
-            if (v == NULL)
-                return ERR_INSUFFICIENT_MEMORY;
-            return binary_result(v);
         }
+        case TYPE_REALMATRIX: {
+            if (yy->type != TYPE_REALMATRIX)
+                return ERR_INVALID_TYPE;
+            vartype_realmatrix *re_m = (vartype_realmatrix *) yy;
+            vartype_realmatrix *im_m = (vartype_realmatrix *) xx;
+            if (re_m->rows != im_m->rows || re_m->columns != im_m->columns)
+                return ERR_DIMENSION_ERROR;
+
+            vartype_complexmatrix *cm = (vartype_complexmatrix *) new_complexmatrix(re_m->rows, re_m->columns);
+            if (cm == NULL)
+                return ERR_INSUFFICIENT_MEMORY;
+            int4 sz = re_m->rows * re_m->columns;
+            if (flags.f.polar) {
+                for (int4 i = 0; i < sz; i++) {
+                    generic_p2r(re_m->array->data[i],
+                                im_m->array->data[i],
+                                &cm->array->data[2 * i],
+                                &cm->array->data[2 * i + 1]);
+                }
+            } else {
+                for (int4 i = 0; i < sz; i++) {
+                    cm->array->data[2 * i] = re_m->array->data[i];
+                    cm->array->data[2 * i + 1] = im_m->array->data[i];
+                }
+            }
+            *rr = (vartype *) cm;
+            return ERR_NONE;
+        }
+        default: {
+            if (yy->type == TYPE_REALMATRIX)
+                return ERR_INVALID_TYPE;
+            goto real_list;
+        }
+    }
+}
+
+static int complex_helper_c2r(vartype *xx, vartype **rr1, vartype **rr2) {
+    switch (xx->type) {
         case TYPE_COMPLEX: {
+            vartype_complex *c = (vartype_complex *) xx;
             vartype *new_x = new_real(0);
             vartype *new_y = new_real(0);
             if (new_x == NULL || new_y == NULL) {
@@ -187,8 +314,7 @@ int docmd_complex(arg_struct *arg) {
             }
             if (flags.f.polar) {
                 phloat r, phi;
-                generic_r2p(((vartype_complex *) stack[sp])->re,
-                            ((vartype_complex *) stack[sp])->im, &r, &phi);
+                generic_r2p(c->re, c->im, &r, &phi);
                 if (p_isinf(r) != 0) {
                     if (flags.f.range_error_ignore)
                         r = POS_HUGE_PHLOAT;
@@ -201,55 +327,18 @@ int docmd_complex(arg_struct *arg) {
                 ((vartype_real *) new_y)->x = r;
                 ((vartype_real *) new_x)->x = phi;
             } else {
-                ((vartype_real *) new_y)->x = ((vartype_complex *) stack[sp])->re;
-                ((vartype_real *) new_x)->x = ((vartype_complex *) stack[sp])->im;
+                ((vartype_real *) new_y)->x = c->re;
+                ((vartype_real *) new_x)->x = c->im;
             }
-            return unary_two_results(new_x, new_y);
-        }
-        case TYPE_REALMATRIX: {
-            if (stack[sp - 1]->type == TYPE_STRING)
-                return ERR_ALPHA_DATA_IS_INVALID;
-            else if (stack[sp - 1]->type != TYPE_REALMATRIX)
-                return ERR_INVALID_TYPE;
-            else {
-                vartype_realmatrix *re_m = (vartype_realmatrix *) stack[sp - 1];
-                vartype_realmatrix *im_m = (vartype_realmatrix *) stack[sp];
-                vartype_complexmatrix *cm;
-                int4 sz, i;
-                if (re_m->rows != im_m->rows
-                        || re_m->columns != im_m->columns)
-                    return ERR_DIMENSION_ERROR;
-
-                if (contains_strings(re_m) || contains_strings(im_m))
-                    return ERR_ALPHA_DATA_IS_INVALID;
-
-                cm = (vartype_complexmatrix *)
-                                new_complexmatrix(re_m->rows, re_m->columns);
-                if (cm == NULL)
-                    return ERR_INSUFFICIENT_MEMORY;
-                sz = re_m->rows * re_m->columns;
-                if (flags.f.polar) {
-                    for (i = 0; i < sz; i++) {
-                        generic_p2r(re_m->array->data[i],
-                                    im_m->array->data[i],
-                                    &cm->array->data[2 * i],
-                                    &cm->array->data[2 * i + 1]);
-                    }
-                } else {
-                    for (i = 0; i < sz; i++) {
-                        cm->array->data[2 * i] = re_m->array->data[i];
-                        cm->array->data[2 * i + 1] = im_m->array->data[i];
-                    }
-                }
-                return binary_result((vartype *) cm);
-            }
+            *rr1 = new_x;
+            *rr2 = new_y;
+            return ERR_NONE;
         }
         case TYPE_COMPLEXMATRIX: {
-            vartype_complexmatrix *cm = (vartype_complexmatrix *) stack[sp];
+            vartype_complexmatrix *cm = (vartype_complexmatrix *) xx;
             int4 rows = cm->rows;
             int4 columns = cm->columns;
             int4 sz = rows * columns;
-            int4 i;
             vartype_realmatrix *re_m = (vartype_realmatrix *)
                                             new_realmatrix(rows, columns);
             vartype_realmatrix *im_m = (vartype_realmatrix *)
@@ -260,7 +349,7 @@ int docmd_complex(arg_struct *arg) {
                 return ERR_INSUFFICIENT_MEMORY;
             }
             if (flags.f.polar) {
-                for (i = 0; i < sz; i++) {
+                for (int4 i = 0; i < sz; i++) {
                     phloat r, phi;
                     generic_r2p(cm->array->data[2 * i],
                                 cm->array->data[2 * i + 1], &r, &phi);
@@ -276,17 +365,58 @@ int docmd_complex(arg_struct *arg) {
                     im_m->array->data[i] = phi;
                 }
             } else {
-                for (i = 0; i < sz; i++) {
+                for (int4 i = 0; i < sz; i++) {
                     re_m->array->data[i] = cm->array->data[2 * i];
                     im_m->array->data[i] = cm->array->data[2 * i + 1];
                 }
             }
-            return unary_two_results((vartype *) im_m, (vartype *) re_m);
+            *rr1 = (vartype *) im_m;
+            *rr2 = (vartype *) re_m;
+            return ERR_NONE;
         }
-        case TYPE_STRING:
-            return ERR_ALPHA_DATA_IS_INVALID;
+        case TYPE_LIST: {
+            vartype_list *list = (vartype_list *) xx;
+            int4 sz = list->size;
+            vartype_list *y_list = (vartype_list *) new_list(sz);
+            vartype_list *x_list = (vartype_list *) new_list(sz);
+            int err;
+            if (y_list == NULL || x_list == NULL) {
+                err = ERR_INSUFFICIENT_MEMORY;
+                abort:
+                free_vartype((vartype *) y_list);
+                free_vartype((vartype *) x_list);
+                return err;
+            }
+            for (int i = 0; i < sz; i++) {
+                vartype *x, *y;
+                err = complex_helper_c2r(list->array->data[i], &x, &y);
+                if (err != ERR_NONE)
+                    goto abort;
+                y_list->array->data[i] = y;
+                x_list->array->data[i] = x;
+            }
+            *rr1 = (vartype *) x_list;
+            *rr2 = (vartype *) y_list;
+            return ERR_NONE;
+        }
         default:
-            return ERR_INVALID_TYPE;
+            return ERR_INTERNAL_ERROR;
+    }
+}
+
+int docmd_complex(arg_struct *arg) {
+    if (is_complex(stack[sp], NULL)) {
+        vartype *r1, *r2;
+        int err = complex_helper_c2r(stack[sp], &r1, &r2);
+        if (err != ERR_NONE)
+            return err;
+        return unary_two_results(r1, r2);
+    } else {
+        vartype *r;
+        int err = complex_helper_r2c(stack[sp], stack[sp - 1], &r);
+        if (err != ERR_NONE)
+            return err;
+        return binary_result(r);
     }
 }
 
@@ -387,7 +517,7 @@ int docmd_rcl_add(arg_struct *arg) {
 
 int docmd_fix(arg_struct *arg) {
     if (arg->type == ARGTYPE_STK)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     int err;
     int4 num;
     err = arg_to_num(arg, &num);
@@ -407,7 +537,7 @@ int docmd_fix(arg_struct *arg) {
 
 int docmd_sci(arg_struct *arg) {
     if (arg->type == ARGTYPE_STK)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     int err;
     int4 num;
     err = arg_to_num(arg, &num);
@@ -427,7 +557,7 @@ int docmd_sci(arg_struct *arg) {
 
 int docmd_eng(arg_struct *arg) {
     if (arg->type == ARGTYPE_STK)
-        return ERR_INVALID_DATA;
+        return ERR_INTERNAL_ERROR;
     int err;
     int4 num;
     err = arg_to_num(arg, &num);
@@ -647,24 +777,40 @@ int docmd_rdxcomma(arg_struct *arg) {
 
 int docmd_clsigma(arg_struct *arg) {
     vartype *regs = recall_var("REGS", 4);
-    vartype_realmatrix *r;
-    int4 first = mode_sigma_reg;
-    int4 last = first + (flags.f.all_sigma ? 13 : 6);
-    int4 size, i;
     if (regs == NULL)
         return ERR_SIZE_ERROR;
-    if (regs->type != TYPE_REALMATRIX)
+    int4 first = mode_sigma_reg;
+    int4 last = first + (flags.f.all_sigma ? 13 : 6);
+    if (regs->type == TYPE_REALMATRIX) {
+        vartype_realmatrix *r = (vartype_realmatrix *) regs;
+        int4 size = r->rows * r->columns;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++) {
+            if (r->array->is_string[i] == 2)
+                free(*(void **) &r->array->data[i]);
+            r->array->is_string[i] = 0;
+            r->array->data[i] = 0;
+        }
+    } else if (regs->type == TYPE_LIST) {
+        vartype_list *list = (vartype_list *) regs;
+        int4 size = list->size;
+        if (last > size)
+            return ERR_SIZE_ERROR;
+        for (int4 i = first; i < last; i++) {
+            vartype *v = list->array->data[i];
+            if (v->type == TYPE_REAL) {
+                ((vartype_real *) v)->x = 0;
+            } else {
+                v = new_real(0);
+                if (v == NULL)
+                    return ERR_INSUFFICIENT_MEMORY;
+                free_vartype(list->array->data[i]);
+                list->array->data[i] = v;
+            }
+        }
+    } else
         return ERR_INVALID_TYPE;
-    r = (vartype_realmatrix *) regs;
-    size = r->rows * r->columns;
-    if (last > size)
-        return ERR_SIZE_ERROR;
-    for (i = first; i < last; i++) {
-        if (r->array->is_string[i] == 2)
-            free(*(void **) &r->array->data[i]);
-        r->array->is_string[i] = 0;
-        r->array->data[i] = 0;
-    }
     flags.f.log_fit_invalid = 0;
     flags.f.exp_fit_invalid = 0;
     flags.f.pwr_fit_invalid = 0;
@@ -727,31 +873,40 @@ int docmd_clrg(arg_struct *arg) {
     if (regs == NULL)
         return ERR_NONEXISTENT;
     if (regs->type == TYPE_REALMATRIX) {
-        vartype_realmatrix *rm;
-        int4 sz, i;
         if (!disentangle(regs))
             return ERR_INSUFFICIENT_MEMORY;
-        rm = (vartype_realmatrix *) regs;
-        sz = rm->rows * rm->columns;
+        vartype_realmatrix *rm = (vartype_realmatrix *) regs;
+        int4 sz = rm->rows * rm->columns;
         free_long_strings(rm->array->is_string, rm->array->data, sz);
-        for (i = 0; i < sz; i++)
+        for (int4 i = 0; i < sz; i++)
             rm->array->data[i] = 0;
-        for (i = 0; i < sz; i++)
+        for (int4 i = 0; i < sz; i++)
             rm->array->is_string[i] = 0;
         return ERR_NONE;
     } else if (regs->type == TYPE_COMPLEXMATRIX) {
-        vartype_complexmatrix *cm;
-        int4 sz, i;
         if (!disentangle(regs))
             return ERR_INSUFFICIENT_MEMORY;
-        cm = (vartype_complexmatrix *) regs;
-        sz = 2 * cm->rows * cm->columns;
-        for (i = 0; i < sz; i++)
+        vartype_complexmatrix *cm = (vartype_complexmatrix *) regs;
+        int4 sz = 2 * cm->rows * cm->columns;
+        for (int4 i = 0; i < sz; i++)
             cm->array->data[i] = 0;
+        return ERR_NONE;
+    } else if (regs->type == TYPE_LIST) {
+        if (!disentangle(regs))
+            return ERR_INSUFFICIENT_MEMORY;
+        vartype_list *list = (vartype_list *) regs;
+        int4 sz = list->size;
+        for (int4 i = 0; i < sz; i++) {
+            vartype *v = new_real(0);
+            if (v == NULL)
+                return ERR_INSUFFICIENT_MEMORY;
+            free_vartype(list->array->data[i]);
+            list->array->data[i] = v;
+        }
         return ERR_NONE;
     } else {
         /* Should not happen; STO does not allow anything other
-         * than a matrix to be stored in 'REGS'.
+         * than matrices or lists to be stored in 'REGS'.
          */
         return ERR_INTERNAL_ERROR;
     }
@@ -961,92 +1116,258 @@ int docmd_to_hms(arg_struct *arg) {
     return err;
 }
 
-int docmd_to_rec(arg_struct *arg) {
-    if (stack[sp]->type == TYPE_REAL) {
-        if (stack[sp - 1]->type == TYPE_REAL) {
-            phloat r = ((vartype_real *) stack[sp])->x;
-            phloat phi = ((vartype_real *) stack[sp - 1])->x;
-            phloat x, y;
-            vartype *vx, *vy;
-            generic_p2r(r, phi, &x, &y);
-            vx = new_real(x);
-            if (vx == NULL)
-                return ERR_INSUFFICIENT_MEMORY;
-            vy = new_real(y);
-            if (vy == NULL) {
-                free_vartype(vx);
-                return ERR_INSUFFICIENT_MEMORY;
+static int to_rec_helper_r(vartype *xx, vartype *yy, vartype **rr1, vartype **rr2) {
+    switch (xx->type) {
+        case TYPE_REAL: {
+            switch (yy->type) {
+                case TYPE_REAL: {
+                    phloat r = ((vartype_real *) xx)->x;
+                    phloat phi = ((vartype_real *) yy)->x;
+                    phloat x, y;
+                    generic_p2r(r, phi, &x, &y);
+                    vartype *vx = new_real(x);
+                    if (vx == NULL)
+                        return ERR_INSUFFICIENT_MEMORY;
+                    vartype *vy = new_real(y);
+                    if (vy == NULL) {
+                        free_vartype(vx);
+                        return ERR_INSUFFICIENT_MEMORY;
+                    }
+                    *rr1 = vx;
+                    *rr2 = vy;
+                    return ERR_NONE;
+                }
+                case TYPE_LIST: {
+                    real_list:
+                    vartype_list *lx = xx->type == TYPE_LIST ? (vartype_list *) xx : NULL;
+                    vartype_list *ly = yy->type == TYPE_LIST ? (vartype_list *) yy : NULL;
+                    if (lx != NULL && ly != NULL && lx->size != ly->size)
+                        return ERR_DIMENSION_ERROR;
+                    int4 sz = lx != NULL ? lx->size : ly->size;
+                    vartype_list *res1 = (vartype_list *) new_list(sz);
+                    vartype_list *res2 = (vartype_list *) new_list(sz);
+                    int err;
+                    if (res1 == NULL || res2 == NULL) {
+                        err = ERR_INSUFFICIENT_MEMORY;
+                        abort:
+                        free_vartype((vartype *) res1);
+                        free_vartype((vartype *) res2);
+                        return err;
+                    }
+                    for (int4 i = 0; i < sz; i++) {
+                        vartype *x = lx != NULL ? lx->array->data[i] : xx;
+                        vartype *y = ly != NULL ? ly->array->data[i] : yy;
+                        vartype *r1, *r2;
+                        err = to_rec_helper_r(x, y, &r1, &r2);
+                        if (err != ERR_NONE)
+                            goto abort;
+                        res1->array->data[i] = r1;
+                        res2->array->data[i] = r2;
+                    }
+                    *rr1 = (vartype *) res1;
+                    *rr2 = (vartype *) res2;
+                    return ERR_NONE;
+                }
+                default:
+                    return ERR_INVALID_TYPE;
             }
-            binary_two_results(vx, vy);
-            return ERR_NONE;
-        } else if (stack[sp - 1]->type == TYPE_STRING)
-            return ERR_ALPHA_DATA_IS_INVALID;
-        else
+        }
+        case TYPE_LIST: {
+            switch (yy->type) {
+                case TYPE_REAL:
+                case TYPE_LIST:
+                    goto real_list;
+                default:
+                    return ERR_INVALID_TYPE;
+            }
+        }
+        default:
             return ERR_INVALID_TYPE;
-    } else if (stack[sp]->type == TYPE_COMPLEX) {
-        vartype_complex *c = (vartype_complex *) stack[sp];
-        phloat x, y;
-        vartype *v;
-        generic_p2r(c->re, c->im, &x, &y);
-        v = new_complex(x, y);
-        if (v == NULL)
-            return ERR_INSUFFICIENT_MEMORY;
-        unary_result(v);
-        return ERR_NONE;
-    } else if (stack[sp]->type == TYPE_STRING)
-        return ERR_ALPHA_DATA_IS_INVALID;
-    else
-        return ERR_INVALID_TYPE;
+    }
 }
 
-int docmd_to_pol(arg_struct *arg) {
-    if (stack[sp]->type == TYPE_REAL) {
-        if (stack[sp - 1]->type == TYPE_REAL) {
-            phloat x = ((vartype_real *) stack[sp])->x;
-            phloat y = ((vartype_real *) stack[sp - 1])->x;
+static int to_rec_helper_c(vartype *xx, vartype **rr) {
+    switch (xx->type) {
+        case TYPE_COMPLEX: {
+            vartype_complex *c = (vartype_complex *) xx;
+            phloat x, y;
+            generic_p2r(c->re, c->im, &x, &y);
+            vartype *v = new_complex(x, y);
+            if (v == NULL)
+                return ERR_INSUFFICIENT_MEMORY;
+            *rr = v;
+            return ERR_NONE;
+        }
+        case TYPE_LIST: {
+            vartype_list *list = (vartype_list *) xx;
+            int4 sz = list->size;
+            vartype_list *res = (vartype_list *) new_list(sz);
+            if (res == NULL)
+                return ERR_INSUFFICIENT_MEMORY;
+            for (int4 i = 0; i < sz; i++) {
+                vartype *v = list->array->data[i];
+                vartype *r;
+                int err = to_rec_helper_c(v, &r);
+                if (err != ERR_NONE) {
+                    free_vartype((vartype *) res);
+                    return err;
+                }
+                res->array->data[i] = r;
+            }
+            *rr = (vartype *) res;
+            return ERR_NONE;
+        }
+        default:
+            return ERR_INVALID_TYPE;
+    }
+}
+
+int docmd_to_rec(arg_struct *arg) {
+    if (is_complex(stack[sp], NULL)) {
+        vartype *r;
+        int err = to_rec_helper_c(stack[sp], &r);
+        if (err == ERR_NONE)
+            unary_result(r);
+        return err;
+    } else {
+        vartype *r1, *r2;
+        int err = to_rec_helper_r(stack[sp], stack[sp - 1], &r1, &r2);
+        if (err == ERR_NONE)
+            binary_two_results(r1, r2);
+        return err;
+    }
+}
+
+static int to_pol_helper_r(vartype *xx, vartype *yy, vartype **rr1, vartype **rr2) {
+    switch (xx->type) {
+        case TYPE_REAL: {
+            switch (yy->type) {
+                case TYPE_REAL: {
+                    phloat r, phi;
+                    generic_r2p(((vartype_real *) xx)->x, ((vartype_real *) yy)->x, &r, &phi);
+                    if (p_isinf(r)) {
+                        if (flags.f.range_error_ignore)
+                            r = POS_HUGE_PHLOAT;
+                        else
+                            return ERR_OUT_OF_RANGE;
+                    }
+                    vartype *vx = new_real(r);
+                    if (vx == NULL)
+                        return ERR_INSUFFICIENT_MEMORY;
+                    vartype *vy = new_real(phi);
+                    if (vy == NULL) {
+                        free_vartype(vx);
+                        return ERR_INSUFFICIENT_MEMORY;
+                    }
+                    *rr1 = vx;
+                    *rr2 = vy;
+                    return ERR_NONE;
+                }
+                case TYPE_LIST: {
+                    real_list:
+                    vartype_list *lx = xx->type == TYPE_LIST ? (vartype_list *) xx : NULL;
+                    vartype_list *ly = yy->type == TYPE_LIST ? (vartype_list *) yy : NULL;
+                    if (lx != NULL && ly != NULL && lx->size != ly->size)
+                        return ERR_DIMENSION_ERROR;
+                    int4 sz = lx != NULL ? lx->size : ly->size;
+                    vartype_list *res1 = (vartype_list *) new_list(sz);
+                    vartype_list *res2 = (vartype_list *) new_list(sz);
+                    int err;
+                    if (res1 == NULL || res2 == NULL) {
+                        err = ERR_INSUFFICIENT_MEMORY;
+                        abort:
+                        free_vartype((vartype *) res1);
+                        free_vartype((vartype *) res2);
+                        return err;
+                    }
+                    for (int4 i = 0; i < sz; i++) {
+                        vartype *x = lx != NULL ? lx->array->data[i] : xx;
+                        vartype *y = ly != NULL ? ly->array->data[i] : yy;
+                        vartype *r1, *r2;
+                        err = to_pol_helper_r(x, y, &r1, &r2);
+                        if (err != ERR_NONE)
+                            goto abort;
+                        res1->array->data[i] = r1;
+                        res2->array->data[i] = r2;
+                    }
+                    *rr1 = (vartype *) res1;
+                    *rr2 = (vartype *) res2;
+                    return ERR_NONE;
+                }
+                default:
+                    return ERR_INVALID_TYPE;
+            }
+        }
+        case TYPE_LIST: {
+            switch (yy->type) {
+                case TYPE_REAL:
+                case TYPE_LIST:
+                    goto real_list;
+                default:
+                    return ERR_INVALID_TYPE;
+            }
+        }
+        default:
+            return ERR_INVALID_TYPE;
+    }
+}
+
+static int to_pol_helper_c(vartype *xx, vartype **rr) {
+    switch (xx->type) {
+        case TYPE_COMPLEX: {
+            vartype_complex *c = (vartype_complex *) xx;
             phloat r, phi;
-            vartype *vx, *vy;
-            generic_r2p(x, y, &r, &phi);
+            generic_r2p(c->re, c->im, &r, &phi);
             if (p_isinf(r)) {
                 if (flags.f.range_error_ignore)
                     r = POS_HUGE_PHLOAT;
                 else
                     return ERR_OUT_OF_RANGE;
             }
-            vx = new_real(r);
-            if (vx == NULL)
+            vartype *v = new_complex(r, phi);
+            if (v == NULL)
                 return ERR_INSUFFICIENT_MEMORY;
-            vy = new_real(phi);
-            if (vy == NULL) {
-                free_vartype(vx);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            binary_two_results(vx, vy);
+            *rr = v;
             return ERR_NONE;
-        } else if (stack[sp - 1]->type == TYPE_STRING)
-            return ERR_ALPHA_DATA_IS_INVALID;
-        else
-            return ERR_INVALID_TYPE;
-    } else if (stack[sp]->type == TYPE_COMPLEX) {
-        vartype_complex *c = (vartype_complex *) stack[sp];
-        phloat r, phi;
-        vartype *v;
-        generic_r2p(c->re, c->im, &r, &phi);
-        if (p_isinf(r)) {
-            if (flags.f.range_error_ignore)
-                r = POS_HUGE_PHLOAT;
-            else
-                return ERR_OUT_OF_RANGE;
         }
-        v = new_complex(r, phi);
-        if (v == NULL)
-            return ERR_INSUFFICIENT_MEMORY;
-        unary_result(v);
-        return ERR_NONE;
-    } else if (stack[sp]->type == TYPE_STRING)
-        return ERR_ALPHA_DATA_IS_INVALID;
-    else
-        return ERR_INVALID_TYPE;
+        case TYPE_LIST: {
+            vartype_list *list = (vartype_list *) xx;
+            int4 sz = list->size;
+            vartype_list *res = (vartype_list *) new_list(sz);
+            if (res == NULL)
+                return ERR_INSUFFICIENT_MEMORY;
+            for (int4 i = 0; i < sz; i++) {
+                vartype *v = list->array->data[i];
+                vartype *r;
+                int err = to_pol_helper_c(v, &r);
+                if (err != ERR_NONE) {
+                    free_vartype((vartype *) res);
+                    return err;
+                }
+                res->array->data[i] = r;
+            }
+            *rr = (vartype *) res;
+            return ERR_NONE;
+        }
+        default:
+            return ERR_INVALID_TYPE;
+    }
+}
+
+int docmd_to_pol(arg_struct *arg) {
+    if (is_complex(stack[sp], NULL)) {
+        vartype *r;
+        int err = to_pol_helper_c(stack[sp], &r);
+        if (err == ERR_NONE)
+            unary_result(r);
+        return err;
+    } else {
+        vartype *r1, *r2;
+        int err = to_pol_helper_r(stack[sp], stack[sp - 1], &r1, &r2);
+        if (err == ERR_NONE)
+            binary_two_results(r1, r2);
+        return err;
+    }
 }
 
 static int mappable_ip(phloat x, phloat *y) {

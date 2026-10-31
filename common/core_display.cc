@@ -610,13 +610,13 @@ static int catalogmenu_rows[5];
 static int catalogmenu_row[5];
 static int catalogmenu_item[5][6];
 
-static int custommenu_length[3][6];
-static char custommenu_label[3][6][7];
+static int custommenu_length[6][6];
+static char custommenu_label[6][6][7];
 
-static arg_struct progmenu_arg[9];
-static bool progmenu_is_gto[9];
-static int progmenu_length[6];
-static char progmenu_label[6][7];
+static arg_struct progmenu_arg[15];
+static bool progmenu_is_gto[15];
+static int progmenu_length[12];
+static char progmenu_label[12][7];
 
 static int appmenu_exitcallback;
 
@@ -644,18 +644,18 @@ bool persist_display() {
         for (int j = 0; j < 6; j++)
             if (!write_int(catalogmenu_item[i][j])) return false;
     }
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
             if (!write_int(custommenu_length[i][j])) return false;
             if (fwrite(custommenu_label[i][j], 1, 7, gfile) != 7) return false;
         }
     }
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 15; i++)
         if (!write_arg(progmenu_arg + i))
             return false;
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 15; i++)
         if (!write_bool(progmenu_is_gto[i])) return false;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 12; i++) {
         if (!write_int(progmenu_length[i])) return false;
         if (fwrite(progmenu_label[i], 1, 7, gfile) != 7) return false;
     }
@@ -675,15 +675,23 @@ bool unpersist_display(int version) {
         for (int j = 0; j < 6; j++)
             if (!read_int(&catalogmenu_item[i][j])) return false;
     }
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < (version < 57 ? 3 : 6); i++) {
         for (int j = 0; j < 6; j++) {
             if (!read_int(&custommenu_length[i][j])) return false;
             if (fread(custommenu_label[i][j], 1, 7, gfile) != 7) return false;
         }
     }
-    for (int i = 0; i < 9; i++)
+    if (version < 57) {
+        for (int i = 3; i < 6; i++)
+            for (int j = 0; j < 6; j++)
+                custommenu_length[i][j] = 0;
+    }
+    for (int i = 0; i < (version < 57 ? 9 : 15); i++)
         if (!read_arg(progmenu_arg + i))
             return false;
+    if (version < 57)
+        for (int i = 9; i < 15; i++)
+            progmenu_arg[i].type = ARGTYPE_NONE;
     if (version < 35) {
         int temp;
         for (int i = 0; i < 9; i++) {
@@ -691,13 +699,19 @@ bool unpersist_display(int version) {
             progmenu_is_gto[i] = temp != 0;
         }
     } else {
-        for (int i = 0; i < 9; i++)
+        for (int i = 0; i < (version < 57 ? 9 : 15); i++)
             if (!read_bool(&progmenu_is_gto[i])) return false;
     }
-    for (int i = 0; i < 6; i++) {
+    if (version < 57)
+        for (int i = 9; i < 15; i++)
+            progmenu_is_gto[i] = false;
+    for (int i = 0; i < (version < 57 ? 6 : 12); i++) {
         if (!read_int(&progmenu_length[i])) return false;
         if (fread(progmenu_label[i], 1, 7, gfile) != 7) return false;
     }
+    if (version < 57)
+        for (int i = 6; i < 12; i++)
+            progmenu_length[i] = 0;
     if (fread(display, 1, 272, gfile) != 272)
         return false;
     if (!read_int(&appmenu_exitcallback)) return false;
@@ -1275,35 +1289,71 @@ void xlabel2buf(char *buf, int buflen, int *bufptr) {
     }
 }
 
+static int full_list_to_string(vartype *v, char *buf, int buflen) {
+    int bufptr = 0;
+    string2buf(buf, buflen, &bufptr, "{ ", 2);
+    if (bufptr > buflen)
+        return bufptr;
+    vartype_list *list = (vartype_list *) v;
+    for (int i = 0; i < list->size; i++) {
+        vartype *v2 = list->array->data[i];
+        if (v2->type == TYPE_LIST) {
+            bufptr += full_list_to_string(v2, buf + bufptr, buflen - bufptr);
+        } else if (v2->type == TYPE_STRING) {
+            vartype_string *s = (vartype_string *) v2;
+            char2buf(buf, buflen, &bufptr, '"');
+            string2buf(buf, buflen, &bufptr, s->txt(), s->length);
+            char2buf(buf, buflen, &bufptr, '"');
+        } else {
+            bufptr += vartype2string(v2, buf + bufptr, buflen - bufptr);
+        }
+        if (bufptr > buflen)
+            return bufptr;
+        char2buf(buf, buflen, &bufptr, ' ');
+    }
+    char2buf(buf, buflen, &bufptr, '}');
+    return bufptr;
+}
+
 void display_x(int row) {
-    char buf[22];
+    char buf[23];
     int bufptr = 0;
 
     clear_row(row);
-    xlabel2buf(buf, 22, &bufptr);
+    xlabel2buf(buf, 23, &bufptr);
     vartype *x = sp >= 0 ? stack[sp] : NULL;
     if (x != NULL)
-        bufptr += vartype2string(x, buf + bufptr, 22 - bufptr);
+        if (x->type == TYPE_LIST)
+            bufptr += full_list_to_string(x, buf + bufptr, 23 - bufptr);
+        else
+            bufptr += vartype2string(x, buf + bufptr, 23 - bufptr);
+    if (bufptr == 23) {
+        buf[21] = 26;
+        bufptr--;
+    }
     draw_string(0, row, buf, bufptr);
 }
 
 void display_y(int row) {
-    char buf[20];
-    int len;
+    char buf[23];
+    int bufptr = 0;
+
     clear_row(row);
     vartype *y = sp >= 1 ? stack[sp - 1] : NULL;
     if (flags.f.big_stack)
-        draw_string(0, row, "2\200", 2);
+        string2buf(buf, 23, &bufptr, "2\200", 2);
     else
-        draw_string(0, row, "\201\200", 2);
-    if (y != NULL) {
-        len = vartype2string(y, buf, 20);
-        if (len > 20) {
-            draw_string(2, row, buf, 19);
-            draw_char(21, row, 26);
-        } else
-            draw_string(2, row, buf, len);
+        string2buf(buf, 23, &bufptr, "\201\200", 2);
+    if (y != NULL)
+        if (y->type == TYPE_LIST)
+            bufptr += full_list_to_string(y, buf + bufptr, 23 - bufptr);
+        else
+            bufptr += vartype2string(y, buf + bufptr, 23 - bufptr);
+    if (bufptr == 23) {
+        buf[21] = 26;
+        bufptr--;
     }
+    draw_string(0, row, buf, bufptr);
 }
 
 void display_incomplete_command(int row) {
@@ -1402,7 +1452,7 @@ void display_command(int row) {
                 && ((catsect = get_cat_section()) == CATSECT_PGM
                     || catsect == CATSECT_PGM_ONLY));
 
-    if (pending_command >= CMD_ASGN01 && pending_command <= CMD_ASGN18)
+    if (pending_command >= CMD_ASGN01 && pending_command <= CMD_ASGNn18)
         string2buf(buf, 22, &bufptr, "ASSIGN ", 7);
     else if (!hide) {
         if (pending_command == CMD_SIMQ)
@@ -1467,9 +1517,13 @@ void display_command(int row) {
         char2buf(buf, 22, &bufptr, pending_command_arg.val.lclbl);
     }
 
-    if (pending_command >= CMD_ASGN01 && pending_command <= CMD_ASGN18) {
+    if (pending_command >= CMD_ASGN01 && pending_command <= CMD_ASGNn18) {
         int keynum = pending_command - CMD_ASGN01 + 1;
         string2buf(buf, 22, &bufptr, " TO ", 4);
+        if (keynum > 18) {
+            char2buf(buf, 22, &bufptr, '-');
+            keynum -= 18;
+        }
         char2buf(buf, 22, &bufptr, (char) ('0' + keynum / 10));
         char2buf(buf, 22, &bufptr, (char) ('0' + keynum % 10));
     }
@@ -1640,14 +1694,14 @@ static const int ext_prgm_cat[] = {
     CMD_TRY,     CMD_TRYX,    CMD_CATCH_T,  CMD_PRTRACE, CMD_SST_RT,  CMD_SST_UP,
     CMD_GETKEY1, CMD_GETKEYA, CMD_MENU1,    CMD_VARMNU1, CMD_PGMMENU, CMD_PGMVAR,
     -2 /* 0? */, -3 /* X? */, CMD_CPXMAT_T, CMD_TYPE_T,  CMD_CSLD_T,  CMD_SKIP,
-    CMD_LSTO,    CMD_LASTO,   CMD_LCLV,     CMD_NOP,     CMD_NULL,    CMD_NULL
+    CMD_LSTO,    CMD_LASTO,   CMD_LCLV,     CMD_PARAMS,  CMD_NULL,    CMD_NULL
 };
 
 static const int ext_str_cat[] = {
-    CMD_APPEND,  CMD_EXTEND,    CMD_POS,     CMD_LENGTH,  CMD_SUBSTR, CMD_XSTR,
-    CMD_N_TO_S,  CMD_NN_TO_S,   CMD_IP_TO_S, CMD_S_TO_N,  CMD_N_TO_C, CMD_C_TO_N,
-    CMD_TO_LIST, CMD_FROM_LIST, CMD_LIST_T,  CMD_NEWLIST, CMD_HEAD,   CMD_REV,
-    CMD_XASTO,   CMD_LXASTO,    CMD_XVIEW,   CMD_NULL,    CMD_NULL,   CMD_NULL
+    CMD_LENGTH,  CMD_SUBSTR,    CMD_POS,     CMD_XSTR,   CMD_XASTO,  CMD_LXASTO,
+    CMD_N_TO_S,  CMD_NN_TO_S,   CMD_IP_TO_S, CMD_S_TO_N, CMD_N_TO_C, CMD_C_TO_N,
+    CMD_XSTR,    CMD_XVIEW,     CMD_NEWLIST, CMD_APPEND, CMD_EXTEND, CMD_LIST_T,
+    CMD_TO_LIST, CMD_FROM_LIST, CMD_HEAD,    CMD_REV,    CMD_SORT,   CMD_NULL
 };
 
 static const int ext_stk_cat[] = {
@@ -1663,43 +1717,23 @@ static const int ext_stat_cat[] = {
 };
 
 #if defined(ANDROID) || defined(IPHONE)
-#ifdef FREE42_FPTEST
 static const int ext_misc_cat[] = {
-    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
-    CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
-    CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
-    CMD_WIDTH,   CMD_HEIGHT,  CMD_IDENT,   CMD_PRREG,    CMD_STRACE,      CMD_ACCEL,
-    CMD_LOCAT,   CMD_HEADING, CMD_FPTEST,  CMD_NULL,     CMD_NULL,        CMD_NULL
-};
-#define MISC_CAT_ROWS 5
-#else
-static const int ext_misc_cat[] = {
-    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
-    CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
-    CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
-    CMD_WIDTH,   CMD_HEIGHT,  CMD_IDENT,   CMD_PRREG,    CMD_STRACE,      CMD_ACCEL,
-    CMD_LOCAT,   CMD_HEADING, CMD_FPTEST,  CMD_NULL,     CMD_NULL,        CMD_NULL
-};
-#define MISC_CAT_ROWS 5
-#endif
-#else
-#ifdef FREE42_FPTEST
-static const int ext_misc_cat[] = {
-    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
-    CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
-    CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
-    CMD_WIDTH,   CMD_HEIGHT,  CMD_IDENT,   CMD_PRREG,    CMD_STRACE,      CMD_FPTEST,
-};
-#define MISC_CAT_ROWS 4
-#else
-static const int ext_misc_cat[] = {
-    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
-    CMD_PCOMPLX, CMD_RCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
+    CMD_RE,      CMD_IM,      CMD_CONJ,    CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
+    CMD_RCOMPLX, CMD_PCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
     CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
     CMD_WIDTH,   CMD_HEIGHT,  CMD_IDENT,   CMD_PRREG,    CMD_STRACE,      CMD_NULL,
+    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_ACCEL,    CMD_LOCAT,       CMD_HEADING
 };
-#define MISC_CAT_ROWS 4
-#endif
+#define MISC_CAT_ROWS 5
+#else
+static const int ext_misc_cat[] = {
+    CMD_RE,      CMD_IM,      CMD_CONJ,    CMD_C_LN_1_X, CMD_C_E_POW_X_1, CMD_FMA,
+    CMD_RCOMPLX, CMD_PCOMPLX, CMD_GETMI,   CMD_PUTMI,    CMD_GETLI,       CMD_PUTLI,
+    CMD_LOCK,    CMD_UNLOCK,  CMD_DYNAMIC, CMD_STATIC,   CMD_MIXED,       CMD_CAPS,
+    CMD_WIDTH,   CMD_HEIGHT,  CMD_IDENT,   CMD_PRREG,    CMD_STRACE,      CMD_NULL,
+    CMD_A2LINE,  CMD_A2PLINE, CMD_X2LINE,  CMD_NULL,     CMD_NULL,        CMD_NULL
+};
+#define MISC_CAT_ROWS 5
 #endif
 
 static const int ext_0_cmp_cat[] = {
@@ -2123,6 +2157,11 @@ void show() {
                 draw_string(4, 1, buf, bufptr);
                 break;
             }
+            case TYPE_LIST: {
+                bufptr = full_list_to_string(rx, buf, 44);
+                goto show_one_or_two_lines;
+                break;
+            }
         }
     }
     flush_display();
@@ -2197,14 +2236,21 @@ void redisplay() {
             draw_key(5, 0, 0, mode_menu_static || !mode_shift ? "XEQ" : "GTO", 3);
         } else {
             for (i = 0; i < 6; i++) {
-                draw_key(i, 0, 1, custommenu_label[r][i],
-                                  custommenu_length[r][i]);
+                int rs = r;
+                if (mode_shift && !mode_menu_static && custommenu_length[r + 3][i] > 0)
+                    rs += 3;
+                draw_key(i, 0, 1, custommenu_label[rs][i],
+                                  custommenu_length[rs][i]);
             }
         }
         avail_rows = 1;
     } else if (menu_id == MENU_PROGRAMMABLE) {
-        for (i = 0; i < 6; i++)
-            draw_key(i, 0, 0, progmenu_label[i], progmenu_length[i]);
+        for (i = 0; i < 6; i++) {
+            int k = i;
+            if (mode_shift && !mode_menu_static && progmenu_length[i + 6] > 0)
+                k += 6;
+            draw_key(i, 0, 0, progmenu_label[k], progmenu_length[k]);
+        }
         avail_rows = 1;
     } else if (menu_id != MENU_NONE) {
         const menu_spec *m = menus + menu_id;
@@ -2717,7 +2763,7 @@ int command2buf(char *buf, int len, int cmd, const arg_struct *arg) {
     }
 
     const command_spec *cmdspec = &cmd_array[cmd];
-    if (cmd >= CMD_ASGN01 && cmd <= CMD_ASGN18) {
+    if (cmd >= CMD_ASGN01 && cmd <= CMD_ASGNn18) {
         string2buf(buf, len, &bufptr, "ASSIGN ", 7);
     } else {
         for (int i = 0; i < cmdspec->name_length; i++) {
@@ -2786,21 +2832,20 @@ int command2buf(char *buf, int len, int cmd, const arg_struct *arg) {
                 string2buf(buf, len, &bufptr, lbl->name, lbl->length);
                 char2buf(buf, len, &bufptr, '"');
             }
-        } else if (arg->type == ARGTYPE_XSTR) {
+        } else { /* ARGTYPE_XSTR */
             char2buf(buf, len, &bufptr, '"');
             string2buf(buf, len, &bufptr, arg->val.xstr,
                                             arg->length);
             char2buf(buf, len, &bufptr, '"');
-        } else /* ARGTYPE_COMMAND; for backward compatibility only */ {
-            const command_spec *cs = &cmd_array[arg->val.cmd];
-            char2buf(buf, len, &bufptr, '"');
-            string2buf(buf, len, &bufptr, cs->name, cs->name_length);
-            char2buf(buf, len, &bufptr, '"');
         }
     }
-    if (cmd >= CMD_ASGN01 && cmd <= CMD_ASGN18) {
+    if (cmd >= CMD_ASGN01 && cmd <= CMD_ASGNn18) {
         int keynum = cmd - CMD_ASGN01 + 1;
         string2buf(buf, len, &bufptr, " TO ", 4);
+        if (keynum > 18) {
+            char2buf(buf, len, &bufptr, '-');
+            keynum -= 18;
+        }
         char2buf(buf, len, &bufptr, (char) ('0' + keynum / 10));
         char2buf(buf, len, &bufptr, (char) ('0' + keynum % 10));
     }
@@ -3199,7 +3244,7 @@ void update_catalog() {
 
 void clear_custom_menu() {
     int row, key;
-    for (row = 0; row < 3; row++)
+    for (row = 0; row < 6; row++)
         for (key = 0; key < 6; key++)
             custommenu_length[row][key] = 0;
 }
@@ -3207,24 +3252,25 @@ void clear_custom_menu() {
 void assign_custom_key(int keynum, const char *name, int length) {
     int row = (keynum - 1) / 6;
     int key = (keynum - 1) % 6;
-    int i;
     custommenu_length[row][key] = length;
-    for (i = 0; i < length; i++)
+    for (int i = 0; i < length; i++)
         custommenu_label[row][key][i] = name[i];
 }
 
-void get_custom_key(int keynum, char *name, int *length) {
+void get_custom_key(int keynum, bool shift, char *name, int *length) {
     int row = (keynum - 1) / 6;
     int key = (keynum - 1) % 6;
+    if (shift && custommenu_length[row + 3][key] > 0)
+        row += 3;
     string_copy(name, length, custommenu_label[row][key],
                               custommenu_length[row][key]);
 }
 
 void clear_prgm_menu() {
     int i;
-    for (i = 0; i < 9; i++)
+    for (i = 0; i < 15; i++)
         progmenu_arg[i].type = ARGTYPE_NONE;
-    for (i = 0; i < 6; i++)
+    for (i = 0; i < 12; i++)
         progmenu_length[i] = 0;
 }
 
@@ -3234,9 +3280,11 @@ void assign_prgm_key(int keynum, bool is_gto, const arg_struct *arg) {
     progmenu_arg[keynum] = (arg_struct) *arg;
     progmenu_is_gto[keynum] = is_gto;
     length = reg_alpha_length;
-    if (keynum < 6) {
+    if (keynum < 6 || keynum >= 9) {
         if (length > 7)
             length = 7;
+        if (keynum >= 9)
+            keynum -= 3;
         for (i = 0; i < length; i++)
             progmenu_label[keynum][i] = reg_alpha[i];
         progmenu_length[keynum] = length;
@@ -3253,9 +3301,9 @@ static void save_keyx_info(int keynum) {
     }
     char *s = ((vartype_string *) keyx)->txt();
     s[0] = keynum;
-    if (keynum < 6) {
-        s[1] = progmenu_length[keynum];
-        memcpy(s + 2, progmenu_label[keynum], s[1]);
+    if (keynum < 6 || keynum >= 9) {
+        s[1] = progmenu_length[keynum >= 9 ? keynum - 3 : keynum];
+        memcpy(s + 2, progmenu_label[keynum >= 9 ? keynum - 3 : keynum], s[1]);
     }
     arg_struct *arg = progmenu_arg + keynum;
     s[9] = arg->type;
@@ -3292,14 +3340,24 @@ void do_prgm_menu_key(int keynum) {
     }
     if (progmenu_arg[keynum].type == ARGTYPE_NONE) {
         if (keynum < 6) {
+            do_null:
             pending_command = CMD_NULL;
             print_menu_trace("NULL", 4);
-        } else if (keynum == 8)
+            return;
+        } else if (keynum >= 9) {
+            if (progmenu_arg[keynum - 9].type != ARGTYPE_NONE)
+                keynum -= 9;
+            else
+                goto do_null;
+        } else if (keynum == 8) {
             pending_command = CMD_CANCELLED;
-        return;
+            return;
+        }
     }
-    if (keynum < 6)
-        print_menu_trace(progmenu_label[keynum], progmenu_length[keynum]);
+    if (keynum < 6 || keynum >= 9) {
+        int k = keynum >= 9 ? keynum - 3 : keynum;
+        print_menu_trace(progmenu_label[k], progmenu_length[k]);
+    }
     oldprgm = current_prgm;
     oldpc = pc;
     set_running(true);

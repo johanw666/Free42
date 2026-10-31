@@ -664,6 +664,57 @@ bool contains_strings(const vartype_realmatrix *rm) {
     return false;
 }
 
+bool is_real(vartype *v, bool *str, bool allow_list) {
+    switch (v->type) {
+        case TYPE_REAL:
+            return true;
+        case TYPE_REALMATRIX:
+            return !contains_strings((vartype_realmatrix *) v);
+        case TYPE_STRING:
+            if (str != NULL)
+                *str = true;
+            return false;
+        case TYPE_LIST: {
+            if (!allow_list)
+                return false;
+            vartype_list *list = (vartype_list *) v;
+            int4 sz = list->size;
+            for (int4 i = 0; i < sz; i++) {
+                if (!is_real(list->array->data[i], str))
+                    return false;
+            }
+            return true;
+        }
+        default:
+            return false;
+    }
+}
+
+bool is_complex(vartype *v, bool *str, bool allow_list) {
+    switch (v->type) {
+        case TYPE_COMPLEX:
+        case TYPE_COMPLEXMATRIX:
+            return true;
+        case TYPE_STRING:
+            if (str != NULL)
+                *str = true;
+            return false;
+        case TYPE_LIST: {
+            if (!allow_list)
+                return false;
+            vartype_list *list = (vartype_list *) v;
+            int4 sz = list->size;
+            for (int4 i = 0; i < sz; i++) {
+                if (!is_complex(list->array->data[i], str))
+                    return false;
+            }
+            return true;
+        }
+        default:
+            return false;
+    }
+}
+
 /* This is only used by core_linalg1, and does not deal with strings,
  * even when copying a real matrix to a real matrix. It returns an
  * error if any are encountered.

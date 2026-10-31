@@ -39,10 +39,10 @@ int docmd_insr(arg_struct *arg) {
     vartype_complexmatrix *cm;
     vartype_list *list;
     int4 rows, columns, i;
-    int err, refcount;
+    int err;
     int interactive;
 
-    err = matedit_get(&m);
+    err = matedit_get(&m, true);
     if (err != ERR_NONE)
         return err;
 
@@ -58,7 +58,6 @@ int docmd_insr(arg_struct *arg) {
         rm = (vartype_realmatrix *) m;
         rows = rm->rows;
         columns = rm->columns;
-        refcount = rm->array->refcount;
         if (interactive) {
             newx = new_real(0);
             if (newx == NULL)
@@ -68,7 +67,6 @@ int docmd_insr(arg_struct *arg) {
         cm = (vartype_complexmatrix *) m;
         rows = cm->rows;
         columns = cm->columns;
-        refcount = cm->array->refcount;
         if (interactive) {
             newx = new_complex(0, 0);
             if (newx == NULL)
@@ -78,7 +76,6 @@ int docmd_insr(arg_struct *arg) {
         list = (vartype_list *) m;
         rows = list->size;
         columns = 1;
-        refcount = list->array->refcount;
         if (interactive) {
             newx = new_real(0);
             if (newx == NULL)
@@ -91,155 +88,40 @@ int docmd_insr(arg_struct *arg) {
     if (matedit_j >= columns)
         matedit_j = columns - 1;
 
-    if (refcount == 1) {
-        /* We have this array to ourselves so we can modify it in place */
-        err = dimension_array_ref(m, rows + 1, columns);
-        if (err != ERR_NONE) {
-            if (interactive)
-                free_vartype(newx);
-            return err;
-        }
-        rows++;
-        if (m->type == TYPE_REALMATRIX) {
-            for (i = rows * columns - 1; i >= (matedit_i + 1) * columns; i--) {
-                rm->array->is_string[i] = rm->array->is_string[i - columns];
-                rm->array->data[i] = rm->array->data[i - columns];
-            }
-            for (i = matedit_i * columns; i < (matedit_i + 1) * columns; i++) {
-                rm->array->is_string[i] = 0;
-                rm->array->data[i] = 0;
-            }
-        } else if (m->type == TYPE_COMPLEXMATRIX) {
-            for (i = 2 * rows * columns - 1;
-                            i >= 2 * (matedit_i + 1) * columns; i--)
-                cm->array->data[i] = cm->array->data[i - 2 * columns];
-            for (i = 2 * matedit_i * columns;
-                            i < 2 * (matedit_i + 1) * columns; i++)
-                cm->array->data[i] = 0;
-        } else {
-            vartype *v = new_real(0);
-            if (v == NULL) {
-                free_vartype(newx);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            memmove(list->array->data + matedit_i + 1, list->array->data + matedit_i, (rows - matedit_i - 1) * sizeof(vartype *));
-            list->array->data[matedit_i] = v;
-        }
-    } else {
-        /* Make sure the new array is less than 2 GB,
-         * so it's addressable with a signed 32-bit index */
-        int esize;
-        switch (m->type) {
-            case TYPE_REALMATRIX: esize = sizeof(phloat); break;
-            case TYPE_COMPLEXMATRIX: esize = 2 * sizeof(phloat); break;
-            case TYPE_LIST: esize = sizeof(vartype *); break;
-        }
-        double d_bytes = ((double) (rows + 1)) * ((double) columns) * esize;
-        if (((double) (int4) d_bytes) != d_bytes)
-            return ERR_INSUFFICIENT_MEMORY;
-
-        /* We're sharing this array. I don't use disentangle() because it
-         * does not deal with resizing. */
-        int4 newsize = (rows + 1) * columns;
-        if (m->type == TYPE_REALMATRIX) {
-            realmatrix_data *array = (realmatrix_data *)
-                                malloc(sizeof(realmatrix_data));
-            if (array == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            array->data = (phloat *) malloc(newsize * sizeof(phloat));
-            if (array->data == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                free(array);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            array->is_string = (char *) malloc(newsize);
-            if (array->is_string == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                free(array->data);
-                free(array);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            for (i = 0; i < matedit_i * columns; i++) {
-                array->is_string[i] = rm->array->is_string[i];
-                array->data[i] = rm->array->data[i];
-            }
-            for (i = matedit_i * columns; i < (matedit_i + 1) * columns; i++) {
-                array->is_string[i] = 0;
-                array->data[i] = 0;
-            }
-            for (i = (matedit_i + 1) * columns; i < newsize; i++) {
-                array->is_string[i] = rm->array->is_string[i - columns];
-                array->data[i] = rm->array->data[i - columns];
-            }
-            array->refcount = 1;
-            rm->array->refcount--;
-            rm->array = array;
-            rm->rows++;
-        } else if (m->type == TYPE_COMPLEXMATRIX) {
-            complexmatrix_data *array = (complexmatrix_data *)
-                                malloc(sizeof(complexmatrix_data));
-            if (array == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            array->data = (phloat *) malloc(2 * newsize * sizeof(phloat));
-            if (array->data == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                free(array);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            for (i = 0; i < 2 * matedit_i * columns; i++)
-                array->data[i] = cm->array->data[i];
-            for (i = 2 * matedit_i * columns;
-                                i < 2 * (matedit_i + 1) * columns; i++)
-                array->data[i] = 0;
-            for (i = 2 * (matedit_i + 1) * columns; i < 2 * newsize; i++)
-                array->data[i] = cm->array->data[i - 2 * columns];
-            array->refcount = 1;
-            cm->array->refcount--;
-            cm->array = array;
-            cm->rows++;
-        } else {
-            list_data *array = (list_data *) malloc(sizeof(list_data));
-            if (array == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            array->data = (vartype **) malloc(newsize * sizeof(vartype *));
-            if (array->data == NULL) {
-                if (interactive)
-                    free_vartype(newx);
-                free(array);
-                return ERR_INSUFFICIENT_MEMORY;
-            }
-            for (int4 i = 0; i < newsize; i++) {
-                array->data[i] = i < matedit_i ? dup_vartype(list->array->data[i])
-                               : i > matedit_i ? dup_vartype(list->array->data[i - 1])
-                               : new_real(0);
-                if (array->data[i] == NULL) {
-                    for (int4 j = 0; j < i; j++)
-                        free_vartype(array->data[j]);
-                    if (interactive)
-                        free_vartype(newx);
-                    free(array->data);
-                    free(array);
-                    return ERR_INSUFFICIENT_MEMORY;
-                }
-            }
-            array->refcount = 1;
-            list->array->refcount--;
-            list->array = array;
-            list->size++;
-        }
+    /* We have this array to ourselves so we can modify it in place */
+    err = dimension_array_ref(m, rows + 1, columns);
+    if (err != ERR_NONE) {
+        if (interactive)
+            free_vartype(newx);
+        return err;
     }
+    rows++;
+    if (m->type == TYPE_REALMATRIX) {
+        for (i = rows * columns - 1; i >= (matedit_i + 1) * columns; i--) {
+            rm->array->is_string[i] = rm->array->is_string[i - columns];
+            rm->array->data[i] = rm->array->data[i - columns];
+        }
+        for (i = matedit_i * columns; i < (matedit_i + 1) * columns; i++) {
+            rm->array->is_string[i] = 0;
+            rm->array->data[i] = 0;
+        }
+    } else if (m->type == TYPE_COMPLEXMATRIX) {
+        for (i = 2 * rows * columns - 1;
+                        i >= 2 * (matedit_i + 1) * columns; i--)
+            cm->array->data[i] = cm->array->data[i - 2 * columns];
+        for (i = 2 * matedit_i * columns;
+                        i < 2 * (matedit_i + 1) * columns; i++)
+            cm->array->data[i] = 0;
+    } else {
+        vartype *v = new_real(0);
+        if (v == NULL) {
+            free_vartype(newx);
+            return ERR_INSUFFICIENT_MEMORY;
+        }
+        memmove(list->array->data + matedit_i + 1, list->array->data + matedit_i, (rows - matedit_i - 1) * sizeof(vartype *));
+        list->array->data[matedit_i] = v;
+    }
+
     if (interactive) {
         if (sp == -1)
             sp = 0;
@@ -276,8 +158,10 @@ int docmd_j_add(arg_struct *arg) {
         vartype *m2 = list->array->data[matedit_i];
         if (m2->type != TYPE_REALMATRIX && m2->type != TYPE_COMPLEXMATRIX && m2->type != TYPE_LIST) {
             if (matedit_i == list->size - 1 && flags.f.grow) {
-                if (!disentangle((vartype *) list))
-                    return ERR_INSUFFICIENT_MEMORY;
+                err = matedit_get(&m, true);
+                if (err != ERR_NONE)
+                    return err;
+                list = (vartype_list *) m;
                 int4 newsize = list->size + 1;
                 vartype **newdata = (vartype **) realloc(list->array->data, newsize * sizeof(vartype *));
                 if (newdata == NULL)
@@ -310,7 +194,7 @@ int docmd_j_add(arg_struct *arg) {
             flags.f.matrix_end_wrap = 1;
             if (flags.f.grow) {
                 vartype *m;
-                err = matedit_get(&m);
+                err = matedit_get(&m, true);
                 if (err == ERR_NONE)
                     err = dimension_array_ref(m, rows + 1, columns);
                 if (err != ERR_NONE) {
@@ -478,10 +362,16 @@ int docmd_putm(arg_struct *arg) {
         vartype *v = dup_vartype((vartype *) src);
         if (v == NULL)
             return ERR_INSUFFICIENT_MEMORY;
-        if (!disentangle(v) || !disentangle(m)) {
+        if (!disentangle(v)) {
             free_vartype(v);
             return ERR_INSUFFICIENT_MEMORY;
         }
+        err = matedit_get(&m, true);
+        if (err != ERR_NONE) {
+            free_vartype(v);
+            return err;
+        }
+        dst = (vartype_realmatrix *) m;
         src = (vartype_realmatrix *) v;
         for (i = 0; i < src->rows; i++)
             for (j = 0; j < src->columns; j++) {
@@ -504,8 +394,10 @@ int docmd_putm(arg_struct *arg) {
             return ERR_DIMENSION_ERROR;
         if (contains_strings(src))
             return ERR_ALPHA_DATA_IS_INVALID;
-        if (!disentangle(m))
-            return ERR_INSUFFICIENT_MEMORY;
+        err = matedit_get(&m, true);
+        if (err != ERR_NONE)
+            return err;
+        dst = (vartype_complexmatrix *) m;
         for (i = 0; i < src->rows; i++)
             for (j = 0; j < src->columns; j++) {
                 int4 n1 = i * src->columns + j;
@@ -520,8 +412,10 @@ int docmd_putm(arg_struct *arg) {
         if (src->rows + matedit_i > dst->rows
                 || src->columns + matedit_j > dst->columns)
             return ERR_DIMENSION_ERROR;
-        if (!disentangle(m))
-            return ERR_INSUFFICIENT_MEMORY;
+        err = matedit_get(&m, true);
+        if (err != ERR_NONE)
+            return err;
+        dst = (vartype_complexmatrix *) m;
         for (i = 0; i < src->rows; i++)
             for (j = 0; j < src->columns; j++) {
                 int4 n1 = i * src->columns + j;
@@ -736,8 +630,10 @@ int docmd_swap_r(arg_struct *arg) {
             return ERR_DIMENSION_ERROR;
         else if (x == y)
             return ERR_NONE;
-        if (!disentangle(m))
-            return ERR_INSUFFICIENT_MEMORY;
+        int err = matedit_get(&m, true);
+        if (err != ERR_NONE)
+            return err;
+        rm = (vartype_realmatrix *) m;
         for (i = 0; i < rm->columns; i++) {
             int4 n1 = x * rm->columns + i;
             int4 n2 = y * rm->columns + i;
@@ -755,8 +651,10 @@ int docmd_swap_r(arg_struct *arg) {
             return ERR_DIMENSION_ERROR;
         else if (x == y)
             return ERR_NONE;
-        if (!disentangle(m))
-            return ERR_INSUFFICIENT_MEMORY;
+        int err = matedit_get(&m, true);
+        if (err != ERR_NONE)
+            return err;
+        cm = (vartype_complexmatrix *) m;
         for (i = 0; i < 2 * cm->columns; i++) {
             int4 n1 = x * 2 * cm->columns + i;
             int4 n2 = y * 2 * cm->columns + i;
@@ -823,12 +721,9 @@ int docmd_sinh(arg_struct *arg) {
 
 int docmd_stoel(arg_struct *arg) {
     vartype *m;
-    int err = matedit_get(&m);
+    int err = matedit_get(&m, true);
     if (err != ERR_NONE)
         return err;
-
-    if (!disentangle(m))
-        return ERR_INSUFFICIENT_MEMORY;
 
     if (m->type == TYPE_REALMATRIX) {
         vartype_realmatrix *rm = (vartype_realmatrix *) m;
@@ -1062,8 +957,9 @@ static int matedit_move_list(vartype_list *list, int direction) {
 
     // Prepare for storing X, but don't actually store it yet
     if (sp != -1 && list->size > 0 && !vartype_equals(list->array->data[matedit_i], stack[sp])) {
-        if (!disentangle((vartype *) list))
-            return ERR_INSUFFICIENT_MEMORY;
+        int err = matedit_get((vartype **) &list, true);
+        if (err != ERR_NONE)
+            return err;
         old_x = dup_vartype(stack[sp]);
         if (old_x == NULL)
             return ERR_INSUFFICIENT_MEMORY;
@@ -1159,7 +1055,7 @@ static int matedit_move_list(vartype_list *list, int direction) {
                 free_vartype(zero2);
                 goto nomem;
             }
-            if (!disentangle((vartype *) list))
+            if (matedit_get((vartype **) &list, true) != ERR_NONE)
                 goto nomem2;
             int4 newsize = list->size + 1;
             vartype **newdata = (vartype **) realloc(list->array->data, newsize * sizeof(vartype *));
@@ -1264,8 +1160,15 @@ static int matedit_move(int direction) {
         }
     }
 
-    if (changed && !disentangle(m))
-        return ERR_INSUFFICIENT_MEMORY;
+    if (changed) {
+        err = matedit_get(&m, true);
+        if (err != ERR_NONE)
+            return err;
+        if (m->type == TYPE_REALMATRIX)
+            rm = (vartype_realmatrix *) m;
+        else if (m->type == TYPE_COMPLEXMATRIX)
+            cm = (vartype_complexmatrix *) m;
+    }
 
     new_i = matedit_i;
     new_j = matedit_j;

@@ -30,19 +30,13 @@ CFLAGS += -MMD \
 	 -DGDK_DISABLE_DEPRECATION_WARNINGS -DGTK_DISABLE_SINGLE_INCLUDES -DGSEAL_ENABLE \
 	 -DVERSION="\"$(shell cat VERSION)\"" \
 	 -DVERSION_PLATFORM="\"$(shell uname -s)\"" \
-	 -DDECIMAL_CALL_BY_REFERENCE=1 \
-	 -DDECIMAL_GLOBAL_ROUNDING=1 \
-	 -DDECIMAL_GLOBAL_ROUNDING_ACCESS_FUNCTIONS=1 \
-	 -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=1 \
-	 -DDECIMAL_GLOBAL_EXCEPTION_FLAGS_ACCESS_FUNCTIONS=1 \
 	 -DHAVE_SINCOS=1
 
 CXXFLAGS = $(CFLAGS) \
 	 -fno-exceptions \
-	 -fno-rtti \
-	 -D_WCHAR_T_DEFINED
+	 -fno-rtti
 
-LIBS = gcc111libbid.a $(shell $(PKG_CONFIG) --libs gtk+-3.0)
+LIBS = $(shell $(PKG_CONFIG) --libs gtk+-3.0)
 
 ifdef AUDIO_ALSA
 LIBS += -lpthread -ldl
@@ -50,14 +44,6 @@ endif
 
 ifneq "$(findstring 6162,$(shell echo ab | od -x))" ""
 CFLAGS += -DF42_BIG_ENDIAN -DBID_BIG_ENDIAN
-endif
-
-ifeq "$(shell uname -m)" "arm64"
-CFLAGS += -fsigned-char -DBID_SIZE_LONG=8
-else ifeq "$(shell uname -m)" "aarch64"
-CFLAGS += -fsigned-char -DBID_SIZE_LONG=8
-else ifeq "$(shell uname -m | sed 's/^\(...\).*$$/\1/')" "arm"
-CFLAGS += -fsigned-char -DBID_SIZE_LONG=4
 endif
 
 SRCS = shell_main.cc shell_skin.cc shell_state.cc skins.cc keymap.cc \
@@ -77,17 +63,72 @@ OBJS = shell_main.o shell_skin.o shell_state.o skins.o keymap.o \
 	shell_loadimage.o \
 	$(CORE_OBJS)
 
+ifndef FP_INTEL
+ifndef FP_DECNUM
+ifndef FP_BINARY_INTEL
+ifndef FP_BINARY
 ifdef BCD_MATH
-CXXFLAGS += -DBCD_MATH
-EXE = free42dec
+FP_INTEL = 1
 else
-EXE = free42bin
+FP_BINARY_INTEL = 1
+endif
+endif
+endif
+endif
 endif
 
+ifdef FP_INTEL
+CXXFLAGS += -DFP_INTEL
+INTEL = 1
+EXE = free42dec
+else
+ifdef FP_BINARY_INTEL
+CXXFLAGS += -DFP_BINARY_INTEL
+INTEL = 1
+EXE = free42bin
+else
+ifdef FP_DECNUM
+CXXFLAGS += -DFP_DECNUM
+DECNUM_SRCS = decQuad.c decimal128.c decNumber.c decContext.c decimal64.c
+OBJS += decQuad.o decimal128.o decNumber.o decContext.o decimal64.o
+INTELCONV_SRCS = intel-conv.cc
+OBJS += intel-conv.o
+EXE = free42dec-decnum
+else
+ifdef FP_BINARY
+CXXFLAGS += -DFP_BINARY
+INTELCONV_SRCS = intel-conv.cc
+OBJS += intel-conv.o
+EXE = free42bin-pure
+endif
+endif
+endif
+endif
+
+ifdef INTEL
+OTHER_DEPS = gcc111libbid.a
+LIBS += gcc111libbid.a
+CFLAGS += -DDECIMAL_CALL_BY_REFERENCE=1 \
+	  -DDECIMAL_GLOBAL_ROUNDING=1 \
+	  -DDECIMAL_GLOBAL_ROUNDING_ACCESS_FUNCTIONS=1 \
+	  -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=1 \
+	  -DDECIMAL_GLOBAL_EXCEPTION_FLAGS_ACCESS_FUNCTIONS=1
+CXXFLAGS += -D_WCHAR_T_DEFINED=1
+ifeq "$(shell uname -m)" "arm64"
+CFLAGS += -fsigned-char -DBID_SIZE_LONG=8
+else ifeq "$(shell uname -m)" "aarch64"
+CFLAGS += -fsigned-char -DBID_SIZE_LONG=8
+else ifeq "$(shell uname -m | sed 's/^\(...\).*$$/\1/')" "arm"
+CFLAGS += -fsigned-char -DBID_SIZE_LONG=4
+endif
+endif
+
+ifdef FP_INTEL
 ifdef FREE42_FPTEST
 CFLAGS += -DFREE42_FPTEST
 SRCS += readtest.c readtest_lines.cc
 OBJS += readtest.o readtest_lines.o
+endif
 endif
 
 ifdef AUDIO_ALSA
@@ -101,16 +142,28 @@ SRCS += audio_alsa.cc
 OBJS += audio_alsa.o
 endif
 
-$(EXE): $(OBJS) icons.o gcc111libbid.a
+$(EXE): $(OBJS) icons.o $(OTHER_DEPS)
 	$(CXX) -o $(EXE) $(LDFLAGS) $(OBJS) icons.o $(LIBS)
 
-txt2raw: symlinks txt2raw.o $(CORE_OBJS) gcc111libbid.a
+txt2raw: symlinks txt2raw.o $(CORE_OBJS) $(OTHER_DEPS)
 	$(CXX) -o txt2raw $(LDFLAGS) txt2raw.o $(CORE_OBJS) $(LIBS)
 
-raw2txt: symlinks raw2txt.o $(CORE_OBJS) gcc111libbid.a
+raw2txt: symlinks raw2txt.o $(CORE_OBJS) $(OTHER_DEPS)
 	$(CXX) -o raw2txt $(LDFLAGS) raw2txt.o $(CORE_OBJS) $(LIBS)
 
-$(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf keymap.txt: symlinks
+rawconv: raw2txt txt2raw
+	strip raw2txt
+	strip txt2raw
+	tar cvfz rawconv-linux.tgz raw2txt txt2raw
+	rm raw2txt txt2raw
+
+$(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf keymap.txt: symlinks $(DECNUM_SRCS) $(INTELCONV_SRCS)
+
+$(DECNUM_SRCS):
+	tar xvfz ../decimal/decNumber.tgz
+
+$(INTELCONV_SRCS):
+	tar xvfz ../decimal/intel-conv.tgz
 
 .cc.o:
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
@@ -145,20 +198,21 @@ symlinks:
 
 clean: FORCE
 	rm -f `find . -type l ! -name readtest.c` \
+		dec* intel-conv.* \
 		skin2cc skin2cc.exe skins.cc \
 		keymap2cc keymap2cc.exe keymap.cc \
 		*.o *.d *.i *.ii *.s symlinks core.* \
-		raw2txt txt2raw
+		raw2txt txt2raw rawconv-linux.tgz
 
 cleaner: FORCE
 	rm -f `find . -type l` \
-		free42bin free42bin.exe free42dec free42dec.exe \
+		free42bin* free42dec* dec* intel-conv.* \
 		skin2cc skin2cc.exe skins.cc \
 		keymap2cc keymap2cc.exe keymap.cc \
 		readtest_lines.cc \
 		gcc111libbid.a \
 		*.o *.d *.i *.ii *.s symlinks core.* \
-		raw2txt txt2raw
+		raw2txt txt2raw rawconv-linux.tgz
 	rm -rf IntelRDFPMathLib20U1
 
 FORCE:

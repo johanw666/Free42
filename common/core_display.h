@@ -98,7 +98,7 @@ void update_catalog();
 
 void clear_custom_menu();
 void assign_custom_key(int keynum, const char *name, int length);
-void get_custom_key(int keynum, char *name, int *length);
+void get_custom_key(int keynum, bool shift, char *name, int *length);
 
 void clear_prgm_menu();
 void assign_prgm_key(int keynum, bool is_gto, const arg_struct *arg);

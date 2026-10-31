@@ -31,10 +31,8 @@
 #include "core_variables.h"
 #include "shell.h"
 
-#ifndef BCD_MATH
-// We need these locally for BID128->double conversion
-#include "bid_conf.h"
-#include "bid_functions.h"
+#ifdef FP_DECNUM
+#include "intel-conv.h"
 #endif
 
 // File used for reading and writing the state file, and for importing and
@@ -838,8 +836,9 @@ bool no_keystrokes_yet;
  * Version 54: 3.3.11 Statistics sums menu
  * Version 55: 3.4    Error trapping
  * Version 56: 3.4    Error trapping: stack trace
+ * Version 57: 3.5    Shifted CUSTOM & prog menu assignments
  */
-#define FREE42_VERSION 56
+#define FREE42_VERSION 57
 
 
 /*******************/
@@ -2111,7 +2110,6 @@ int get_command_length(int prgm_index, int4 pc) {
         }
         case ARGTYPE_STK:
         case ARGTYPE_IND_STK:
-        case ARGTYPE_COMMAND:
         case ARGTYPE_LCLBL:
             pc2++;
             break;
@@ -2186,9 +2184,6 @@ void get_next_command(int4 *pc, int *command, arg_struct *arg, int find_target, 
         case ARGTYPE_STK:
         case ARGTYPE_IND_STK:
             arg->val.stk = prgm->text[(*pc)++];
-            break;
-        case ARGTYPE_COMMAND:
-            arg->val.cmd = prgm->text[(*pc)++];
             break;
         case ARGTYPE_LCLBL:
             arg->val.lclbl = prgm->text[(*pc)++];
@@ -4184,6 +4179,9 @@ bool read_phloat(phloat *d) {
                 char buf[16];
                 if (fread(buf, 1, 16, gfile) != 16)
                     return false;
+                #ifdef FP_DECNUM
+                    bid_to_dpd128((decQuad *) buf, (decQuad *) buf);
+                #endif
                 char *dst = (char *) d;
                 for (int i = 0; i < 16; i++)
                     dst[i] = buf[15 - i];
@@ -4200,12 +4198,20 @@ bool read_phloat(phloat *d) {
         #else
             if (fread(d, 1, sizeof(phloat), gfile) != sizeof(phloat))
                 return false;
+            #ifdef FP_DECNUM
+                bid_to_dpd128(&d->val, &d->val);
+            #endif
             return true;
         #endif
     }
 }
 
 bool write_phloat(phloat d) {
+    #ifdef FP_DECNUM
+        phloat d2;
+        bid_dpd_to_bid128(&d2.val, &d.val);
+        d = d2;
+    #endif
     #ifdef F42_BIG_ENDIAN
         #ifdef BCD_MATH
             char buf[16];
@@ -4249,8 +4255,6 @@ bool read_arg(arg_struct *arg) {
                 return false;
             arg->length = c & 255;
             return fread(arg->val.text, 1, arg->length, gfile) == arg->length;
-        case ARGTYPE_COMMAND:
-            return read_int(&arg->val.cmd);
         case ARGTYPE_LCLBL:
             return read_char(&arg->val.lclbl);
         case ARGTYPE_DOUBLE:
@@ -4287,8 +4291,6 @@ bool write_arg(const arg_struct *arg) {
         case ARGTYPE_IND_STR:
             return write_char((char) arg->length)
                 && fwrite(arg->val.text, 1, arg->length, gfile) == arg->length;
-        case ARGTYPE_COMMAND:
-            return write_int(arg->val.cmd);
         case ARGTYPE_LCLBL:
             return write_char(arg->val.lclbl);
         case ARGTYPE_DOUBLE:

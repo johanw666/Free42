@@ -1,3 +1,19 @@
+2026-10-30: release 3.5
+
+* It is now possible to make shifted assignments in the programmable menu and
+  in CUSTOM.
+* It is now possible to use a list for REGS, instead of a matrix. With a list
+  in REGS, the numbered registers can hold all types of data.
+* Many built-in functions can now be applied to lists, causing them to operate
+  on the elements of the list one by one. See the Free42 web site for details.
+* Implemented SORT function. It sorts lists. See the Free42 web site for
+  details.
+* PRV and PRX now handle nested lists, and matrices inside lists.
+* Better list display in the stack.
+* SHOW didn't handle lists. Fixed.
+* Implemented PARAMS function. Given a global LBL name, it returns a list
+  containing all its associated MVAR parameters.
+
 2026-10-22: release 3.4.1
 
 * PRTRACE bug fix: it could corrupt the global LBL table.

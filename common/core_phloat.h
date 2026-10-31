@@ -22,9 +22,15 @@
 #include <stddef.h>
 
 #include "free42.h"
-#ifdef BCD_MATH
+
+#if defined(FP_INTEL)
 #include "bid_conf.h"
 #include "bid_functions.h"
+#elif defined(FP_DECNUM)
+extern "C" {
+#include "decQuad.h"
+}
+extern decContext dctx;
 #endif
 
 
@@ -72,10 +78,16 @@ double decimal2double(void *data, bool pin_magnitude = false);
 
 class Phloat {
     public:
+        #ifdef FP_DECNUM
+        decQuad val;
+        Phloat(const decQuad &b) : val(b) {}
+        Phloat operator=(const decQuad &b) { val = b; return *this; }
+        #else
         BID_UINT128 val;
-
-        Phloat() {}
         Phloat(const BID_UINT128 &b) : val(b) {}
+        Phloat operator=(const BID_UINT128 &b) { val = b; return *this; }
+        #endif
+        Phloat() {}
         Phloat(const char *str);
         Phloat(int numer, int denom);
         Phloat(int8 numer, int8 denom);
@@ -84,7 +96,6 @@ class Phloat {
         Phloat(uint8 i);
         Phloat(double d);
         Phloat(const Phloat &p);
-        Phloat operator=(const BID_UINT128 &b) { val = b; return *this; }
         Phloat operator=(int i);
         Phloat operator=(int8 i);
         Phloat operator=(uint8 i);

@@ -35,9 +35,7 @@ int resolve_ind_arg(arg_struct *arg, char *buf, int *buflen) {
             vartype *regs = recall_var("REGS", 4);
             if (regs == NULL)
                 return ERR_SIZE_ERROR;
-            if (regs->type != TYPE_REALMATRIX)
-                return ERR_INVALID_TYPE;
-            else {
+            if (regs->type == TYPE_REALMATRIX) {
                 vartype_realmatrix *rm = (vartype_realmatrix *) regs;
                 int4 size = rm->rows * rm->columns;
                 int4 num = arg->val.num;
@@ -71,7 +69,16 @@ int resolve_ind_arg(arg_struct *arg, char *buf, int *buflen) {
                     arg->type = ARGTYPE_STR;
                 }
                 return ERR_NONE;
-            }
+            } else if (regs->type == TYPE_LIST) {
+                vartype_list *list = (vartype_list *) regs;
+                int4 size = list->size;
+                int4 num = arg->val.num;
+                if (num >= size)
+                    return ERR_SIZE_ERROR;
+                v = list->array->data[num];
+                goto finish_resolve;
+            } else
+                return ERR_INVALID_TYPE;
         }
         case ARGTYPE_IND_STK: {
             int idx;
@@ -464,9 +471,46 @@ int string_pos(const char *ntext, int nlen, const vartype *hs, int startpos) {
     return pos;
 }
 
-bool vartype_equals(const vartype *v1, const vartype *v2) {
-    if (v1->type != v2->type)
-        return false;
+bool vartype_equals(const vartype *v1, const vartype *v2, bool real_complex) {
+    if (v1->type != v2->type) {
+        if (!real_complex)
+            return false;
+        if (v1->type == TYPE_REAL && v2->type == TYPE_COMPLEX
+                || v1->type == TYPE_COMPLEX && v2->type == TYPE_REAL) {
+            vartype_real *r;
+            vartype_complex *c;
+            if (v1->type == TYPE_REAL) {
+                r = (vartype_real *) v1;
+                c = (vartype_complex *) v2;
+            } else {
+                r = (vartype_real *) v2;
+                c = (vartype_complex *) v1;
+            }
+            return r->x == c->re && c->im == 0;
+        } else if (v1->type == TYPE_REALMATRIX && v2->type == TYPE_COMPLEXMATRIX
+                || v1->type == TYPE_COMPLEXMATRIX && v2->type == TYPE_REALMATRIX) {
+            vartype_realmatrix *rm;
+            vartype_complexmatrix *cm;
+            if (v1->type == TYPE_REALMATRIX) {
+                rm = (vartype_realmatrix *) v1;
+                cm = (vartype_complexmatrix *) v2;
+            } else {
+                rm = (vartype_realmatrix *) v2;
+                cm = (vartype_complexmatrix *) v1;
+            }
+            if (rm->rows != cm->rows || rm->columns != cm->columns)
+                return false;
+            int4 sz = rm->rows * rm->columns;
+            for (int4 i = 0; i < sz; i++) {
+                if (rm->array->is_string[i] != 0
+                        || rm->array->data[i] != cm->array->data[2 * i]
+                        || cm->array->data[2 * i + 1] != 0)
+                    return false;
+            }
+            return true;
+        } else
+            return false;
+    }
     switch (v1->type) {
         case TYPE_REAL: {
             const vartype_real *x = (const vartype_real *) v1;
@@ -632,9 +676,13 @@ int anum(const char *text, int len, phloat *res) {
         buf[exp_pos] = '-';
     buf[buf_pos++] = 0;
     phloat p;
-#ifdef BCD_MATH
+#if defined(FP_INTEL)
     BID_UINT128 b;
     bid128_from_string(&b, buf);
+    p = b;
+#elif defined(FP_DECNUM)
+    decQuad b;
+    decQuadFromString(&b, buf, &dctx);
     p = b;
 #else
     sscanf(buf, "%le", &p);
@@ -2034,7 +2082,7 @@ int ip2revstring(phloat d, char *buf, int buflen) {
     return bufpos;
 }
 
-int matedit_get(vartype **res) {
+int matedit_get(vartype **res, bool dsntngl) {
     if (matedit_mode == 0)
         return ERR_NONEXISTENT;
 
@@ -2060,6 +2108,10 @@ int matedit_get(vartype **res) {
             leave_matrix_editor();
         return err;
     }
+    if (dsntngl && !disentangle(m)) {
+        err = ERR_INSUFFICIENT_MEMORY;
+        goto bad_matrix;
+    }
 
     for (int i = 0; i < matedit_stack_depth; i++) {
         if (m->type != TYPE_LIST) {
@@ -2072,6 +2124,10 @@ int matedit_get(vartype **res) {
             goto bad_matrix;
         }
         m = list->array->data[matedit_stack[i]];
+        if (dsntngl && !disentangle(m)) {
+            err = ERR_INSUFFICIENT_MEMORY;
+            goto bad_matrix;
+        }
     }
 
     if (m->type != TYPE_REALMATRIX && m->type != TYPE_COMPLEXMATRIX && m->type != TYPE_LIST) {

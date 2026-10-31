@@ -23,11 +23,11 @@ build_arch () {
     echo "$ARCH_CC"' "$@"' > bin/gcc
     echo "$ARCH_AR"' "$@"' > bin/ar
     chmod +x bin/*
-    if [ -f ../../../../../inteldecimal/IntelRDFPMathLib20U1.tar.gz ]
+    if [ -f ../../../../../decimal/IntelRDFPMathLib20U1.tar.gz ]
     then
-        tar xfz ../../../../../inteldecimal/IntelRDFPMathLib20U1.tar.gz
+        tar xfz ../../../../../decimal/IntelRDFPMathLib20U1.tar.gz
     else
-        tar xfz $HOME/free42/inteldecimal/IntelRDFPMathLib20U1.tar.gz
+        tar xfz $HOME/free42/decimal/IntelRDFPMathLib20U1.tar.gz
     fi
 
     cd IntelRDFPMathLib20U1
