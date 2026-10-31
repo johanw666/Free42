@@ -471,9 +471,46 @@ int string_pos(const char *ntext, int nlen, const vartype *hs, int startpos) {
     return pos;
 }
 
-bool vartype_equals(const vartype *v1, const vartype *v2) {
-    if (v1->type != v2->type)
-        return false;
+bool vartype_equals(const vartype *v1, const vartype *v2, bool real_complex) {
+    if (v1->type != v2->type) {
+        if (!real_complex)
+            return false;
+        if (v1->type == TYPE_REAL && v2->type == TYPE_COMPLEX
+                || v1->type == TYPE_COMPLEX && v2->type == TYPE_REAL) {
+            vartype_real *r;
+            vartype_complex *c;
+            if (v1->type == TYPE_REAL) {
+                r = (vartype_real *) v1;
+                c = (vartype_complex *) v2;
+            } else {
+                r = (vartype_real *) v2;
+                c = (vartype_complex *) v1;
+            }
+            return r->x == c->re && c->im == 0;
+        } else if (v1->type == TYPE_REALMATRIX && v2->type == TYPE_COMPLEXMATRIX
+                || v1->type == TYPE_COMPLEXMATRIX && v2->type == TYPE_REALMATRIX) {
+            vartype_realmatrix *rm;
+            vartype_complexmatrix *cm;
+            if (v1->type == TYPE_REALMATRIX) {
+                rm = (vartype_realmatrix *) v1;
+                cm = (vartype_complexmatrix *) v2;
+            } else {
+                rm = (vartype_realmatrix *) v2;
+                cm = (vartype_complexmatrix *) v1;
+            }
+            if (rm->rows != cm->rows || rm->columns != cm->columns)
+                return false;
+            int4 sz = rm->rows * rm->columns;
+            for (int4 i = 0; i < sz; i++) {
+                if (rm->array->is_string[i] != 0
+                        || rm->array->data[i] != cm->array->data[2 * i]
+                        || cm->array->data[2 * i + 1] != 0)
+                    return false;
+            }
+            return true;
+        } else
+            return false;
+    }
     switch (v1->type) {
         case TYPE_REAL: {
             const vartype_real *x = (const vartype_real *) v1;

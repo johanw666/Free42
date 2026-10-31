@@ -1008,6 +1008,109 @@ int docmd_pcomplx(arg_struct *arg) {
     return err;
 }
 
+static int re_im_helper(bool re) {
+    vartype *res;
+    vartype *x = stack[sp];
+    switch (x->type) {
+        case TYPE_REAL: {
+            vartype_real *r = (vartype_real *) x;
+            res = new_real(re ? r->x : 0);
+            break;
+        }
+        case TYPE_COMPLEX: {
+            vartype_complex *c = (vartype_complex *) x;
+            res = new_real(re ? c->re : c->im);
+            break;
+        }
+        case TYPE_REALMATRIX: {
+            vartype_realmatrix *rm = (vartype_realmatrix *) x;
+            int4 sz = rm->rows * rm->columns;
+            for (int4 i = 0; i < sz; i++)
+                if (rm->array->is_string[i] != 0)
+                    return ERR_ALPHA_DATA_IS_INVALID;
+            if (re)
+                res = dup_vartype(x);
+            else
+                res = new_realmatrix(rm->rows, rm->columns);
+            break;
+        }
+        case TYPE_COMPLEXMATRIX: {
+            vartype_complexmatrix *cm = (vartype_complexmatrix *) x;
+            res = new_realmatrix(cm->rows, cm->columns);
+            if (res != NULL) {
+                int4 sz = cm->rows * cm->columns;
+                vartype_realmatrix *rm = (vartype_realmatrix *) res;
+                for (int4 i = 0; i < sz; i++)
+                    rm->array->data[i] = cm->array->data[2 * i + !re];
+            }
+            break;
+        }
+        default:
+            return ERR_INTERNAL_ERROR;
+    }
+    if (res == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(res);
+    return ERR_NONE;
+}
+
+int docmd_re(arg_struct *arg) {
+    return re_im_helper(true);
+}
+
+int docmd_im(arg_struct *arg) {
+    return re_im_helper(false);
+}
+
+int docmd_conj(arg_struct *arg) {
+    vartype *x = stack[sp];
+    vartype *res;
+    switch (x->type) {
+        case TYPE_REAL: {
+            res = dup_vartype(x);
+            break;
+        }
+        case TYPE_REALMATRIX: {
+            if (contains_strings((vartype_realmatrix *) x))
+                return ERR_ALPHA_DATA_IS_INVALID;
+            res = dup_vartype(x);
+            break;
+        }
+        case TYPE_COMPLEX: {
+            vartype_complex *c = (vartype_complex *) x;
+            res = new_complex(c->re, -c->im);
+            break;
+        }
+        case TYPE_COMPLEXMATRIX: {
+            vartype_complexmatrix *cm = (vartype_complexmatrix *) x;
+            int4 sz = cm->rows * cm->columns * 2;
+            bool is_real = true;
+            for (int4 i = 1; i < sz; i += 2)
+                if (cm->array->data[i] != 0) {
+                    is_real = false;
+                    break;
+                }
+            res = dup_vartype(x);
+            if (!is_real) {
+                if (!disentangle(res)) {
+                    free_vartype(res);
+                    res = NULL;
+                } else {
+                    cm = (vartype_complexmatrix *) res;
+                    for (int4 i = 1; i < sz; i += 2)
+                        cm->array->data[i] = -cm->array->data[i];
+                }
+            }
+        }
+        default:
+            return ERR_INTERNAL_ERROR;
+    }
+    if (res == NULL)
+        return ERR_INSUFFICIENT_MEMORY;
+    unary_result(res);
+    return ERR_NONE;
+}
+
 int docmd_caps(arg_struct *arg) {
     mode_menu_caps = true;
     return ERR_NONE;
@@ -1628,14 +1731,14 @@ int docmd_x_eq_nn(arg_struct *arg) {
     temp_vartype tv(arg, false);
     if (tv.err != ERR_NONE)
         return tv.err;
-    return vartype_equals(stack[sp], tv.v) ? ERR_YES : ERR_NO;
+    return vartype_equals(stack[sp], tv.v, true) ? ERR_YES : ERR_NO;
 }
 
 int docmd_x_ne_nn(arg_struct *arg) {
     temp_vartype tv(arg, false);
     if (tv.err != ERR_NONE)
         return tv.err;
-    return vartype_equals(stack[sp], tv.v) ? ERR_NO : ERR_YES;
+    return vartype_equals(stack[sp], tv.v, true) ? ERR_NO : ERR_YES;
 }
 
 int docmd_x_lt_nn(arg_struct *arg) {
@@ -1666,18 +1769,59 @@ int docmd_x_ge_nn(arg_struct *arg) {
     return ((vartype_real *) stack[sp])->x >= ((vartype_real *) tv.v)->x ? ERR_YES : ERR_NO;
 }
 
+static bool compare_zero_helper(vartype *v) {
+    switch (v->type) {
+        case TYPE_REAL: {
+            vartype_real *r = (vartype_real *) v;
+            return r->x == 0;
+        }
+        case TYPE_COMPLEX: {
+            vartype_complex *c = (vartype_complex *) v;
+            return c->re == 0 && c->im == 0;
+        }
+        case TYPE_REALMATRIX: {
+            vartype_realmatrix *rm = (vartype_realmatrix *) v;
+            int4 sz = rm->rows * rm->columns;
+            for (int4 i = 0; i < sz; i++) {
+                if (rm->array->is_string[i] != 0)
+                    return false;
+                if (rm->array->data[i] != 0)
+                    return false;
+            }
+            return true;
+        }
+        case TYPE_COMPLEXMATRIX: {
+            vartype_complexmatrix *cm = (vartype_complexmatrix *) v;
+            int4 sz = cm->rows * cm->columns * 2;
+            for (int4 i = 0; i < sz; i++)
+                if (cm->array->data[i] != 0)
+                    return false;
+            return true;
+        }
+        case TYPE_LIST: {
+            vartype_list *list = (vartype_list *) v;
+            for (int4 i = 0; i < list->size; i++)
+                if (!compare_zero_helper(list->array->data[i]))
+                    return false;
+            return true;
+        }
+        default:
+            return false;
+    }
+}
+
 int docmd_0_eq_nn(arg_struct *arg) {
-    temp_vartype tv(arg, true);
+    temp_vartype tv(arg, false);
     if (tv.err != ERR_NONE)
         return tv.err;
-    return ((vartype_real *) tv.v)->x == 0 ? ERR_YES : ERR_NO;
+    return compare_zero_helper(tv.v) ? ERR_YES : ERR_NO;
 }
 
 int docmd_0_ne_nn(arg_struct *arg) {
-    temp_vartype tv(arg, true);
+    temp_vartype tv(arg, false);
     if (tv.err != ERR_NONE)
         return tv.err;
-    return ((vartype_real *) tv.v)->x != 0 ? ERR_YES : ERR_NO;
+    return compare_zero_helper(tv.v) ? ERR_NO : ERR_YES;
 }
 
 int docmd_0_lt_nn(arg_struct *arg) {
