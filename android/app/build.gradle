@@ -13,8 +13,8 @@ android {
     defaultConfig {
         minSdkVersion 19
         targetSdkVersion 36
-        versionCode 215
-        versionName "3.5"
+        versionCode 216
+        versionName "3.5.1"
         ndk {
             debugSymbolLevel = 'FULL'
         }
