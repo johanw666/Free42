@@ -3371,6 +3371,7 @@ static int parse_scalar(const char *buf, int len, bool strict, phloat *re, phloa
     int i, s1, e1, s2, e2;
     bool polar = false;
     bool empty_im = false;
+    bool negative_im = false;
     bool no_re = false;
 
     /* Try matching " %g <angle> %g " */
@@ -3420,7 +3421,7 @@ static int parse_scalar(const char *buf, int len, bool strict, phloat *re, phloa
     while (i < len && buf[i] == ' ')
         i++;
     if (i < len)
-        goto attempt_3;
+        goto attempt_2a;
     if (e1 == s1) {
         *re = 0;
         *im = 1;
@@ -3434,6 +3435,15 @@ static int parse_scalar(const char *buf, int len, bool strict, phloat *re, phloa
     /* Handle x+i or x-i (imaginary part consisting of just a '+' or '-' */
     if (e2 == s2 + 1 && (buf[s2] == '+' || buf[s2] == '-'))
         empty_im = true;
+    goto finish_complex;
+
+    attempt_2a:
+    /* Try matching x+iy or x-iy */
+    e2 = scan_number(buf, len, i, format);
+    if (e2 == i)
+        goto attempt_3;
+    negative_im = buf[s2] == '-';
+    s2 = i;
     goto finish_complex;
 
     /* Try matching " ( %g , %g ) " */
@@ -3490,6 +3500,8 @@ static int parse_scalar(const char *buf, int len, bool strict, phloat *re, phloa
         *im = buf[s2] == '+' ? 1 : -1;
     else if (!parse_phloat(buf + s2, e2 - s2, im, format))
         goto attempt_4;
+    if (negative_im)
+        *im = -*im;
     if (polar)
         generic_p2r(*re, *im, re, im);
     return TYPE_COMPLEX;
