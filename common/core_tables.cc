@@ -1000,6 +1000,7 @@ struct listify_data {
     arg_struct arg;
     int4 size, i;
     int (*saved_interruptible)(bool);
+    listify_data *saved_listifier;
 
     bool init(int cmd, vartype *a, vartype *b) {
         this->cmd = cmd;
@@ -1016,6 +1017,7 @@ struct listify_data {
         if (r == NULL)
             return false;
         save_stack(b == NULL ? 1 : 2);
+        saved_listifier = listifier;
         return true;
     }
 
@@ -1111,8 +1113,8 @@ struct listify_data {
             free_vartype((vartype *) r);
         bool unary = b == NULL;
         restore_stack();
-        free(listifier); // i.e. free(this) !
-        listifier = NULL;
+        listifier = saved_listifier;
+        free(this);
         if (err == ERR_NONE)
             if (unary)
                 unary_result(res);
@@ -1145,14 +1147,14 @@ static int listify(int cmd, vartype *a, vartype *b) {
             return ERR_DIMENSION_ERROR;
     }
 
-    listifier = (listify_data *) malloc(sizeof(listify_data));
-    if (listifier == NULL)
+    listify_data *new_listifier = (listify_data *) malloc(sizeof(listify_data));
+    if (new_listifier == NULL)
         return ERR_INSUFFICIENT_MEMORY;
-    if (!listifier->init(cmd, a, b)) {
-        free(listifier);
-        listifier = NULL;
+    if (!new_listifier->init(cmd, a, b)) {
+        free(new_listifier);
         return ERR_INSUFFICIENT_MEMORY;
     }
+    listifier = new_listifier;
 
     int err = ERR_NONE;
     while (listifier->i < listifier->size) {
