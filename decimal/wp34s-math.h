@@ -76,8 +76,8 @@ extern unsigned long long int dn_to_ull(const decNumber *, int *);
 #endif // ThO
 extern void decNumberPI(decNumber *pi);
 extern void decNumberPIon2(decNumber *pion2);
-#if 0 // ThO
 extern int is_int(const decNumber *);
+#if 0 // ThO
 
 extern decNumber *decNumberMantissa(decNumber *r, const decNumber *a);
 extern decNumber *decNumberExponent(decNumber *r, const decNumber *a);
@@ -223,9 +223,7 @@ extern decNumber *set_inf(decNumber *);
 extern decNumber *set_neginf(decNumber *);
 
 extern decNumber *dn_inc(decNumber *);
-#if 0 // ThO
 extern decNumber *dn_dec(decNumber *);
-#endif // ThO
 extern decNumber *dn_p1(decNumber *, const decNumber *);
 extern decNumber *dn_m1(decNumber *, const decNumber *);
 extern decNumber *dn_1m(decNumber *, const decNumber *);
@@ -237,8 +235,8 @@ extern decNumber *dn_div2(decNumber *, const decNumber *);
 #if 0 // ThO
 extern decNumber *dn_mul100(decNumber *, const decNumber *);
 extern decNumber *dn_mul1000(decNumber *, const decNumber *);
-extern decNumber *dn_mulPI(decNumber *, const decNumber *);
 #endif // ThO
+extern decNumber *dn_mulPI(decNumber *, const decNumber *);
 extern decNumber *dn_mulpow10(decNumber *, const decNumber *, int);
 #if 0 // ThO
 

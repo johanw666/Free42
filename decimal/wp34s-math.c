@@ -61,6 +61,7 @@ static decNumber const_6;
 static decNumber const_7;
 static decNumber const_8;
 static decNumber const_9;
+static decNumber const_21;
 static decNumber const_PI;
 static decNumber const_2PI;
 static decNumber const_PIon2;
@@ -68,6 +69,7 @@ static decNumber const_root2on2;
 static decNumber const_ln10;
 static decNumber const_1e_37;
 static decNumber const_1e_32;
+static decNumber const_1e_24;
 static decNumber const_0_1;
 static decNumber const_0_1;
 static decNumber const_0_5;
@@ -83,6 +85,31 @@ static decNumber const_400;
 static decNumber const_PIon180;
 static decNumber const_PIon200;
 static decNumber const_0_9;
+
+static decNumber const_egamma;
+static decNumber const_gammaR;
+static decNumber const_gammaC00;
+static decNumber const_gammaC01;
+static decNumber const_gammaC02;
+static decNumber const_gammaC03;
+static decNumber const_gammaC04;
+static decNumber const_gammaC05;
+static decNumber const_gammaC06;
+static decNumber const_gammaC07;
+static decNumber const_gammaC08;
+static decNumber const_gammaC09;
+static decNumber const_gammaC10;
+static decNumber const_gammaC11;
+static decNumber const_gammaC12;
+static decNumber const_gammaC13;
+static decNumber const_gammaC14;
+static decNumber const_gammaC15;
+static decNumber const_gammaC16;
+static decNumber const_gammaC17;
+static decNumber const_gammaC18;
+static decNumber const_gammaC19;
+static decNumber const_gammaC20;
+static decNumber const_gammaC21;
 
 void wp34s_init() {
     decContextDefault(&Ctx, DEC_INIT_BASE);
@@ -106,6 +133,7 @@ void wp34s_init() {
     decNumberFromInt32(&const_7, 7);
     decNumberFromInt32(&const_8, 8);
     decNumberFromInt32(&const_9, 9);
+    decNumberFromInt32(&const_21, 21);
     decNumberFromString(&const_PI, "3.1415926535897932384626433832795028841971693993751058209749445923", &Ctx);
     decNumberFromString(&const_2PI, "6.2831853071795864769252867665590057683943387987502116419498891846", &Ctx);
     decNumberFromString(&const_PIon2, "1.5707963267948966192313216916397514420985846996875529104874722961", &Ctx);
@@ -114,6 +142,7 @@ void wp34s_init() {
     decNumberFromString(&const_ln10, "2.3025850929940456840179914546843642076011014886287729760333279009", &Ctx);
     decNumberFromString(&const_1e_37, "1e-37", &Ctx);
     decNumberFromString(&const_1e_32, "1e-32", &Ctx);
+    decNumberFromString(&const_1e_24, "1e-24", &Ctx);
     decNumberFromString(&const_0_1, "0.1", &Ctx);
     decNumberFromString(&const_0_5, "0.5", &Ctx);
     decNumberFromString(&const_0_75, "0.75", &Ctx);
@@ -128,6 +157,30 @@ void wp34s_init() {
     decNumberFromString(&const_PIon180, "0.0174532925199432957692369076848861271344287188854172545609719144", &Ctx);
     decNumberFromString(&const_PIon200, "0.0157079632679489661923132169163975144209858469968755291048747229", &Ctx);
     decNumberFromString(&const_0_9, "0.9", &Ctx);
+    decNumberFromString(&const_egamma, "0.5772156649015328606065120900824024310421593359399235988", &Ctx);
+    decNumberFromString(&const_gammaR, "23.118910", &Ctx);
+    decNumberFromString(&const_gammaC00, "2.5066282746310005024157652848102462181924349228522", &Ctx);
+    decNumberFromString(&const_gammaC01, "18989014209.359348921215164214894448711686095466265", &Ctx);
+    decNumberFromString(&const_gammaC02, "-144156200090.5355882360184024174589398958958098464", &Ctx);
+    decNumberFromString(&const_gammaC03, "496035454257.38281370045894537511022614317130604617", &Ctx);
+    decNumberFromString(&const_gammaC04, "-1023780406198.473219243634817725018768614756637869", &Ctx);
+    decNumberFromString(&const_gammaC05, "1413597258976.513273633654064270590550203826819201", &Ctx);
+    decNumberFromString(&const_gammaC06, "-1379067427882.9183979359216084734041061844225060064", &Ctx);
+    decNumberFromString(&const_gammaC07, "978820437063.87767271855507604210992850805734680106", &Ctx);
+    decNumberFromString(&const_gammaC08, "-512899484092.42962331637341597762729862866182241859", &Ctx);
+    decNumberFromString(&const_gammaC09, "199321489453.70740208055366897907579104334149619727", &Ctx);
+    decNumberFromString(&const_gammaC10, "-57244773205.028519346365854633088208532750313858846", &Ctx);
+    decNumberFromString(&const_gammaC11, "12016558063.547581575347021769705235401261600637635", &Ctx);
+    decNumberFromString(&const_gammaC12, "-1809010182.4775432310136016527059786748432390309824", &Ctx);
+    decNumberFromString(&const_gammaC13, "189854754.19838668942471060061968602268245845778493", &Ctx);
+    decNumberFromString(&const_gammaC14, "-13342632.512774849543094834160342947898371410759393", &Ctx);
+    decNumberFromString(&const_gammaC15, "593343.93033412917147656845656655196428754313318006", &Ctx);
+    decNumberFromString(&const_gammaC16, "-15403.272800249452392387706711012361262554747388558", &Ctx);
+    decNumberFromString(&const_gammaC17, "207.44899440283941314233039147731732032900399915969", &Ctx);
+    decNumberFromString(&const_gammaC18, "-1.2096284552733173049067753842722246474652246301493", &Ctx);
+    decNumberFromString(&const_gammaC19, ".0022696111746121940912427376548970713227810419455318", &Ctx);
+    decNumberFromString(&const_gammaC20, "-.00000079888858662627061894258490790700823308816322084001", &Ctx);
+    decNumberFromString(&const_gammaC21, ".000000000016573444251958462210600022758402017645596303687465", &Ctx);
 }
 
 static int get_trig_mode() {
@@ -395,7 +448,6 @@ void decNumberPI(decNumber *pi) {
 void decNumberPIon2(decNumber *pion2) {
 	decNumberCopy(pion2, &const_PIon2);
 }
-#if 0 // ThO
 
 /* Check if a number is an integer.
  */
@@ -418,6 +470,7 @@ int is_int(const decNumber *x) {
 	return 1;
 }
 
+#if 0 // ThO
 /* Utility routine that checks if the X register is even or odd or neither.
  * Returns positive if even, zero if odd, -1 for special, -2 for fractional.
  */
@@ -439,13 +492,11 @@ int is_even(const decNumber *x) {
 decNumber *dn_inc(decNumber *x) {
 	return dn_add(x, x, &const_1);
 }
-#if 0 // ThO
 
 decNumber *dn_dec(decNumber *x) {
 	return dn_subtract(x, x, &const_1);
 }
 
-#endif // ThO
 decNumber *dn_p1(decNumber *r, const decNumber *x) {
 	return dn_add(r, x, &const_1);
 }
@@ -482,12 +533,12 @@ decNumber *dn_div2(decNumber *r, const decNumber *x) {
 decNumber *dn_mul100(decNumber *r, const decNumber *x) {
 	return dn_mulpow10(r, x, 2);
 }
+#endif // ThO
 
 decNumber *dn_mulPI(decNumber *r, const decNumber *x) {
 	return dn_multiply(r, x, &const_PI);
 }
 
-#endif // ThO
 decNumber *dn_mulpow10(decNumber *r, const decNumber *x, int p) {
 	decNumberCopy(r, x);
 	r->exponent += p;

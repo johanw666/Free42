@@ -1334,10 +1334,29 @@ void p_sincos(Phloat phi, Phloat *s, Phloat *c) {
 }
 
 Phloat hypot(Phloat x, Phloat y) {
-    // TODO: The wp34s code doesn't have an explicit hypot(), so we
-    // make do like this. It should at least be improved so it doesn't
-    // go out of range in the temporaties, though.
-    return sqrt(x * x + y * y);
+    if (x < 0)
+        x = -x;
+    if (y < 0)
+        y = -y;
+    if (x < y) {
+        Phloat t = x;
+        x = y;
+        y = t;
+    }
+    if (y == 0)
+        return x;
+    int ex = decQuadGetExponent(&x.val);
+    int ey = decQuadGetExponent(&y.val);
+    if (ex - ey > 39)
+        return x;
+    Phloat scale;
+    decQuadFromInt32(&scale.val, -ex);
+    decQuadScaleB(&x.val, &x.val, &scale.val, &dctx);
+    decQuadScaleB(&y.val, &y.val, &scale.val, &dctx);
+    Phloat res = sqrt(x * x + y * y);
+    decQuadFromInt32(&scale.val, ex);
+    decQuadScaleB(&res.val, &res.val, &scale.val, &dctx);
+    return res;
 }
 
 Phloat atan2(Phloat x, Phloat y) {
@@ -1462,8 +1481,13 @@ Phloat expm1(Phloat p) {
 }
 
 Phloat tgamma(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberGamma(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat sqrt(Phloat p) {
