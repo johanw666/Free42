@@ -204,16 +204,14 @@ clean: FORCE
 		*.o *.d *.i *.ii *.s symlinks core.* \
 		raw2txt txt2raw rawconv-linux.tgz
 
-cleaner: FORCE
+cleaner: clean
 	rm -f `find . -type l` \
-		free42bin* free42dec* dec* intel-conv.* \
-		skin2cc skin2cc.exe skins.cc \
-		keymap2cc keymap2cc.exe keymap.cc \
 		readtest_lines.cc \
 		gcc111libbid.a \
-		*.o *.d *.i *.ii *.s symlinks core.* \
-		raw2txt txt2raw rawconv-linux.tgz
 	rm -rf IntelRDFPMathLib20U1
+
+cleanerer: cleaner
+	rm -f free42bin* free42dec*
 
 FORCE:
 
