@@ -89,8 +89,8 @@ EXE = free42bin
 else
 ifdef FP_DECNUM
 CXXFLAGS += -DFP_DECNUM
-DECNUM_SRCS = decQuad.c decimal128.c decNumber.c decContext.c decimal64.c
-OBJS += decQuad.o decimal128.o decNumber.o decContext.o decimal64.o
+DECNUM_SRCS = decQuad.c decimal128.c decNumber.c decContext.c decimal64.c wp34s-math.c
+OBJS += decQuad.o decimal128.o decNumber.o decContext.o decimal64.o wp34s-math.o
 INTELCONV_SRCS = intel-conv.cc
 OBJS += intel-conv.o
 EXE = free42dec-decnum
@@ -161,6 +161,8 @@ $(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf keymap.txt: symlinks $(DECNUM_SRCS)
 
 $(DECNUM_SRCS):
 	tar xvfz ../decimal/decNumber.tgz
+	ln -s ../decimal/wp34s-math.c
+	ln -s ../decimal/wp34s-math.h
 
 $(INTELCONV_SRCS):
 	tar xvfz ../decimal/intel-conv.tgz
