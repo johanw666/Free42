@@ -536,6 +536,7 @@ const command_spec cmd_array[] =
     { /* RE */          docmd_re,          "RE",                  0x00, 0x00, 0xa7, 0x7e,  2, ARG_NONE,   1, 1, 0x0f },
     { /* IM */          docmd_im,          "IM",                  0x00, 0x00, 0xa7, 0x7f,  2, ARG_NONE,   1, 1, 0x0f },
     { /* CONJ */        docmd_conj,        "CONJ",                0x00, 0x00, 0xa6, 0xa4,  4, ARG_NONE,   1, 1, 0x0f },
+    { /* ARG */         docmd_arg,         "ARG",                 0x00, 0x00, 0xa6, 0xa5,  3, ARG_NONE,   1, 1, 0x0f },
     { /* CAPS */        docmd_caps,        "CAPS",                0x42, 0x00, 0x00, 0x00,  4, ARG_NONE,   0, 0, NA_T },
     { /* MIXED */       docmd_mixed,       "Mixed",               0x42, 0x00, 0x00, 0x00,  5, ARG_NONE,   0, 0, NA_T },
     { /* STATIC */      docmd_static,      "STAT\311\303",        0x42, 0x00, 0x00, 0x00,  6, ARG_NONE,   0, 0, NA_T },
