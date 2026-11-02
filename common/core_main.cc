@@ -4040,9 +4040,10 @@ static void paste_programs(const char *buf) {
                             ind = true;
                             if (!nexttoken(hpbuf, tok_end, hpend, &tok_start, &tok_end))
                                 goto line_done;
+                            if (cmd == CMD_LBL)
+                                goto line_done;
+                            goto num_or_string;
                         }
-                        if (cmd == CMD_LBL && ind)
-                            goto line_done;
                         if (tok_end - tok_start == 1) {
                             char c = hpbuf[tok_start];
                             if (c >= 'A' && c <= 'J' || c >= 'a' && c <= 'e') {
