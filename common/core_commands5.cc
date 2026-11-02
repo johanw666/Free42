@@ -1580,6 +1580,38 @@ static bool result2bits(void *data, int size) {
     }
 }
 
+/*
+ * BASE->FLOAT conversion functions
+ *
+ * N->BS, N->BD, N->BQ, BS->N, BD->N, BQ->N: Convert from our internal format
+ * to single, double, and quadruple precision binary, and vice versa;
+ * N->DS, N->DD, N->DQ, DS->N, DD->N, DQ->N: Convert from our internal format
+ * to single, double, and quadruple precision BID decimal, and vice versa.
+ *
+ * These functions add about 1.2 megabytes to the size of the stripped x86_64
+ * Linux executable. In the releases I distribute, for Android, iOS, Windows,
+ * MacOS, and Linux, that kind of space usage is basically irrelevant, but
+ * when you're running out of space in a storage-constrained handheld device,
+ * these functions are a prime candidate for removal.
+ *
+ * Conversely, given that the decNumber library uses DPD encoding, and not BID
+ * like the Intel library, it might be an idea to add another set of
+ * conversions, to support that format as well. I don't think it would add a
+ * lot of bulk: it would require adding 32-bit, 64-bit and 128-bit BID/DPD
+ * conversions, but I don't think those are very large at all. The FP_DECNUM
+ * build already contains the 128-bit BID/DPD conversions, because it needs
+ * them in order to be able to read and write BID-encoded decimal state files,
+ * and they consist of two functions, and two tables that are about 30kB in
+ * combined size.
+ *
+ * I'm guessing none of this is urgent, since it looks like a decNumber-based
+ * FP_DECNUM build, even of Plus42, would fit comfortably in the original
+ * DM42. I could add an option to remove some of these functions at compile
+ * time, in order to help SwissMicros with their Intel-based DM42 build, but
+ * since they are already doing that on their own, that doesn't seem very
+ * pressing, either.
+ */
+
 #if defined(FP_INTEL)
 
 int docmd_n_to_bs(arg_struct *arg) {
