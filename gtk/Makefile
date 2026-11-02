@@ -63,6 +63,10 @@ OBJS = shell_main.o shell_skin.o shell_state.o skins.o keymap.o \
 	shell_loadimage.o \
 	$(CORE_OBJS)
 
+ifdef NO_BASE_FLOAT
+CXXFLAGS += -DNO_BASE_FLOAT
+endif
+
 ifndef FP_INTEL
 ifndef FP_DECNUM
 ifndef FP_BINARY_INTEL

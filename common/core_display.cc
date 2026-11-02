@@ -1683,11 +1683,20 @@ static const int ext_base_cat[] = {
     CMD_SB,      CMD_CB,      CMD_B_T,     CMD_NUM_B,   CMD_MASKL,   CMD_MASKR,
     CMD_SC,      CMD_CC,      CMD_C_T,     CMD_NULL,    CMD_NULL,    CMD_NULL,
     CMD_SLN,     CMD_SRN,     CMD_ASRN,    CMD_RJ,      CMD_NULL,    CMD_NULL,
+#ifndef NO_BASE_FLOAT
     CMD_N_TO_BS, CMD_BS_TO_N, CMD_N_TO_BD, CMD_BD_TO_N, CMD_N_TO_BQ, CMD_BQ_TO_N,
     CMD_N_TO_DS, CMD_DS_TO_N, CMD_N_TO_DD, CMD_DD_TO_N, CMD_N_TO_DQ, CMD_DQ_TO_N,
+    CMD_N_TO_PS, CMD_PS_TO_N, CMD_N_TO_PD, CMD_PD_TO_N, CMD_N_TO_PQ, CMD_PQ_TO_N,
+#endif
     CMD_BRESET,  CMD_BSIGNED, CMD_BWRAP,   CMD_WSIZE,   CMD_WSIZE_T, CMD_A_THRU_F_2,
     CMD_DECINT,  CMD_NULL,    CMD_HEXSEP,  CMD_DECSEP,  CMD_OCTSEP,  CMD_BINSEP
 };
+
+#ifndef NO_BASE_FLOAT
+#define BASE_FLOAT_ROWS 10
+#else       
+#define BASE_FLOAT_ROWS 7
+#endif      
 
 static const int ext_prgm_cat[] = {
     CMD_FUNC,    CMD_RTNYES,  CMD_RTNNO,    CMD_RTNERR,  CMD_ERRMSG,  CMD_ERRNO,
@@ -1839,7 +1848,7 @@ static void draw_catalog() {
             case CATSECT_FCN: subcat = fcn_cat; subcat_rows = 43; break;
             case CATSECT_EXT_TIME: subcat = ext_time_cat; subcat_rows = 3; break;
             case CATSECT_EXT_XFCN: subcat = ext_xfcn_cat; subcat_rows = 1; break;
-            case CATSECT_EXT_BASE: subcat = ext_base_cat; subcat_rows = 9; break;
+            case CATSECT_EXT_BASE: subcat = ext_base_cat; subcat_rows = BASE_FLOAT_ROWS; break;
             case CATSECT_EXT_PRGM: subcat = ext_prgm_cat; subcat_rows = 5; break;
             case CATSECT_EXT_STR: subcat = ext_str_cat; subcat_rows = 4; break;
             case CATSECT_EXT_STK: subcat = ext_stk_cat; subcat_rows = 3; break;

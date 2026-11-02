@@ -567,7 +567,11 @@ const menu_spec menus[] = {
                       { { 0x1000 + CMD_SC,  0, ""      },
                         { 0x1000 + CMD_CC,  0, ""      },
                         { 0x1000 + CMD_C_T, 0, ""      },
+#ifdef NO_BASE_FLOAT
+                        { 0x1000 + CMD_NULL, 0, ""     },
+#else
                         { MENU_BASE_FLOAT1, 5, "FLOAT" },
+#endif
                         { MENU_BASE_MODES,  5, "MODES" },
                         { MENU_BASE_DISP,   4, "DISP"  } } },
     { /* MENU_BASE_A_THRU_F */ MENU_BASE1, MENU_NONE, MENU_NONE,
@@ -584,20 +588,27 @@ const menu_spec menus[] = {
                         { 0x1000 + CMD_NOT,   0, "" },
                         { 0x1000 + CMD_BIT_T, 0, "" },
                         { 0x1000 + CMD_ROTXY, 0, "" } } },
-    { /* MENU_BASE_FLOAT1 */ MENU_BASE5, MENU_BASE_FLOAT2, MENU_BASE_FLOAT2,
+    { /* MENU_BASE_FLOAT1 */ MENU_BASE5, MENU_BASE_FLOAT2, MENU_BASE_FLOAT3,
                       { { 0x1000 + CMD_N_TO_BS, 0, "" },
                         { 0x1000 + CMD_BS_TO_N, 0, "" },
                         { 0x1000 + CMD_N_TO_BD, 0, "" },
                         { 0x1000 + CMD_BD_TO_N, 0, "" },
                         { 0x1000 + CMD_N_TO_BQ, 0, "" },
                         { 0x1000 + CMD_BQ_TO_N, 0, "" } } },
-    { /* MENU_BASE_FLOAT2 */ MENU_BASE5, MENU_BASE_FLOAT1, MENU_BASE_FLOAT1,
+    { /* MENU_BASE_FLOAT2 */ MENU_BASE5, MENU_BASE_FLOAT3, MENU_BASE_FLOAT1,
                       { { 0x1000 + CMD_N_TO_DS, 0, "" },
                         { 0x1000 + CMD_DS_TO_N, 0, "" },
                         { 0x1000 + CMD_N_TO_DD, 0, "" },
                         { 0x1000 + CMD_DD_TO_N, 0, "" },
                         { 0x1000 + CMD_N_TO_DQ, 0, "" },
                         { 0x1000 + CMD_DQ_TO_N, 0, "" } } },
+    { /* MENU_BASE_FLOAT3 */ MENU_BASE5, MENU_BASE_FLOAT1, MENU_BASE_FLOAT2,
+                      { { 0x1000 + CMD_N_TO_PS, 0, "" },
+                        { 0x1000 + CMD_PS_TO_N, 0, "" },
+                        { 0x1000 + CMD_N_TO_PD, 0, "" },
+                        { 0x1000 + CMD_PD_TO_N, 0, "" },
+                        { 0x1000 + CMD_N_TO_PQ, 0, "" },
+                        { 0x1000 + CMD_PQ_TO_N, 0, "" } } },
     { /* MENU_BASE_MODES */ MENU_BASE5, MENU_NONE, MENU_NONE,
                       { { 0x1000 + CMD_WSIZE,   0, "" },
                         { 0x1000 + CMD_WSIZE_T, 0, "" },
@@ -837,8 +848,9 @@ bool no_keystrokes_yet;
  * Version 55: 3.4    Error trapping
  * Version 56: 3.4    Error trapping: stack trace
  * Version 57: 3.5    Shifted CUSTOM & prog menu assignments
+ * Version 58: 3.5.2  Added third row to BASE->FLOAT menu
  */
-#define FREE42_VERSION 57
+#define FREE42_VERSION 58
 
 
 /*******************/
@@ -4396,6 +4408,8 @@ static bool load_state2(bool *clear, bool *too_new) {
         menu_adjust(26, INT_MAX, 1);
     if (ver < 54)
         menu_adjust(55, INT_MAX, 3);
+    if (ver < 58)
+        menu_adjust(73, INT_MAX, 1);
     if (!read_bool(&mode_running)) return false;
     if (ver < 46)
         mode_caller_stack_lift_disabled = false;
