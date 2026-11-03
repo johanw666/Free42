@@ -42,6 +42,7 @@ void clear_row(int row);
 
 void display_prgm_line(int row, int line_offset);
 void xlabel2buf(char *buf, int buflen, int *bufptr);
+int full_list_to_string(vartype *v, char *buf, int buflen);
 void display_x(int row);
 void display_y(int row);
 void display_incomplete_command(int row);

@@ -1289,7 +1289,7 @@ void xlabel2buf(char *buf, int buflen, int *bufptr) {
     }
 }
 
-static int full_list_to_string(vartype *v, char *buf, int buflen) {
+int full_list_to_string(vartype *v, char *buf, int buflen) {
     int bufptr = 0;
     string2buf(buf, buflen, &bufptr, "{ ", 2);
     if (bufptr > buflen)

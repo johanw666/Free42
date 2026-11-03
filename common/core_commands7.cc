@@ -2073,6 +2073,7 @@ static int concat(bool extend) {
         if (new_data == NULL)
             goto nomem;
         list->array->data = new_data;
+        list->array->data[list->size++] = v;
         // Call binary_result() before doing the actual data transfer.
         // The reason is that binary_result() can fail, because of the
         // T duplication, and we don't want to have to roll back all this.
@@ -2082,10 +2083,10 @@ static int concat(bool extend) {
             // Unlike the 'extend' case, we don't try to shrink the data array
             // back down here. We're only wasting the space of one pointer,
             // so, *shrug*.
+            list->array->data[--list->size] = NULL;
             stack[sp - 1] = (vartype *) list;
             goto nomem;
         }
-        list->array->data[list->size++] = v;
         // Not freeing v because it is now owned by the target list.
         return ERR_NONE;
     } else {
