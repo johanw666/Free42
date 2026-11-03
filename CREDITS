@@ -6,8 +6,13 @@ LU Decomposition and back-substitution code, and Ridders' root-refinement
    algorithm, based on sample code from "Numerical Recipes in C".
 Skins designed by, or based on original work of: Erik Ehrling and
    Sébastien Carlier.
-Lowercase letters in the menu font taken from the WP-34S manual by Walter Bonin
+Lowercase letters in the menu font taken from the WP 34S manual by Walter Bonin
    and Paul Dale.
+
+For the FP_DECNUM build option:
+decNumber library by Mike Cowlishaw
+Transcendental functions for use with decNumber, by Paul Dale, copied from the
+WP 34S calculator project. Used with the author's permission.
 
 The iPhone version's embedded HTTP server uses Minizip 1.01h, a zlib-based zip
 creation and extraction package. Minizip is (C) by Gilles Vollant.
