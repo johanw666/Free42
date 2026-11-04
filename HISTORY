@@ -1,3 +1,13 @@
+2026-11-04: release 3.5.2
+
+* Implemented ARG.
+* Implemented conversions to and from DPD-encoded decimal floating point:
+  N→PS/PD/PQ, PS/PD/PQ->N. Compare these to the existing N→DS/DD/DQ and
+  DS/DD/DQ→N functions, which convert to and from BID-encoded decimal floating
+  point.
+* Fixed two-argument STOFLAG. It got broken in 3.5.
+* Fixed pasting of HP-41 style GTO/XEQ IND X/Y/Z/T/L.
+
 2026-10-31: release 3.5.1
 
 * Fixed a crash while handling nested lists.
