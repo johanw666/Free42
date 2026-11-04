@@ -499,7 +499,7 @@ const command_spec cmd_array[] =
     { /* ANUM */        docmd_anum,        "ANUM",                0x00, 0x00, 0xa6, 0x42,  4, ARG_NONE,   0, 0, NA_T },
     { /* X<>F */        docmd_x_swap_f,    "X<>F",                0x00, 0x00, 0xa6, 0x6e,  4, ARG_NONE,   1, 0, 0x01 },
     { /* RCLFLAG */     docmd_rclflag,     "RCLFLAG",             0x00, 0x00, 0xa6, 0x60,  7, ARG_NONE,   0, 0, NA_T },
-    { /* STOFLAG */     docmd_stoflag,     "STOFLAG",             0x00, 0x00, 0xa6, 0x6d,  7, ARG_NONE,  -1, 0, 0x00 },
+    { /* STOFLAG */     docmd_stoflag,     "STOFLAG",             0x00, 0x00, 0xa6, 0x6d,  7, ARG_NONE,   0, 0, FUNC },
 
     /* User-defined functions */
     { /* FUNC */        docmd_func,        "FUNC",                0x01, 0x00, 0xf2, 0xe0,  4, ARG_FUNC,   0, 0, NA_T },
