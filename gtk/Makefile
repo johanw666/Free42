@@ -63,6 +63,10 @@ OBJS = shell_main.o shell_skin.o shell_state.o skins.o keymap.o \
 	shell_loadimage.o \
 	$(CORE_OBJS)
 
+ifdef NO_BASE_FLOAT
+CXXFLAGS += -DNO_BASE_FLOAT
+endif
+
 ifndef FP_INTEL
 ifndef FP_DECNUM
 ifndef FP_BINARY_INTEL
@@ -89,8 +93,8 @@ EXE = free42bin
 else
 ifdef FP_DECNUM
 CXXFLAGS += -DFP_DECNUM
-DECNUM_SRCS = decQuad.c decimal128.c decNumber.c decContext.c decimal64.c
-OBJS += decQuad.o decimal128.o decNumber.o decContext.o decimal64.o
+DECNUM_SRCS = decQuad.c decimal128.c decNumber.c decContext.c decimal64.c wp34s-math.c
+OBJS += decQuad.o decimal128.o decNumber.o decContext.o decimal64.o wp34s-math.o
 INTELCONV_SRCS = intel-conv.cc
 OBJS += intel-conv.o
 EXE = free42dec-decnum
@@ -161,6 +165,8 @@ $(SRCS) skin2cc.cc keymap2cc.cc skin2cc.conf keymap.txt: symlinks $(DECNUM_SRCS)
 
 $(DECNUM_SRCS):
 	tar xvfz ../decimal/decNumber.tgz
+	ln -s ../decimal/wp34s-math.c
+	ln -s ../decimal/wp34s-math.h
 
 $(INTELCONV_SRCS):
 	tar xvfz ../decimal/intel-conv.tgz
@@ -204,16 +210,14 @@ clean: FORCE
 		*.o *.d *.i *.ii *.s symlinks core.* \
 		raw2txt txt2raw rawconv-linux.tgz
 
-cleaner: FORCE
+cleaner: clean
 	rm -f `find . -type l` \
-		free42bin* free42dec* dec* intel-conv.* \
-		skin2cc skin2cc.exe skins.cc \
-		keymap2cc keymap2cc.exe keymap.cc \
 		readtest_lines.cc \
 		gcc111libbid.a \
-		*.o *.d *.i *.ii *.s symlinks core.* \
-		raw2txt txt2raw rawconv-linux.tgz
 	rm -rf IntelRDFPMathLib20U1
+
+cleanerer: cleaner
+	rm -f free42bin* free42dec*
 
 FORCE:
 

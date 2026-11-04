@@ -28,11 +28,13 @@
 #include "core_sto_rcl.h"
 #include "core_variables.h"
 
+#ifndef NO_BASE_FLOAT
 #if defined(FP_INTEL) || defined(FP_BINARY_INTEL)
 #include "bid_conf.h"
 #include "bid_functions.h"
 #elif defined(FP_DECNUM) || defined(FP_BINARY)
 #include "intel-conv.h"
+#endif
 #endif
 
 /********************************************************/
@@ -1580,6 +1582,82 @@ static bool result2bits(void *data, int size) {
     }
 }
 
+#ifdef NO_BASE_FLOAT
+
+int docmd_n_to_bs(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_n_to_bd(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_n_to_bq(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_bs_to_n(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_bd_to_n(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_bq_to_n(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_n_to_ds(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_n_to_dd(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_n_to_dq(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_ds_to_n(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_dd_to_n(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_dq_to_n(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_n_to_ps(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_n_to_pd(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_n_to_pq(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_ps_to_n(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_pd_to_n(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+int docmd_pq_to_n(arg_struct *arg) {
+    return ERR_NONEXISTENT;
+}
+
+#else
+
 #if defined(FP_INTEL)
 
 int docmd_n_to_bs(arg_struct *arg) {
@@ -1603,22 +1681,28 @@ int docmd_n_to_bq(arg_struct *arg) {
     return bits2result(&r, 16);
 }
 
-int docmd_n_to_ds(arg_struct *arg) {
+static int n_to_ds(bool dpd) {
     BID_UINT128 x = ((vartype_real *) stack[sp])->x.val;
     BID_UINT32 r;
     bid128_to_bid32(&r, &x);
+    if (dpd)
+        bid_to_dpd32(&r, &r);
     return bits2result(&r, 4);
 }
 
-int docmd_n_to_dd(arg_struct *arg) {
+static int n_to_dd(bool dpd) {
     BID_UINT128 x = ((vartype_real *) stack[sp])->x.val;
     BID_UINT64 r;
     bid128_to_bid64(&r, &x);
+    if (dpd)
+        bid_to_dpd64(&r, &r);
     return bits2result(&r, 8);
 }
 
-int docmd_n_to_dq(arg_struct *arg) {
+static int n_to_dq(bool dpd) {
     BID_UINT128 x = ((vartype_real *) stack[sp])->x.val;
+    if (dpd)
+        bid_to_dpd128(&x, &x);
     return bits2result(&x, 16);
 }
 
@@ -1660,10 +1744,12 @@ int docmd_bq_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_ds_to_n(arg_struct *arg) {
+static int ds_to_n(bool dpd) {
     BID_UINT32 x;
     if (!result2bits(&x, 4))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid32(&x, &x);
     BID_UINT128 xx;
     bid32_to_bid128(&xx, &x);
     vartype *v = new_real(xx);
@@ -1673,10 +1759,12 @@ int docmd_ds_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_dd_to_n(arg_struct *arg) {
+static int dd_to_n(bool dpd) {
     BID_UINT64 x;
     if (!result2bits(&x, 8))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid64(&x, &x);
     BID_UINT128 xx;
     bid64_to_bid128(&xx, &x);
     vartype *v = new_real(xx);
@@ -1686,10 +1774,12 @@ int docmd_dd_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_dq_to_n(arg_struct *arg) {
+static int dq_to_n(bool dpd) {
     BID_UINT128 x;
     if (!result2bits(&x, 16))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid128(&x, &x);
     vartype *v = new_real(x);
     if (v == NULL)
         return ERR_INSUFFICIENT_MEMORY;
@@ -1723,25 +1813,30 @@ int docmd_n_to_bq(arg_struct *arg) {
     return bits2result(&r, 16);
 }
 
-int docmd_n_to_ds(arg_struct *arg) {
+static int n_to_ds(bool dpd) {
     decQuad x = ((vartype_real *) stack[sp])->x.val;
     bid_dpd_to_bid128(&x, &x);
     uint4 r;
     bid128_to_bid32(&r, &x);
+    if (dpd)
+        bid_to_dpd32(&r, &r);
     return bits2result(&r, 4);
 }
 
-int docmd_n_to_dd(arg_struct *arg) {
+static int n_to_dd(bool dpd) {
     decQuad x = ((vartype_real *) stack[sp])->x.val;
     bid_dpd_to_bid128(&x, &x);
     uint8 r;
     bid128_to_bid64(&r, &x);
+    if (dpd)
+        bid_to_dpd64(&r, &r);
     return bits2result(&r, 8);
 }
 
-int docmd_n_to_dq(arg_struct *arg) {
+static int n_to_dq(bool dpd) {
     decQuad x = ((vartype_real *) stack[sp])->x.val;
-    bid_dpd_to_bid128(&x, &x);
+    if (!dpd)
+        bid_dpd_to_bid128(&x, &x);
     return bits2result(&x, 16);
 }
 
@@ -1786,10 +1881,12 @@ int docmd_bq_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_ds_to_n(arg_struct *arg) {
+static int ds_to_n(bool dpd) {
     uint4 x;
     if (!result2bits(&x, 4))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid32(&x, &x);
     decQuad r;
     bid32_to_bid128(&r, &x);
     bid_to_dpd128(&r, &r);
@@ -1800,10 +1897,12 @@ int docmd_ds_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_dd_to_n(arg_struct *arg) {
+static int dd_to_n(bool dpd) {
     uint8 x;
     if (!result2bits(&x, 8))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid64(&x, &x);
     decQuad r;
     bid64_to_bid128(&r, &x);
     bid_to_dpd128(&r, &r);
@@ -1814,11 +1913,12 @@ int docmd_dd_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_dq_to_n(arg_struct *arg) {
+static int dq_to_n(bool dpd) {
     decQuad x;
     if (!result2bits(&x, 16))
         return ERR_INVALID_DATA;
-    bid_to_dpd128(&x, &x);
+    if (!dpd)
+        bid_to_dpd128(&x, &x);
     vartype *v = new_real(x);
     if (v == NULL)
         return ERR_INSUFFICIENT_MEMORY;
@@ -1937,31 +2037,39 @@ int docmd_bq_to_n(arg_struct *arg) {
 
 #ifdef FP_BINARY_INTEL
 
-int docmd_n_to_ds(arg_struct *arg) {
+static int n_to_ds(bool dpd) {
     double x = ((vartype_real *) stack[sp])->x;
     BID_UINT32 r;
     binary64_to_bid32(&r, &x);
+    if (dpd)
+        bid_to_dpd32(&r, &r);
     return bits2result(&r, 4);
 }
 
-int docmd_n_to_dd(arg_struct *arg) {
+static int n_to_dd(bool dpd) {
     double x = ((vartype_real *) stack[sp])->x;
     BID_UINT64 r;
     binary64_to_bid64(&r, &x);
+    if (dpd)
+        bid_to_dpd64(&r, &r);
     return bits2result(&r, 8);
 }
 
-int docmd_n_to_dq(arg_struct *arg) {
+static int n_to_dq(bool dpd) {
     double x = ((vartype_real *) stack[sp])->x;
     BID_UINT128 r;
     binary64_to_bid128(&r, &x);
+    if (dpd)
+        bid_to_dpd128(&r, &r);
     return bits2result(&r, 16);
 }
 
-int docmd_ds_to_n(arg_struct *arg) {
+static int ds_to_n(bool dpd) {
     BID_UINT32 x;
     if (!result2bits(&x, 4))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid32(&x, &x);
     double r;
     bid32_to_binary64(&r, &x);
     vartype *v = new_real(r);
@@ -1971,10 +2079,12 @@ int docmd_ds_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_dd_to_n(arg_struct *arg) {
+static int dd_to_n(bool dpd) {
     BID_UINT64 x;
     if (!result2bits(&x, 8))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid64(&x, &x);
     double r;
     bid64_to_binary64(&r, &x);
     vartype *v = new_real(r);
@@ -1984,10 +2094,12 @@ int docmd_dd_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_dq_to_n(arg_struct *arg) {
+static int dq_to_n(bool dpd) {
     BID_UINT128 x;
     if (!result2bits(&x, 16))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid128(&x, &x);
     double r;
     bid128_to_binary64(&r, &x);
     vartype *v = new_real(r);
@@ -1999,31 +2111,39 @@ int docmd_dq_to_n(arg_struct *arg) {
 
 #else
 
-int docmd_n_to_ds(arg_struct *arg) {
+static int n_to_ds(bool dpd) {
     double x = ((vartype_real *) stack[sp])->x;
     uint4 r;
     binary64_to_bid32(&r, &x);
+    if (dpd)
+        bid_to_dpd32(&r, &r);
     return bits2result(&r, 4);
 }
 
-int docmd_n_to_dd(arg_struct *arg) {
+static int n_to_dd(bool dpd) {
     double x = ((vartype_real *) stack[sp])->x;
     uint8 r;
     binary64_to_bid64(&r, &x);
+    if (dpd)
+        bid_to_dpd64(&r, &r);
     return bits2result(&r, 8);
 }
 
-int docmd_n_to_dq(arg_struct *arg) {
+static int n_to_dq(bool dpd) {
     double x = ((vartype_real *) stack[sp])->x;
     struct { uint8 lo; uint8 hi; } r;
     binary64_to_bid128(&r, &x);
+    if (dpd)
+        bid_to_dpd128(&r, &r);
     return bits2result(&r, 16);
 }
 
-int docmd_ds_to_n(arg_struct *arg) {
+static int ds_to_n(bool dpd) {
     uint4 x;
     if (!result2bits(&x, 4))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid32(&x, &x);
     double r;
     bid32_to_binary64(&r, &x);
     vartype *v = new_real(r);
@@ -2033,10 +2153,12 @@ int docmd_ds_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_dd_to_n(arg_struct *arg) {
+static int dd_to_n(bool dpd) {
     uint8 x;
     if (!result2bits(&x, 8))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid64(&x, &x);
     double r;
     bid64_to_binary64(&r, &x);
     vartype *v = new_real(r);
@@ -2046,10 +2168,12 @@ int docmd_dd_to_n(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_dq_to_n(arg_struct *arg) {
+static int dq_to_n(bool dpd) {
     struct { uint8 lo; uint8 hi; } x;
     if (!result2bits(&x, 16))
         return ERR_INVALID_DATA;
+    if (dpd)
+        bid_dpd_to_bid128(&x, &x);
     double r;
     bid128_to_binary64(&r, &x);
     vartype *v = new_real(r);
@@ -2061,6 +2185,57 @@ int docmd_dq_to_n(arg_struct *arg) {
 
 
 #endif
+
+#endif
+
+int docmd_n_to_ds(arg_struct *arg) {
+    return n_to_ds(false);
+}
+
+int docmd_n_to_dd(arg_struct *arg) {
+    return n_to_dd(false);
+}
+
+int docmd_n_to_dq(arg_struct *arg) {
+    return n_to_dq(false);
+}
+
+int docmd_n_to_ps(arg_struct *arg) {
+    return n_to_ds(true);
+}
+
+int docmd_n_to_pd(arg_struct *arg) {
+    return n_to_dd(true);
+}
+
+int docmd_n_to_pq(arg_struct *arg) {
+    return n_to_dq(true);
+}
+
+int docmd_ds_to_n(arg_struct *arg) {
+    return ds_to_n(false);
+}
+
+int docmd_dd_to_n(arg_struct *arg) {
+    return dd_to_n(false);
+}
+
+int docmd_dq_to_n(arg_struct *arg) {
+    return dq_to_n(false);
+}
+
+int docmd_ps_to_n(arg_struct *arg) {
+    return ds_to_n(true);
+}
+
+int docmd_pd_to_n(arg_struct *arg) {
+    return dd_to_n(true);
+}
+
+int docmd_pq_to_n(arg_struct *arg) {
+    return dq_to_n(true);
+}
+
 
 #endif
 

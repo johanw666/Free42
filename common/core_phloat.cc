@@ -32,6 +32,7 @@
 extern "C" {
 #include "decQuad.h"
 #include "decimal128.h"
+#include "wp34s-math.h"
 }
 #elif defined(FP_BINARY)
 #include "intel-conv.h"
@@ -829,6 +830,8 @@ Phloat PI("3.141592653589793238462643383279503");
 
 decContext dctx;
 
+extern "C" void wp34s_init();
+
 void phloat_init() {
     decContextDefault(&dctx, DEC_INIT_DECQUAD);
     decQuad posinf, neginf, zero, poshuge, neghuge, postiny, negtiny, nan, nan1, nan2;
@@ -856,6 +859,7 @@ void phloat_init() {
     NAN_PHLOAT = nan;
     NAN_1_PHLOAT = nan1;
     NAN_2_PHLOAT = nan2;
+    wp34s_init();
 }
 
 int string2phloat(const char *buf, int buflen, phloat *d) {
@@ -1262,79 +1266,168 @@ double to_double(Phloat p) {
 }
 
 Phloat sin(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberSin(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat cos(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberCos(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat tan(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberTan(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat asin(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberArcSin(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat acos(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberArcCos(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat atan(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberArcTan(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 void p_sincos(Phloat phi, Phloat *s, Phloat *c) {
-    // TODO
-    *s = NAN_PHLOAT;
-    *c = NAN_PHLOAT;
+    decNumber nphi, ns, nc;
+    decQuadToNumber(&phi.val, &nphi);
+    dn_sincos(&nphi, &ns, &nc);
+    decQuadFromNumber(&s->val, &ns, &dctx);
+    decQuadFromNumber(&c->val, &nc, &dctx);
 }
 
 Phloat hypot(Phloat x, Phloat y) {
-    // TODO
-    return NAN_PHLOAT;
+    if (x < 0)
+        x = -x;
+    if (y < 0)
+        y = -y;
+    if (x < y) {
+        Phloat t = x;
+        x = y;
+        y = t;
+    }
+    if (y == 0)
+        return x;
+    int ex = decQuadGetExponent(&x.val);
+    int ey = decQuadGetExponent(&y.val);
+    if (ex - ey > 39)
+        return x;
+    Phloat scale;
+    decQuadFromInt32(&scale.val, -ex);
+    decQuadScaleB(&x.val, &x.val, &scale.val, &dctx);
+    decQuadScaleB(&y.val, &y.val, &scale.val, &dctx);
+    Phloat res = sqrt(x * x + y * y);
+    decQuadFromInt32(&scale.val, ex);
+    decQuadScaleB(&res.val, &res.val, &scale.val, &dctx);
+    return res;
 }
 
 Phloat atan2(Phloat x, Phloat y) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber nx, ny;
+    decQuadToNumber(&x.val, &nx);
+    decQuadToNumber(&y.val, &ny);
+    decNumber r;
+    decNumberArcTan2(&r, &nx, &ny);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat sinh(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberSinh(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat cosh(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberCosh(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat tanh(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberTanh(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat asinh(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberArcSinh(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat acosh(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberArcCosh(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat atanh(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberArcTanh(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat log(Phloat p) {
@@ -1348,8 +1441,13 @@ Phloat log(Phloat p) {
 }
 
 Phloat log1p(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberLn1p(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat log10(Phloat p) {
@@ -1373,13 +1471,23 @@ Phloat exp(Phloat p) {
 }
 
 Phloat expm1(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberExpm1(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat tgamma(Phloat p) {
-    // TODO
-    return NAN_PHLOAT;
+    decNumber n;
+    decQuadToNumber(&p.val, &n);
+    decNumber r;
+    decNumberGamma(&r, &n);
+    decQuad res;
+    decQuadFromNumber(&res, &r, &dctx);
+    return Phloat(res);
 }
 
 Phloat sqrt(Phloat p) {

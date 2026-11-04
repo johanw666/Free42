@@ -1008,18 +1008,30 @@ int docmd_pcomplx(arg_struct *arg) {
     return err;
 }
 
-static int re_im_helper(bool re) {
+#define SELECT_RE 0
+#define SELECT_IM 1
+#define SELECT_ARG 2
+
+static phloat arg(phloat re, phloat im) {
+    phloat r, phi;
+    generic_r2p(re, im, &r, &phi);
+    return phi;
+}
+
+static int re_im_arg_helper(int which) {
     vartype *res;
     vartype *x = stack[sp];
     switch (x->type) {
         case TYPE_REAL: {
             vartype_real *r = (vartype_real *) x;
-            res = new_real(re ? r->x : 0);
+            phloat s = which == SELECT_RE ? r->x : which == SELECT_IM ? 0 : arg(r->x, 0);
+            res = new_real(s);
             break;
         }
         case TYPE_COMPLEX: {
             vartype_complex *c = (vartype_complex *) x;
-            res = new_real(re ? c->re : c->im);
+            phloat s = which == SELECT_RE ? c->re : which == SELECT_IM ? c->im : arg(c->re, c->im);
+            res = new_real(s);
             break;
         }
         case TYPE_REALMATRIX: {
@@ -1028,10 +1040,16 @@ static int re_im_helper(bool re) {
             for (int4 i = 0; i < sz; i++)
                 if (rm->array->is_string[i] != 0)
                     return ERR_ALPHA_DATA_IS_INVALID;
-            if (re)
+            if (which == SELECT_RE) {
                 res = dup_vartype(x);
-            else
+            } else {
                 res = new_realmatrix(rm->rows, rm->columns);
+                if (res != NULL && which == SELECT_ARG) {
+                    vartype_realmatrix *resm = (vartype_realmatrix *) res;
+                    for (int4 i = 0; i < sz; i++)
+                        resm->array->data[i] = arg(rm->array->data[i], 0);
+                }
+            }
             break;
         }
         case TYPE_COMPLEXMATRIX: {
@@ -1040,8 +1058,11 @@ static int re_im_helper(bool re) {
             if (res != NULL) {
                 int4 sz = cm->rows * cm->columns;
                 vartype_realmatrix *rm = (vartype_realmatrix *) res;
-                for (int4 i = 0; i < sz; i++)
-                    rm->array->data[i] = cm->array->data[2 * i + !re];
+                phloat *c = cm->array->data + (which == SELECT_IM);
+                for (int4 i = 0; i < sz; i++) {
+                    rm->array->data[i] = which == SELECT_ARG ? arg(*c, *(c + 1)) : *c;
+                    c += 2;
+                }
             }
             break;
         }
@@ -1055,11 +1076,15 @@ static int re_im_helper(bool re) {
 }
 
 int docmd_re(arg_struct *arg) {
-    return re_im_helper(true);
+    return re_im_arg_helper(SELECT_RE);
 }
 
 int docmd_im(arg_struct *arg) {
-    return re_im_helper(false);
+    return re_im_arg_helper(SELECT_IM);
+}
+
+int docmd_arg(arg_struct *arg) {
+    return re_im_arg_helper(SELECT_ARG);
 }
 
 int docmd_conj(arg_struct *arg) {
@@ -2048,6 +2073,7 @@ static int concat(bool extend) {
         if (new_data == NULL)
             goto nomem;
         list->array->data = new_data;
+        list->array->data[list->size++] = v;
         // Call binary_result() before doing the actual data transfer.
         // The reason is that binary_result() can fail, because of the
         // T duplication, and we don't want to have to roll back all this.
@@ -2057,10 +2083,10 @@ static int concat(bool extend) {
             // Unlike the 'extend' case, we don't try to shrink the data array
             // back down here. We're only wasting the space of one pointer,
             // so, *shrug*.
+            list->array->data[--list->size] = NULL;
             stack[sp - 1] = (vartype *) list;
             goto nomem;
         }
-        list->array->data[list->size++] = v;
         // Not freeing v because it is now owned by the target list.
         return ERR_NONE;
     } else {

@@ -953,6 +953,8 @@ int docmd_rclflag(arg_struct *arg) {
 }
 
 int docmd_stoflag(arg_struct *arg) {
+    if (sp == -1 || sp == 0 && stack[sp]->type == TYPE_REAL)
+        return ERR_TOO_FEW_ARGUMENTS;
     if (stack[sp]->type == TYPE_STRING)
         return ERR_ALPHA_DATA_IS_INVALID;
     if (stack[sp]->type != TYPE_REAL && stack[sp]->type != TYPE_COMPLEX)

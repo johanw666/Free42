@@ -1,3 +1,24 @@
+2026-11-04: release 3.5.2
+
+* Implemented ARG.
+* Implemented conversions to and from DPD-encoded decimal floating point:
+  N→PS/PD/PQ, PS/PD/PQ->N. Compare these to the existing N→DS/DD/DQ and
+  DS/DD/DQ→N functions, which convert to and from BID-encoded decimal floating
+  point.
+* Fixed two-argument STOFLAG. It got broken in 3.5.
+* Fixed pasting of HP-41 style GTO/XEQ IND X/Y/Z/T/L.
+
+2026-10-31: release 3.5.1
+
+* Fixed a crash while handling nested lists.
+* Implemented RE, IM, and CONJ.
+* 0=? and 0≠? now accept complex numbers, real and complex matrices, and lists.
+  Lists are checked recursively; empty lists are considered to be zero.
+* X=? and X≠? now consider a and a+0i to be equal. Which, let's be real here,
+  they are.
+* Note that these changes do not apply to X=0?, X≠0?, X=Y?, and X≠Y? They
+  remain complex-unfriendly, for the sake of HP-42S compatibility.
+
 2026-10-30: release 3.5
 
 * It is now possible to make shifted assignments in the programmable menu and

@@ -472,12 +472,18 @@ const command_spec cmd_array[] =
     { /* N_TO_DS */     docmd_n_to_ds,     "N\17DS",              0x00, 0x00, 0xa7, 0x69,  4, ARG_NONE,   1, 1, 0x01 },
     { /* N_TO_DD */     docmd_n_to_dd,     "N\17DD",              0x00, 0x00, 0xa7, 0x6a,  4, ARG_NONE,   1, 1, 0x01 },
     { /* N_TO_DQ */     docmd_n_to_dq,     "N\17DQ",              0x00, 0x00, 0xa7, 0x6b,  4, ARG_NONE,   1, 1, 0x01 },
+    { /* N_TO_PS */     docmd_n_to_ps,     "N\17PS",              0x00, 0x00, 0xa6, 0xa6,  4, ARG_NONE,   1, 1, 0x01 },
+    { /* N_TO_PD */     docmd_n_to_pd,     "N\17PD",              0x00, 0x00, 0xa6, 0xa7,  4, ARG_NONE,   1, 1, 0x01 },
+    { /* N_TO_PQ */     docmd_n_to_pq,     "N\17PQ",              0x00, 0x00, 0xa6, 0xa8,  4, ARG_NONE,   1, 1, 0x01 },
     { /* BS_TO_N */     docmd_bs_to_n,     "BS\17N",              0x00, 0x00, 0xa7, 0x6c,  4, ARG_NONE,   1, 1, 0x11 },
     { /* BD_TO_N */     docmd_bd_to_n,     "BD\17N",              0x00, 0x00, 0xa7, 0x6d,  4, ARG_NONE,   1, 1, 0x11 },
     { /* BQ_TO_N */     docmd_bq_to_n,     "BQ\17N",              0x00, 0x00, 0xa7, 0x6e,  4, ARG_NONE,   1, 1, 0x11 },
     { /* DS_TO_N */     docmd_ds_to_n,     "DS\17N",              0x00, 0x00, 0xa7, 0x6f,  4, ARG_NONE,   1, 1, 0x11 },
     { /* DD_TO_N */     docmd_dd_to_n,     "DD\17N",              0x00, 0x00, 0xa7, 0x70,  4, ARG_NONE,   1, 1, 0x11 },
     { /* DQ_TO_N */     docmd_dq_to_n,     "DQ\17N",              0x00, 0x00, 0xa7, 0x71,  4, ARG_NONE,   1, 1, 0x11 },
+    { /* PS_TO_N */     docmd_ps_to_n,     "PS\17N",              0x00, 0x00, 0xa6, 0xa9,  4, ARG_NONE,   1, 1, 0x11 },
+    { /* PD_TO_N */     docmd_pd_to_n,     "PD\17N",              0x00, 0x00, 0xa6, 0xaa,  4, ARG_NONE,   1, 1, 0x11 },
+    { /* PQ_TO_N */     docmd_pq_to_n,     "PQ\17N",              0x00, 0x00, 0xa6, 0xab,  4, ARG_NONE,   1, 1, 0x11 },
     { /* WSIZE */       docmd_wsize,       "WSIZE",               0x00, 0x00, 0xa7, 0xd3,  5, ARG_NONE,   1, 0, 0x01 },
     { /* WSIZE_T */     docmd_wsize_t,     "WS\311Z\305?",        0x00, 0x00, 0xa7, 0xd4,  6, ARG_NONE,   0, 0, NA_T },
     { /* BSIGNED */     docmd_bsigned,     "BS\311GN\305\304",    0x00, 0x00, 0xa7, 0xd6,  7, ARG_NONE,   0, 0, NA_T },
@@ -493,7 +499,7 @@ const command_spec cmd_array[] =
     { /* ANUM */        docmd_anum,        "ANUM",                0x00, 0x00, 0xa6, 0x42,  4, ARG_NONE,   0, 0, NA_T },
     { /* X<>F */        docmd_x_swap_f,    "X<>F",                0x00, 0x00, 0xa6, 0x6e,  4, ARG_NONE,   1, 0, 0x01 },
     { /* RCLFLAG */     docmd_rclflag,     "RCLFLAG",             0x00, 0x00, 0xa6, 0x60,  7, ARG_NONE,   0, 0, NA_T },
-    { /* STOFLAG */     docmd_stoflag,     "STOFLAG",             0x00, 0x00, 0xa6, 0x6d,  7, ARG_NONE,  -1, 0, 0x00 },
+    { /* STOFLAG */     docmd_stoflag,     "STOFLAG",             0x00, 0x00, 0xa6, 0x6d,  7, ARG_NONE,   0, 0, FUNC },
 
     /* User-defined functions */
     { /* FUNC */        docmd_func,        "FUNC",                0x01, 0x00, 0xf2, 0xe0,  4, ARG_FUNC,   0, 0, NA_T },
@@ -536,6 +542,7 @@ const command_spec cmd_array[] =
     { /* RE */          docmd_re,          "RE",                  0x00, 0x00, 0xa7, 0x7e,  2, ARG_NONE,   1, 1, 0x0f },
     { /* IM */          docmd_im,          "IM",                  0x00, 0x00, 0xa7, 0x7f,  2, ARG_NONE,   1, 1, 0x0f },
     { /* CONJ */        docmd_conj,        "CONJ",                0x00, 0x00, 0xa6, 0xa4,  4, ARG_NONE,   1, 1, 0x0f },
+    { /* ARG */         docmd_arg,         "ARG",                 0x00, 0x00, 0xa6, 0xa5,  3, ARG_NONE,   1, 1, 0x0f },
     { /* CAPS */        docmd_caps,        "CAPS",                0x42, 0x00, 0x00, 0x00,  4, ARG_NONE,   0, 0, NA_T },
     { /* MIXED */       docmd_mixed,       "Mixed",               0x42, 0x00, 0x00, 0x00,  5, ARG_NONE,   0, 0, NA_T },
     { /* STATIC */      docmd_static,      "STAT\311\303",        0x42, 0x00, 0x00, 0x00,  6, ARG_NONE,   0, 0, NA_T },
@@ -1000,6 +1007,7 @@ struct listify_data {
     arg_struct arg;
     int4 size, i;
     int (*saved_interruptible)(bool);
+    listify_data *saved_listifier;
 
     bool init(int cmd, vartype *a, vartype *b) {
         this->cmd = cmd;
@@ -1016,6 +1024,7 @@ struct listify_data {
         if (r == NULL)
             return false;
         save_stack(b == NULL ? 1 : 2);
+        saved_listifier = listifier;
         return true;
     }
 
@@ -1111,8 +1120,8 @@ struct listify_data {
             free_vartype((vartype *) r);
         bool unary = b == NULL;
         restore_stack();
-        free(listifier); // i.e. free(this) !
-        listifier = NULL;
+        listifier = saved_listifier;
+        free(this);
         if (err == ERR_NONE)
             if (unary)
                 unary_result(res);
@@ -1145,14 +1154,14 @@ static int listify(int cmd, vartype *a, vartype *b) {
             return ERR_DIMENSION_ERROR;
     }
 
-    listifier = (listify_data *) malloc(sizeof(listify_data));
-    if (listifier == NULL)
+    listify_data *new_listifier = (listify_data *) malloc(sizeof(listify_data));
+    if (new_listifier == NULL)
         return ERR_INSUFFICIENT_MEMORY;
-    if (!listifier->init(cmd, a, b)) {
-        free(listifier);
-        listifier = NULL;
+    if (!new_listifier->init(cmd, a, b)) {
+        free(new_listifier);
         return ERR_INSUFFICIENT_MEMORY;
     }
+    listifier = new_listifier;
 
     int err = ERR_NONE;
     while (listifier->i < listifier->size) {
