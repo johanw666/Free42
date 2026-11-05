@@ -566,9 +566,9 @@ int docmd_aview(arg_struct *arg) {
     return ERR_NONE;
 }
 
-int docmd_xeq(arg_struct *arg) {
+static int xeq_helper(arg_struct *arg, int type) {
     if (program_running()) {
-        int err = push_rtn_addr(current_prgm, pc);
+        int err = push_rtn_addr(current_prgm, pc, type);
         if (err != ERR_NONE)
             return err;
         err = docmd_gto(arg);
@@ -589,6 +589,17 @@ int docmd_xeq(arg_struct *arg) {
         clear_all_rtns();
         return ERR_RUN;
     }
+}
+
+int docmd_xeq(arg_struct *arg) {
+    return xeq_helper(arg, 0);
+}
+
+int docmd_xeqmap(arg_struct *arg) {
+    mode_running = true;
+    int err = xeq_helper(arg, 2);
+    mode_running = false;
+    return err == ERR_NONE ? ERR_RUN : err;
 }
 
 int docmd_prompt(arg_struct *arg) {

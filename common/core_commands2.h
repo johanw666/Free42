@@ -41,6 +41,7 @@ int docmd_view(arg_struct *arg);
 int docmd_aview(arg_struct *arg);
 int docmd_xview(arg_struct *arg);
 int docmd_xeq(arg_struct *arg);
+int docmd_xeqmap(arg_struct *arg);
 int docmd_prompt(arg_struct *arg);
 int docmd_pse(arg_struct *arg);
 int docmd_isg(arg_struct *arg);

@@ -563,6 +563,7 @@ const command_spec cmd_array[] =
     { /* LOCK */        docmd_lock,        "LOCK",                0x42, 0x00, 0x00, 0x00,  4, ARG_NONE,   0, 0, NA_T },
     { /* UNLOCK */      docmd_unlock,      "UNL\317\303K",        0x42, 0x00, 0x00, 0x00,  6, ARG_NONE,   0, 0, NA_T },
     { /* IDENT */       docmd_ident,       "IDENT",               0x00, 0x00, 0xa7, 0xf5,  5, ARG_NONE,   0, 0, NA_T },
+    { /* XEQMAP */      docmd_xeqmap,      "XEQ",                 0x04, 0x00, 0x00, 0x00,  3, ARG_LBL,    0, 0, NA_T },
 
     /* String & List Functions */
     { /* XSTR */        docmd_xstr,        "XSTR",                0x20, 0x41, 0x00, 0x00,  4, ARG_XSTR,   0, 0, NA_T },

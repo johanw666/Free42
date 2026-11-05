@@ -3378,7 +3378,7 @@ void do_prgm_menu_key(int keynum) {
         return;
     }
     if (!progmenu_is_gto[keynum]) {
-        err = push_rtn_addr(oldprgm, oldpc == -1 ? 0 : oldpc);
+        err = push_rtn_addr(oldprgm, oldpc == -1 ? 0 : oldpc, 1);
         if (err != ERR_NONE) {
             current_prgm = oldprgm;
             pc = oldpc;

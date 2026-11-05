@@ -48,14 +48,13 @@ static int handle_dcm_xeq() {
             return cmd;
     }
 
-    pending_command = CMD_XEQ;
     if (flags.f.prgm_mode) {
-        store_command_after(&pc, pending_command,
-                                    &pending_command_arg, NULL);
+        store_command_after(&pc, CMD_XEQ, &pending_command_arg, NULL);
         prgm_highlight_row = 1;
         pending_command = CMD_NONE;
         redisplay();
-    }
+    } else
+        pending_command = CMD_XEQMAP;
     return CMD_NONE;
 }
 
