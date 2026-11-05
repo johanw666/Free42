@@ -3352,6 +3352,7 @@ void do_prgm_menu_key(int keynum) {
             do_null:
             pending_command = CMD_NULL;
             print_menu_trace("NULL", 4);
+            return;
         } else if (keynum >= 9) {
             if (progmenu_arg[keynum - 9].type != ARGTYPE_NONE)
                 keynum -= 9;
@@ -3359,8 +3360,9 @@ void do_prgm_menu_key(int keynum) {
                 goto do_null;
         } else if (keynum == 8) {
             pending_command = CMD_CANCELLED;
-        }
-        return;
+            return;
+        } else // keynum == 6 or 7
+            return;
     }
     if (keynum < 6 || keynum >= 9) {
         int k = keynum >= 9 ? keynum - 3 : keynum;
