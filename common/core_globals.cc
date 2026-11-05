@@ -2966,12 +2966,13 @@ int push_rtn_addr(int prgm, int4 pc, int type) {
         rtn_stack_capacity = new_rtn_stack_capacity;
         rtn_stack = new_rtn_stack;
     }
-    rtn_stack[rtn_level].set_prgm(prgm);
-    rtn_stack[rtn_level].pc = pc;
+    rtn_stack_entry *entry = rtn_stack + rtn_level;
+    entry->set_prgm(prgm);
+    entry->pc = pc;
     if (type == 1)
-        rtn_stack[rtn_level].set_progmenu_xeq();
+        entry->set_progmenu_xeq();
     else if (type == 2)
-        rtn_stack[rtn_level].set_keymap_xeq();
+        entry->set_keymap_xeq();
     rtn_level++;
     if (prgm == -2)
         rtn_solve_active = true;
