@@ -1072,8 +1072,6 @@ void print_text(const char *text, int length, bool left_justified) {
         char c = text[i];
         if (flags.f.lowercase_print && (c & 127) >= 'A' && (c & 127) <= 'Z')
             c += 32;
-        else if (c == 10)
-            c = (char) 138;
         buf[bufptr++] = c;
     }
 

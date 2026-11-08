@@ -38,7 +38,7 @@ public class ShellSpool {
         StringBuffer buf = new StringBuffer();
         for (int i = 0; i < src.length; i++) {
             int c = src[i] & 255;
-            if (undefined_char(c)) {
+            if (undefined_char(c) || c == 138) {
                 // Escape sequence: euro sign plus two hex digits.
                 // In hp2ascii(), only used for undefined characters;
                 // in ascii2hp(), accepted for everything.
@@ -59,6 +59,7 @@ public class ShellSpool {
                 case   7:  esc = "\u03c0"; break; // lowercase pi
                 case   8:  esc = "\u00bf"; break; // upside-down question mark
                 case   9:  esc = "\u2264"; break; // less-than-or-equals sign
+                case  10:  esc = "[LF]"; break;   // LF symbol
                 case  11:  esc = "\u2265"; break; // greater-than-or-equals sign
                 case  12:  esc = "\u2260"; break; // not-equals sign
                 case  13:  esc = "\u21b5"; break; // down-then-left arrow
@@ -92,7 +93,6 @@ public class ShellSpool {
                 case 135:  esc = "\u25ec"; break; // gray right-pointing triangle
                 case 136:  esc = "\u00ab"; break; // opening guillemet
                 case 137:  esc = "\u00bb"; break; // closing guillemet
-                case 138:  esc = "[LF]"; break;   // LF symbol
                 default:   buf.append((char) c); continue;
             }
             buf.append(esc);
