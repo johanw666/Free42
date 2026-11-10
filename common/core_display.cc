@@ -1168,9 +1168,6 @@ void tb_print_current_program(textbuf *tb) {
         char *xstr = NULL;
         int len = prgmline2buf(buf, 100, line, cmd == CMD_LBL, cmd, &arg, orig_num, false, false, &xstr);
         char *buf2 = xstr == NULL ? buf : xstr;
-        for (int i = 0; i < len; i++)
-            if (buf2[i] == 10)
-                buf2[i] = (char) 138;
         int off = 0;
         while (len > 0) {
             int slen = len <= 100 ? len : 100;
@@ -3361,7 +3358,8 @@ void do_prgm_menu_key(int keynum) {
         } else if (keynum == 8) {
             pending_command = CMD_CANCELLED;
             return;
-        }
+        } else // keynum == 6 or 7
+            return;
     }
     if (keynum < 6 || keynum >= 9) {
         int k = keynum >= 9 ? keynum - 3 : keynum;
@@ -3379,7 +3377,7 @@ void do_prgm_menu_key(int keynum) {
         return;
     }
     if (!progmenu_is_gto[keynum]) {
-        err = push_rtn_addr(oldprgm, oldpc == -1 ? 0 : oldpc);
+        err = push_rtn_addr(oldprgm, oldpc == -1 ? 0 : oldpc, 1);
         if (err != ERR_NONE) {
             current_prgm = oldprgm;
             pc = oldpc;

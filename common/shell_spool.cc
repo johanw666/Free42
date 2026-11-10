@@ -32,7 +32,7 @@ int hp2ascii(char *dst, const char *src, int srclen) {
     int s, d = 0;
     for (s = 0; s < srclen; s++) {
         c = src[s];
-        if (undefined_char(c)) {
+        if (undefined_char(c) || c == 138) {
             // Escape sequence: euro sign plus two hex digits.
             // In hp2ascii(), only used for undefined characters;
             // in ascii2hp(), accepted for everything.
@@ -54,6 +54,7 @@ int hp2ascii(char *dst, const char *src, int srclen) {
             case   7:  esc = "\317\200"; break;     // lowercase pi
             case   8:  esc = "\302\277"; break;     // upside-down question mark
             case   9:  esc = "\342\211\244"; break; // less-than-or-equals sign
+            case  10:  esc = "[LF]"; break;         // LF symbol
             case  11:  esc = "\342\211\245"; break; // greater-than-or-equals sign
             case  12:  esc = "\342\211\240"; break; // not-equals sign
             case  13:  esc = "\342\206\265"; break; // down-then-left arrow
@@ -87,7 +88,6 @@ int hp2ascii(char *dst, const char *src, int srclen) {
             case 135:  esc = "\342\227\254"; break; // gray right-pointing triangle
             case 136:  esc = "\302\253"; break;     // opening guillemet
             case 137:  esc = "\302\273"; break;     // closing guillemet
-            case 138:  esc = "[LF]"; break;         // LF symbol
             default: dst[d++] = c; continue;
         }
         while (*esc != 0)

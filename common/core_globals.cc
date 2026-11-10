@@ -861,13 +861,13 @@ struct rtn_stack_entry {
     int4 prgm;
     int4 pc;
     int4 get_prgm() {
-        int4 p = prgm & 0x0fffffff;
-        if ((p & 0x08000000) != 0)
-            p |= 0xf0000000;
+        int4 p = prgm & 0x03ffffff;
+        if ((p & 0x02000000) != 0)
+            p |= 0xfc000000;
         return p;
     }
     void set_prgm(int4 prgm) {
-        this->prgm = prgm & 0x0fffffff;
+        this->prgm = prgm & 0x03ffffff;
     }
     bool has_matrix() {
         return (prgm & 0x80000000) != 0;
@@ -904,6 +904,18 @@ struct rtn_stack_entry {
             prgm |= 0x10000000;
         else
             prgm &= 0xefffffff;
+    }
+    bool is_keymap_xeq() {
+        return (prgm & 0x08000000) != 0;
+    }
+    void set_keymap_xeq() {
+        prgm |= 0x08000000;
+    }
+    bool is_progmenu_xeq() {
+        return (prgm & 0x04000000) != 0;
+    }
+    void set_progmenu_xeq() {
+        prgm |= 0x04000000;
     }
 };
 
@@ -2937,7 +2949,13 @@ bool find_global_label_index(const arg_struct *arg, int *idx) {
     return find_global_label_2(arg, NULL, NULL, idx);
 }
 
-int push_rtn_addr(int prgm, int4 pc) {
+/* RTN address 'type':
+ * 0: normal
+ * 1: KEYX. If we return due to RTNERR, don't step back one line.
+ * 2: Direct XEQ mapping. Always stop on return, and also, if we return
+ *    due to RTNERR, don't step back one line.
+ */
+int push_rtn_addr(int prgm, int4 pc, int type) {
     if (rtn_level == MAX_RTN_LEVEL)
         return ERR_RTN_STACK_FULL;
     if (rtn_level == rtn_stack_capacity) {
@@ -2948,8 +2966,13 @@ int push_rtn_addr(int prgm, int4 pc) {
         rtn_stack_capacity = new_rtn_stack_capacity;
         rtn_stack = new_rtn_stack;
     }
-    rtn_stack[rtn_level].set_prgm(prgm);
-    rtn_stack[rtn_level].pc = pc;
+    rtn_stack_entry *entry = rtn_stack + rtn_level;
+    entry->set_prgm(prgm);
+    entry->pc = pc;
+    if (type == 1)
+        entry->set_progmenu_xeq();
+    else if (type == 2)
+        entry->set_keymap_xeq();
     rtn_level++;
     if (prgm == -2)
         rtn_solve_active = true;
@@ -3622,7 +3645,8 @@ int rtn(int err) {
     int newprgm;
     int4 newpc;
     bool stop;
-    pop_rtn_addr(&newprgm, &newpc, &stop);
+    int type;
+    pop_rtn_addr(&newprgm, &newpc, &stop, &type);
     if (newprgm == -3) {
         return return_to_integ(stop);
     } else if (newprgm == -2) {
@@ -3631,6 +3655,12 @@ int rtn(int err) {
         if (pc >= prgms[current_prgm].size)
             /* It's an END; go to line 0 */
             pc = -1;
+        if (err != ERR_NONE)
+            display_error(err);
+        return ERR_STOP;
+    } else if (type == 2) {
+        current_prgm = newprgm;
+        pc = newpc;
         if (err != ERR_NONE)
             display_error(err);
         return ERR_STOP;
@@ -3677,18 +3707,21 @@ int rtn_with_error(int err) {
     }
     int newprgm;
     int4 newpc;
-    pop_rtn_addr(&newprgm, &newpc, &stop);
+    int type;
+    pop_rtn_addr(&newprgm, &newpc, &stop, &type);
     if (newprgm >= 0) {
         // Stop on the calling XEQ, not the RTNERR
         current_prgm = newprgm;
         int line = pc2line(newpc);
-        set_old_pc(line2pc(line - 1));
+        if (type == 0)
+            line--;
+        set_old_pc(line2pc(line));
     }
     set_caught(false);
     return err;
 }
 
-void pop_rtn_addr(int *prgm, int4 *pc, bool *stop) {
+void pop_rtn_addr(int *prgm, int4 *pc, bool *stop, int *type) {
     if (rtn_level == 0 ? rtn_level_0_has_matrix_entry : rtn_stack[rtn_level - 1].has_matrix()) {
         vartype_list *list = (vartype_list *) recall_and_purge_private_var("MAT", 3);
         if (list != NULL) {
@@ -3718,14 +3751,19 @@ void pop_rtn_addr(int *prgm, int4 *pc, bool *stop) {
     }
     remove_locals();
     if (rtn_level == 0) {
+        if (type != NULL)
+            *type = 0;
         *prgm = -1;
         *pc = -1;
         rtn_stop_level = -1;
         rtn_level_0_has_func_state = false;
     } else {
         rtn_level--;
-        *prgm = rtn_stack[rtn_level].get_prgm();
-        *pc = rtn_stack[rtn_level].pc;
+        rtn_stack_entry *entry = rtn_stack + rtn_level;
+        if (type != NULL)
+            *type = entry->is_progmenu_xeq() ? 1 : entry->is_keymap_xeq() ? 2 : 0;
+        *prgm = entry->get_prgm();
+        *pc = entry->pc;
         if (rtn_stop_level >= rtn_level) {
             *stop = true;
             rtn_stop_level = -1;

@@ -2587,10 +2587,6 @@ static void serialize_list(textbuf *tb, vartype_list *list, int indent) {
                 char cbuf[5];
                 for (int j = 0; j < s->length; j++) {
                     unsigned char c = txt[j];
-                    if (c == 10)
-                        c = 138;
-                    else if (undefined_char(c))
-                        c &= 127;
                     if (c == '"') {
                         tb_write(tb, "\\\"", 2);
                     } else if (c == '\\') {
@@ -2625,10 +2621,6 @@ static void serialize_list(textbuf *tb, vartype_list *list, int indent) {
                         char cbuf[5];
                         for (int k = 0; k < len; k++) {
                             unsigned char c = text[k];
-                            if (c == 10)
-                                c = 138;
-                            else if (undefined_char(c))
-                                c &= 127;
                             if (c == '"') {
                                 tb_write(tb, "\\\"", 2);
                             } else if (c == '\\') {
@@ -3069,6 +3061,7 @@ static int ascii2hp(char *dst, int dstlen, const char *src, int srclen /* = -1 *
             case 0x03c0: code =   7; break; // lowercase pi
             case 0x00bf: code =   8; break; // upside-down question mark
             case 0x2264: code =   9; break; // less-than-or-equals sign
+            case 0x240a: code =  10; break; // LF symbol
             case 0x2265: code =  11; break; // greater-than-or-equals sign
             case 0x2260: code =  12; break; // not-equals sign
             case 0x21b5: code =  13; break; // down-then-left arrow
@@ -3123,7 +3116,6 @@ static int ascii2hp(char *dst, int dstlen, const char *src, int srclen /* = -1 *
             case 0x25ec: code = 135; break; // gray right-pointing triangle
             case 0x00ab: code = 136; break; // opening guillemet
             case 0x00bb: code = 137; break; // closing guillemet
-            case 0x240a: code = 138; break; // LF symbol
             // Combining accents: apply them if they fit,
             // otherwise ignore them
             case 0x0303:
