@@ -1,3 +1,16 @@
+2026-11-10: release 3.5.3
+
+* In the programmable menu, pressing ▲ or ▼ if they hadn't been assigned would
+  cause an Internal Error. This bug was introduced with the support for shifted
+  assignments in 3.5. It was harmless but annoying. Now fixed.
+* Copying and Pasting text now deals with linefeeds more consistently, and
+  doesn't lose information when copying and pasting matrices and lists with
+  embedded text.
+* Functions invoked using direct XEQ mapping in skins now have fewer side
+  effects. They leave the program counter at the same place where they started,
+  even when the function ends with RTNERR, and they no longer cancel the
+  programmable menu.
+
 2026-11-04: release 3.5.2
 
 * Implemented ARG.
