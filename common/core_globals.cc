@@ -849,8 +849,9 @@ bool no_keystrokes_yet;
  * Version 56: 3.4    Error trapping: stack trace
  * Version 57: 3.5    Shifted CUSTOM & prog menu assignments
  * Version 58: 3.5.2  Added third row to BASE->FLOAT menu
+ * Version 59: 3.5.3  RTN improvements for KEYX and direct XEQ mapping
  */
-#define FREE42_VERSION 58
+#define FREE42_VERSION 59
 
 
 /*******************/
